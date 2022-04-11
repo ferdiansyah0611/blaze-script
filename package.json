@@ -1,0 +1,18 @@
+{
+  "name": "blaze-script",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@types/mustache": "^4.1.2",
+    "typescript": "^4.5.4",
+    "vite": "^2.9.0"
+  },
+  "dependencies": {
+    "mustache": "^4.2.0"
+  }
+}
