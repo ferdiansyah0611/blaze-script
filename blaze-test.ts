@@ -14,16 +14,20 @@ class Test{
         console.log('%cTEST: ' + msg, color)
         return this
     }
-    it(...msg: any[]){
-        console.log('>', ...msg)
+    it(msg: string){
+        console.group(msg)
+    }
+    endIt(){
+        console.groupEnd()
     }
     go(url: string){
         this.log('go ' + url)
         window.$router.history.push(url)
         return this
     }
-    value(input: string){
-        this.query.value = input
+    value(name: string, type: string, input: string){
+        this.query.input[name].value = input
+        document.querySelector(`${this.select} ${type}[name="${name}"]`).value = input
         return this
     }
     use(component: string){
@@ -36,11 +40,13 @@ class Test{
     get query(): any{
         return document.querySelector(this.select)
     }
-    async event(name: any, expect: string){
+    async event(name: any, expect?: string){
         this.query[name]()
-        await this.wait(50)
-        var valid = this.query.innerHTML === expect
-        this.log(valid ? 'PASSED!': 'NOT PASSED!', !valid)
+        if(expect) {
+            await this.wait(50)
+            var valid = this.query.innerHTML === expect
+            this.log(valid ? 'PASSED!': 'NOT PASSED!', !valid)
+        }
         return this
     }
     async wait(time: number){

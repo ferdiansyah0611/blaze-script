@@ -72,7 +72,7 @@ export const LISTENER_ROUTE = (root: any) => root.querySelectorAll('a.route')
 
 export const LISTENER_INPUT = (keys: any, component: any) => Object.keys(keys).forEach((name: any) => {
     name = keys[name]
-    component.querySelectorAll(name.path).forEach((el: any) => {
+    component.querySelectorAll(`${name.path}[name="${name.name}"]`).forEach((el: any) => {
         el.value = name.value
         el.addEventListener('keyup', (e: any) => {
             name.value = e.target.value

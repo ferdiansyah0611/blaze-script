@@ -4,10 +4,10 @@ import E, {
 import user from './user.html?raw';
 
 @component({
-    name: 'id-app',
+    name: 'user-app',
     view: user,
     path: '/user/:id/:name',
-    // role: 'user'
+    role: 'user'
 })
 class User extends E{
     constructor(){
@@ -20,5 +20,11 @@ class User extends E{
     }
     static get observedAttributes() {
         return ["name"];
+    }
+    event(q){
+        q('button.logout', 'click', e => {
+            localStorage.removeItem('isuser')
+            window.$router.history.push('/login')
+        })
     }
 }

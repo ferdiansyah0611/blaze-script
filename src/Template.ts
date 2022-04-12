@@ -16,6 +16,16 @@ class Template extends E{
     }
     mount(){
         log('template')
+        var i = 0;
+        var int = setInterval(() => {
+            window.store.dispatch('app.handle', {
+                name: 'ferdiansyah' + i
+            })
+            i++
+            if(i === 10){
+                clearInterval(int)
+            }
+        }, 1000)
     }
 }
 @component({

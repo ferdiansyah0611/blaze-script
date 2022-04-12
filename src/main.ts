@@ -16,6 +16,7 @@ import './style.css'
 import "../blaze.component"
 import './route/Home'
 import './route/User'
+import './route/Login'
 import './component/Example'
 
 const app = new Blaze({
@@ -26,12 +27,10 @@ const app = new Blaze({
         {
             name: 'user',
             before(){
-                return false
-            }
-        },
-        {
-            name: 'admin',
-            before(){
+                var test = localStorage.getItem('isuser')
+                if(test){
+                    return true
+                }
                 return '/login'
             }
         },
