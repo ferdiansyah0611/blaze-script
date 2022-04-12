@@ -2,8 +2,8 @@ interface StoreInterface{
     name: string,
     reducers: any,
     registery: any[],
-    dispatch: (path: string, payload: any) => {},
-    addWatch: (classes: any) => {}
+    dispatch: (path: string, payload: any) => any,
+    addWatch: (classes: any) => void
 }
 export class Store implements StoreInterface{
     name: string = 'store'

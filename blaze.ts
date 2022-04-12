@@ -9,7 +9,7 @@ window.store = store
 
 export const log = (...arg: any[]) => window.$app.mode == 'development' ? console.log.call(null, ...arg) : '';
 export function component(data: ComponentDecorationInterface): any {
-    return function(target: any, propertyKey: string, descriptor: PropertyDescriptor): any {
+    return function(target: any, propertyKey: string, descriptor: PropertyDescriptor): PropertyDescriptor {
         target.prototype['$name'] = data.name
         if (data.view) {
             target.prototype['$view'] = data.view
@@ -29,7 +29,7 @@ export function component(data: ComponentDecorationInterface): any {
     }
 }
 export function prop(name: string[], action: ((old: string, value: string) => void)): any {
-    return function(target: any, propertyKey: string, descriptor: PropertyDescriptor): any {
+    return function(target: any, propertyKey: string, descriptor: PropertyDescriptor): PropertyDescriptor {
         if (target.prototype.propchange) {
             target.prototype.propchange.push({
                 name,
@@ -46,7 +46,7 @@ export function prop(name: string[], action: ((old: string, value: string) => vo
     }
 }
 export function effect(name: string[], action: any): any {
-    return function(target: any, propertyKey: string, descriptor: PropertyDescriptor): any {
+    return function(target: any, propertyKey: string, descriptor: PropertyDescriptor): PropertyDescriptor {
         if (target.prototype.effectchange) {
             target.prototype.effectchange.push({
                 name,
@@ -63,25 +63,25 @@ export function effect(name: string[], action: any): any {
     }
 }
 
-export const LISTENER_ROUTE = (root: any) => root.querySelectorAll('a.route')
-    .forEach((el: HTMLElement) => el.addEventListener('click', (e: any) => {
+export const LISTENER_ROUTE = (root: HTMLElement | HTMLDocument) => root.querySelectorAll('a.route')
+    .forEach((el: HTMLElement) => el.addEventListener('click', (e: MouseEvent) => {
         e.preventDefault()
-        window.$router.history.push(e.currentTarget.dataset.href)
+        window.$router.history.push(e['currentTarget']['dataset']['href'])
     })
 )
 
 export const LISTENER_INPUT = (keys: any, component: any) => Object.keys(keys).forEach((name: any) => {
     name = keys[name]
-    component.querySelectorAll(`${name.path}[name="${name.name}"]`).forEach((el: any) => {
-        el.value = name.value
-        el.addEventListener('keyup', (e: any) => {
-            name.value = e.target.value
+    component.querySelectorAll(`${name.path}[name="${name.name}"]`).forEach((el: HTMLElement) => {
+        el['value'] = name.value
+        el.addEventListener('keyup', (e: KeyboardEvent) => {
+            name.value = e['target']['value']
         })
     })
 })
 
 export const LISTENER_EVENT = (all: boolean = false, path: string, type: string, call: () => {}, component: any, capture?: boolean) => {
-    var addEventListener = (el: any) => el && el.addEventListener(type, call, capture)
+    var addEventListener = (el: HTMLElement) => el && el.addEventListener(type, call, capture)
     return all ? component.querySelectorAll(path).forEach(addEventListener): addEventListener(component.querySelector(path))
 }
 
@@ -212,7 +212,7 @@ class E extends HTMLElement implements BlazeComponent {
     async rendered() {
         const { prop, render } = this
         const store = window.store
-        let view: any = ''
+        let view: string | typeof Promise = ''
         // prop
         this.getAttributeNames().forEach((v: any) => {
             prop[v] = this.getAttribute(v)
@@ -223,7 +223,7 @@ class E extends HTMLElement implements BlazeComponent {
             if (typeof render.view === 'object') {
                 if (this['lazy'] && this.first) this['lazy']()
                 view = await render.view
-                view = view.default
+                view = view['default']
             } else {
                 view = render.view
             }
