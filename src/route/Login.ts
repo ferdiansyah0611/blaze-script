@@ -29,7 +29,7 @@ class Login extends E{
     }
     event(q){
         q('button', 'click', (e) => {
-            localStorage.setItem('isuser', true)
+            localStorage.setItem('isuser', "ok")
             window.$router.history.push('/user/1/ferdy')
         })
     }

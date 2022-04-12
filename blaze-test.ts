@@ -27,7 +27,7 @@ class Test{
     }
     value(name: string, type: string, input: string){
         this.query.input[name].value = input
-        document.querySelector(`${this.select} ${type}[name="${name}"]`).value = input
+        document.querySelector(`${this.select} ${type}[name="${name}"]`)['value'] = input
         return this
     }
     use(component: string){
