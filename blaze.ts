@@ -70,15 +70,26 @@ export const LISTENER_ROUTE = (root: HTMLElement | HTMLDocument) => root.querySe
     })
 )
 
-export const LISTENER_INPUT = (keys: any, component: any) => Object.keys(keys).forEach((name: any) => {
-    name = keys[name]
-    component.querySelectorAll(`${name.path}[name="${name.name}"]`).forEach((el: HTMLElement) => {
-        el['value'] = name.value
-        el.addEventListener('keyup', (e: KeyboardEvent) => {
-            name.value = e['target']['value']
-        })
+export const LISTENER_INPUT = (keys: typeof Object, component: E) => {
+    Object.keys(keys).forEach((name: any) => {
+        name = keys[name]
+        var el: HTMLElement = component.querySelector(`${name.path}[name="${name.name}"]`)
+        if(el){
+            el['value'] = name.value
+            if(name.path === 'select') {
+                el.addEventListener('change', (e: KeyboardEvent) => {
+                    name.value = e['target']['value']
+                    component.setInput(name.name, name.value)
+                })
+            } else {
+                el.addEventListener('keyup', (e: KeyboardEvent) => {
+                    name.value = e['target']['value']
+                    component.setInput(name.name, name.value)
+                })
+            }
+        }
     })
-})
+}
 
 export const LISTENER_EVENT = (all: boolean = false, path: string, type: string, call: () => {}, component: any, capture?: boolean) => {
     var addEventListener = (el: HTMLElement) => el && el.addEventListener(type, call, capture)
@@ -134,6 +145,9 @@ class E extends HTMLElement implements BlazeComponent {
     useStore: boolean
     setState: any
     prop: any
+    input: any
+    setInput: any
+    getInput: (name: string[]) => any
     
     EVENT: any[]
     constructor(config) {
@@ -175,15 +189,58 @@ class E extends HTMLElement implements BlazeComponent {
                 return true
             }
         })
-        if (input) this['input'] = new Proxy(input, {
-            get: (a: any, b: string) => {
-                return a[b]
-            },
-            set: (a: any, b: string, c: any): boolean => {
-                a[b] = c
-                return true
+        if (input){
+            this['input'] = new Proxy(input, {
+                get: (a: any, b: string) => {
+                    return a[b]
+                },
+                set: (a: any, b: string, c: any): boolean => {
+                    a[b] = c
+                    return true
+                }
+            })
+            this.setInput = (name: string, value: any) => {
+                var found: any = this.input[name]
+                if(found) {
+                    found['value'] = value
+                    if (this['effectchange']) {
+                        this['effectchange'].filter((v: any) => {
+                            if (v.name.find((depend: string) => depend === 'input.' + name)) {
+                                v.action = v.action.bind(this)
+                                v.action(value)
+                            }
+                        })
+                    }
+                }
+                return this
             }
-        })
+            this.getInput = (name: string[]) => {
+                return{
+                    data: () => {
+                        var data: any[] = []
+                        name.forEach((v: string) => {
+                            if(this.input[v]){
+                                data.push(this.input[v].value)
+                            } else {
+                                data.push(null)
+                            }
+                        })
+                        return data
+                    },
+                    json: () => {
+                        var data: any = {}
+                        name.forEach((v: string) => {
+                            if(this.input[v]){
+                                data[v] = this.input[v].value
+                            } else {
+                                data[v] = null
+                            }
+                        })
+                        return data
+                    }
+                }
+            }
+        }
         this.setState = (name: ((obj: any) => boolean), value?: any) => {
             let set = (obj: any): any => Object.keys(obj).forEach((v: string) => this.state[v] = obj[v])
             if (typeof name === 'function') {

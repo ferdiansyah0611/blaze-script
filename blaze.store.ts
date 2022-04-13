@@ -1,14 +1,12 @@
 interface StoreInterface{
-    name: string,
-    reducers: any,
     registery: any[],
     dispatch: (path: string, payload: any) => any,
     addWatch: (classes: any) => void
 }
 export class Store implements StoreInterface{
     name: string = 'store'
-    reducers: any
-    registery: any[]
+    reducers: typeof Object[]
+    registery: typeof Object[]
     constructor(config: any){
         this.reducers = config.reducers
         this.registery = []
@@ -31,7 +29,7 @@ export class Store implements StoreInterface{
 }
 export class Schema{
     state: typeof Proxy
-    action: any
+    action: typeof Object[]
     constructor(config: any){
         this.state = new Proxy(config.state, {
             get: (a, b) => {

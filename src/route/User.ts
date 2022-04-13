@@ -12,14 +12,8 @@ import user from './user.html?raw';
 class User extends E{
     constructor(){
         super({
-            state: {
-                name: 'id',
-                click: 0
-            },
+            state: {},
         })
-    }
-    static get observedAttributes() {
-        return ["name"];
     }
     event(q){
         q('button.logout', 'click', e => {

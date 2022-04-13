@@ -25,9 +25,8 @@ class Test{
         window.$router.history.push(url)
         return this
     }
-    value(name: string, type: string, input: string){
-        this.query.input[name].value = input
-        document.querySelector(`${this.select} ${type}[name="${name}"]`)['value'] = input
+    value(name: string, input: string){
+        this.query.setInput(name, input)
         return this
     }
     use(component: string){
@@ -43,8 +42,8 @@ class Test{
     async event(name: any, expect?: string){
         this.query[name]()
         if(expect) {
-            await this.wait(50)
-            var valid = this.query.innerHTML === expect
+            await this.wait(100)
+            var valid = this.query?.innerHTML === expect
             this.log(valid ? 'PASSED!': 'NOT PASSED!', !valid)
         }
         return this

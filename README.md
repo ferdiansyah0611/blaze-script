@@ -1,15 +1,15 @@
 # Blaze Script
 Lightweight Single Page Application using Vite & Typescript.
 ## Feature
-- Not Virtual DOM
+- Real DOM
 - Include Router and State Management
-- Customize Rendering Like a EJS, PUG, Mustache and More Library
+- Customize Rendering Like a EJS, PUG, Mustache, Handlebars and More Library
 - Only 19.01 KiB / gzip: 7.18 KiB
 
 ## Get Started
 ```typescript
 // main.ts
-import Mustache from 'mustache'
+import Handlebars from 'handlebars'
 import { Blaze } from '../blaze'
 import TestApp from './app.test'
 import STORE_APP from './store'
@@ -39,7 +39,7 @@ const app = new Blaze({
             }
         },
     ],
-    render: (view: string, data: any) => Mustache.render(view, data)
+    render: (view: string, data: any) => Handlebars.render(view, data)
 })
 app.use(STORE_APP)
 app.start(TestApp)
@@ -138,13 +138,15 @@ class Example extends E{
     layout(){
         log('layout effect')
     }
-    event(query, queryAll){
+    event(query: any, queryAll: any){
         // add event in here
         query('button', 'click', () => {
             this.setState((state: any) => ({
                 click: state.click + 1
             }))
         })
+        // query is querySelector (on this component)
+        // queryAll is querySelectorAll (on this component)
     }
     lazy(){
         log('lazy loading...')
@@ -171,6 +173,9 @@ class Example extends E{
             }
         })
     }
+    static get observedAttributes() {
+        return ['name'];
+    }
 }
 ```
 ## Handling Input
@@ -181,11 +186,15 @@ class Example extends E{
             state: {},
             // autocontrolled input
             input: {
-                job: { name: 'job', value: 'software engineer', path: 'input' }
+                job: { name: 'job', value: 'software engineer', path: 'input' },
+                username: { name: 'username', value: 'ferdiansyah', path: 'input' },
             }
         })
         // accessing input
-        log(this.input.job.value)
+        var {job, username} = this.getInput(['job', 'username']).json()
+        log(job, ',', username) // software engineer, ferdiansyah
+        // set input
+        this.setInput('job', 'accounting').setInput('username', 'ferdiansyah')
     }
 }
 ```

@@ -12,13 +12,9 @@ class Home extends E{
     constructor(){
         super({
             state: {
-                name: 'ferdy',
                 click: 0
             },
         })
-    }
-    static get observedAttributes() {
-        return ["name"];
     }
     async mount(){
         log('mount')

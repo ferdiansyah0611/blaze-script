@@ -21,12 +21,6 @@ class Login extends E{
             }
         })
     }
-    static get observedAttributes() {
-        return ["name"];
-    }
-    mount(){
-        log('mount login')
-    }
     event(q){
         q('button', 'click', (e) => {
             localStorage.setItem('isuser', "ok")

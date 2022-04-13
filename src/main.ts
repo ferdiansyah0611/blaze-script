@@ -6,7 +6,7 @@ declare global{
         runner: any
     }
 }
-import Mustache from 'mustache'
+import Handlebars from 'handlebars'
 import { Blaze } from '../blaze'
 import TestApp from './app.test'
 import STORE_APP from './store'
@@ -35,7 +35,7 @@ const app = new Blaze({
             }
         },
     ],
-    render: (view: string, data: any) => Mustache.render(view, data)
+    render: (view: string, data: any) => Handlebars.compile(view)(data)
 })
 app.use(STORE_APP)
 app.start(TestApp)
