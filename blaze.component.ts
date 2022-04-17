@@ -30,6 +30,12 @@ class BlazeRouter extends E{
                     route.ready(url)
                 }
             },
+            back: () => {
+                history.back()
+            },
+            go: (num: number) => {
+                history.go(num)
+            }
         }
     }
     get route(){

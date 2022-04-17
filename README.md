@@ -44,12 +44,18 @@ const app = new Blaze({
 app.use(STORE_APP)
 app.start(TestApp)
 ```
-## Create New Component
+## Default Import
 ```typescript
 import E, {
-    component, log, effect, prop
+    component, log, effect, prop, Blaze
 } from '../../blaze'
-
+import {
+    Store, Schema
+} from '../blaze.store'
+import Test from '../blaze-test'
+```
+## Create Component
+```typescript
 @component({
     name: 'example-app',
     view: import('./example.html?raw')
@@ -62,20 +68,16 @@ class Example extends E{
             }
         })
     }
-    static get observedAttributes() {
-        return ["name"];
-    }
 }
 ```
 ```html
 <!-- example.html -->
 <div>
     <p>Hi, I'm {{state.name}}</p>
-    <p>Call runner() on console to run testing!</p>
-    <input name="job" type="text" placeholder="Hello World" />
+    <p>and I am Software Engineer</p>
 </div>
 ```
-And you can use component anything without import
+You can use component anything without import
 ```html
 <example-app></example-app>
 ```
@@ -85,27 +87,19 @@ And you can use component anything without import
     name: 'template-app',
     view: template,
 })
-class Template extends E{
-    constructor(){
-        super({
-            state: {},
-        })
-    }
-    mount(){
-        log('template')
-    }
-}
+class Template extends E{}
 ```
 ```html
+<!-- template.html -->
 <div class="template">
     <nav class="flex">
-        <a href="/" data-href="/" class="route">Route Home</a>
-        <a href="/user/1/ferdi" data-href="/user/1/ferdi" class="route">Route User</a>
+        <a href="/" data-href="/" class="route">Home</a>
+        <a href="/user/1/ferdi" data-href="/user/1/ferdi" class="route">User</a>
     </nav>
     <blaze-route></blaze-route>
 </div>
 ```
-## Create New Pages
+## Create Pages
 ```typescript
 @component({
     name: 'example-app',
@@ -113,18 +107,7 @@ class Template extends E{
     path: '/',
     // role: 'user'
 })
-class Home extends E{
-    constructor(){
-        super({
-            state: {
-                name: 'ferdy'
-            }
-        })
-    }
-    static get observedAttributes() {
-        return ["name"];
-    }
-}
+class Home extends E{}
 ```
 ## Lifecycle Method
 ```typescript
@@ -162,7 +145,7 @@ class Example extends E{
 @effect(['username'], function(depend: any){
     console.log(depend)
 })
-@prop(['name'], function(old: string, value: string){
+@prop(['phone', 'email'], function(old: string, value: string){
     console.log(old, value)
 })
 class Example extends E{
@@ -174,7 +157,7 @@ class Example extends E{
         })
     }
     static get observedAttributes() {
-        return ['name'];
+        return ['phone', 'email'];
     }
 }
 ```
@@ -201,11 +184,10 @@ class Example extends E{
 ## Router Method
 ```typescript
 $router.history.push('/home')
+$router.history.back()
+$router.history.go(-2)
 ```
 ## State Management
-```html
-<p>Hi, I'm {{store.app.name}}</p>
-```
 ```typescript
 import {
     Store, Schema
@@ -231,6 +213,9 @@ export default STORE_APP
 ```
 ```typescript
 store.dispatch('app.handle', {name: 'safina sahda'})
+```
+```html
+<p>Hi, I'm {{store.app.name}}</p>
 ```
 ## Testing Example
 ```typescript

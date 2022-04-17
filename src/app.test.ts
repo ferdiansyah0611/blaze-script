@@ -2,7 +2,7 @@ import Test from '../blaze-test'
 
 export default async function TestApp(){
     // test
-    const test = new Test()
+    const test = new Test(true)
     const click = async () => {
         test.it('TEST 1')
         await test.go('/login').wait(1000)
