@@ -1,7 +1,6 @@
 const log = (...msg) => console.log(...msg)
 
 const diff = function(prev, el, $node){
-	console.clear()
 	let batch = []
 	if(!prev){
 		return batch
@@ -28,7 +27,7 @@ const diff = function(prev, el, $node){
 	return batch
 }
 
-export const e = function(isFirst, component, nodeName, data = {}, ...children){
+export const e = function(isFirst, component, nodeName, data, ...children){
 	let text
 	data = data ?? {}
 	// component
@@ -44,13 +43,23 @@ export const e = function(isFirst, component, nodeName, data = {}, ...children){
 		let render = current.render()
 		current.$node = render
 		if(!check) {
+			let render = current.render()
+			current.$node = render
 			component.$registry.push({
 				key,
 				component: current,
 				props: data.props ?? {}
 			})
+			return render
 		}
-		return render
+		if(check.component && isFirst){
+			let render = check.component.render()
+			current.$node.replaceWith(render)
+			if(current.$node.isConnected){
+				check.component.$mount.handle()
+			}
+		}
+		return current.$node
 	}
 	// fragment
 	if(nodeName === 'Fragment') {
@@ -59,6 +68,7 @@ export const e = function(isFirst, component, nodeName, data = {}, ...children){
 	}
 
 	let el = document.createElement(nodeName)
+	let getPrevious = () => isFirst ? component.$node : component.$node.querySelector(`[data-name="${component.constructor.name}"][data-i="${component.$nodeId}"]`)
 	let childrenHandle = () => {
 		if(children.length === 1 && typeof children[0] === 'string'){
 			el.append(document.createTextNode(children[0]))
@@ -72,24 +82,27 @@ export const e = function(isFirst, component, nodeName, data = {}, ...children){
 				if(typeof item === 'string'){
 					el.append(document.createTextNode(item))
 				}
-				// component
-				// else {
-				// 	console.log(item)
-				// 	let render = item.render()
-				// 	item.$mount.handle()
-				// 	item.$node = render
-				// 	el.appendChild(render)
-				// }
 			})
 		}
 	}
 	childrenHandle()
 
-	// handle data
-	let name = Object.keys(data)
-	name.forEach(item => {
+
+	// handle data element
+	Object.keys(data).forEach(item => {
 		if(item.match(/^on[A-Z]/)){
 			el.addEventListener(item.toLowerCase().slice(2), data[item])
+		}
+		if(item === 'if') {
+			let current = component.update ? getPrevious() : el
+			if(data[item] === true){
+				current.replaceChildren(el.children)
+			}
+			else {
+				Array.from(current.children).forEach(node => {
+					node.remove()
+				})
+			}
 		}
 		el[item] = data[item]
 	})
@@ -105,34 +118,16 @@ export const e = function(isFirst, component, nodeName, data = {}, ...children){
 			if(component.$mount) {
 				component.$mount.handle()
 			}
-			if(component.$registry){
-				component.$registry.forEach(item => {
-					if(item.component.$mount){
-						item.component.$mount.handle({
-							props: item.props
-						})
-					}
-				})
-			}
 		}
 	}
 	// update render
 	else {
 		// diff in here
-		let prev = isFirst ? component.$node : component.$node.querySelector(`[data-name="${component.constructor.name}"][data-i="${component.$nodeId}"]`)
+		let prev = getPrevious()
 		let difference = diff(prev, el, component.$node)
 		difference.forEach(batch => {
 			batch()
 		})
-		// console.log(el)
-		// bug
-		if(isFirst && component.$registry) {
-			component.$registry.forEach(item => {
-				item.component.update = 1
-				item.component.$nodeId = 1
-				item.component.render()
-			})
-		}
 	}
 	component.$nodeId++
 	return el
@@ -203,6 +198,8 @@ const App = function(el, component){
 			$app.$node = $app.render()
 			window.$app = $app
 			document.querySelector(el).append($app.$node)
+
+			setInterval(console.clear, 10000)
 		})
 	}
 	this.use = () => {
