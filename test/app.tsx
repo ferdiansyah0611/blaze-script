@@ -1,12 +1,14 @@
 import App, {
 	render,
-	event,
 	state,
 	watch,
+	batch,
 	mount,
+	init
 } from './blaze'
 
 const Component = function(){
+	init(this)
 	mount(() => {
 		// console.log(1, this)
 	}, this)
@@ -21,13 +23,33 @@ const Component = function(){
 	let interval = setInterval(() => {
 		this.state.name = 'ferdi ' + now
 		now++
-		if(now === 5){
+		if(now === 2){
 			clearInterval(interval)
 		}
 	}, 2000)
 }
 
+const Counter = function(){
+	init(this)
+	state('state', {
+		counter: 0
+	}, this)
+	
+	this.increment = () => this.state.counter++
+	this.decrement = () => this.state.counter--
+
+	render(() => {
+		return(
+			<>
+				<button onClick={this.increment}>Increment {String(this.state.counter)}</button>
+				<button onClick={this.decrement}>Decrement {String(this.state.counter)}</button>
+			</>
+		)
+	}, this)
+}
+
 const apps = function(){
+	init(this)
 	mount(() => {
 		// console.log(this)
 	}, this)
@@ -38,21 +60,23 @@ const apps = function(){
 	render(() => <>
 		<p onClick={(e) => console.log(1)}>Hello World {String(this.state.now)}</p>
 		<p>Hello World 2 {String(this.state.now)}</p>
-		<p>now {this.state.now}</p>
 		<div if={this.state.now >= 2}>
 			<Component />
 		</div>
-		<div if={this.state.now === 5}>
+		<div data-name={"ferdiansyah" + this.state.now} if={this.state.now === 2}>
 			<p>ended</p>
 		</div>
+		<Counter/>
 	</>, this)
 
 	let interval = setInterval(() => {
-		// this.state.name = 'safina ' + this.state.now
-		this.state.now += 1
-		if(this.state.now === 5){
-			clearInterval(interval)
-		}
+		batch(() => {
+			this.state.name = 'safina ' + this.state.now
+			this.state.now += 1
+			if(this.state.now === 2){
+				clearInterval(interval)
+			}
+		}, this)
 	}, 2000)
 }
 new App('#app', apps)
