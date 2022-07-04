@@ -1,97 +1,66 @@
-const log = (...msg) => console.log('>', ...msg)
+import diff from './diff'
+import {
+	log,
+	render,
+	state,
+	watch,
+	mount,
+	batch,
+	App
+} from './utils'
 
-const diff = function(prev, el){
-	let batch = []
-	if(!prev){
-		return batch
-	}
-	if(el === undefined){
-		prev.remove()
-	}
-	// text
-	if(prev.childNodes.length){
-		prev.childNodes.forEach((node, i) => {
-			if(node && el.childNodes[i]){
-				if(node.data && node.data !== el.childNodes[i].data){
-					batch.push(() => {
-						log('[text]', node.data, '>', el.childNodes[i].data)
-						node.replaceWith(el.childNodes[i])
-					})
-				}
-			}
-		})
-	}
-	// class
-	if(prev.className !== el.className){
-		batch.push(() => prev.className = el.className)
-	}
-	// attribute
-	if(prev.attributes.length){
-		if(typeof prev.if === 'boolean'){
-			if(prev.if){
-				log(prev.attributes.length, el.attributes.length, prev.if, el.if)
-				for (var i = 0; i < prev.attributes.length; i++) {
-					if(prev.attributes[i].name === 'data-logic'){
-						prev.removeAttribute('style')
-						break
-					}
-				}
-			}
-		}
-		for (var i = 0; i < prev.attributes.length; i++) {
-			prev.attributes[i]
-			if((prev.attributes[i] && el.attributes[i]) && prev.attributes[i].name === el.attributes[i].name){
-				if(prev.attributes[i].value !== el.attributes[i].value) {
-					log('different', prev.attributes[i], el.attributes[i])
-					prev.attributes[i].value = el.attributes[i].value
-				}
-			}
-		}
-	}
-
-	return batch
+export {
+	log,
+	render,
+	state,
+	watch,
+	mount,
+	batch
 }
+export default App
 
-export const e = function(isFirst, component, nodeName, data, ...children){
+export const e = function(first, component, nodeName, data, ...children){
 	let text
+	let $deep = component.$deep
 	data = data ?? {}
 	// component
 	if(typeof nodeName === 'function'){
-		if(!component.$deep.registry){
-			component.$deep.registry = []
-		}
-		// registry component
 		let key = data.key ?? 0
 		let current = new nodeName(component)
-		init(current)
-		let check = component.$deep.registry.find(item => item.component.constructor.name === current.constructor.name && item.key === key)
-		let render = current.render()
-		current.$node = render
+		let check = $deep.registry.find(item => item.component.constructor.name === current.constructor.name && item.key === key)
+		// registry component
 		if(!check) {
-			component.$deep.registry.push({
-				key,
-				component: current,
-				props: data.props ?? {}
+			// props registery
+			current.props = new Proxy(data.props || {}, {
+				set(a, b, c){
+					a[b] = c
+					current.$deep.trigger()
+					return true
+				}
 			})
-			return render
+
+			let render = current.render()
+			current.$node = render
+			current.$node.dataset.key = key
+			current.$node.childrenComponent = component
+			$deep.registry.push({
+				key,
+				component: current
+			})
+			console.log('[registery]', component.constructor.name)
+			return current.$node
 		}
-		if(check.component && isFirst){
-			let render = check.component.render()
-			current.$node.replaceWith(render)
-			if(current.$node.isConnected){
-				check.component.$deep.mount.handle()
-			}
-		}
-		return current.$node
+		check.component.$deep.mount.handle(data.props, true)
+		return check.component.$node
 	}
 	// fragment
 	if(nodeName === 'Fragment') {
 		nodeName = 'div'
-		isFirst = true
+		first = true
 	}
-
+	// element
 	let el = document.createElement(nodeName)
-	let getPrevious = () => isFirst ? component.$deep.node[component.$deep.node.length - 1].el : component.$deep.node[component.$deep.$id - 1].el
+	let getPrevious = () => first ? $deep.node[$deep.node.length - 1]?.el : $deep.node[$deep.$id - 1]?.el
 	let childrenHandle = () => {
 		if(children.length === 1 && typeof children[0] === 'string'){
 			el.append(document.createTextNode(children[0]))
@@ -99,21 +68,22 @@ export const e = function(isFirst, component, nodeName, data, ...children){
 		else if(children.length){
 			children.forEach(item => {
 				// node
-				if(item.nodeName){
-					if(!component.$deep.update){
+				if(item && item.nodeName){
+					if(!$deep.update){
 						log('[appendChild]', item.tagName)
 						el.appendChild(item)
 					}
 				}
-				if(typeof item === 'string'){
-					el.append(document.createTextNode(item))
+				if(['string', 'number'].includes(typeof item)){
+					if(item === undefined){
+						item = ' '
+					}
+					el.append(document.createTextNode(String(item.toString())))
 				}
 			})
 		}
 	}
 	childrenHandle()
-
-
 	// handle data element
 	Object.keys(data).forEach(item => {
 		// event
@@ -125,29 +95,36 @@ export const e = function(isFirst, component, nodeName, data, ...children){
 		if(item === 'if') {
 			log('[if]', data[item])
 
-			let current = component.$deep.update ? getPrevious() : el
-			let find = component.$deep.node.find(item => item.key === component.$deep.$id) || {}
+			let current = $deep.update ? getPrevious() : el
+			let find = $deep.node.find(item => item.key === $deep.$id) || {}
 			if(!find){
-				component.$deep.node.push({
-					key: component.$deep.$id,
+				$deep.node.push({
+					key: $deep.$id,
 					el: current
 				})
 				log('[if > current]', current)
 			}
 			let handle = () => {
 				let currentEl = (find.el || current)
-				currentEl.dataset.logic = true
+				let applyChildren = () => {
+					if(!currentEl.childrenCommit){
+						currentEl.childrenCommit = Array.from(currentEl.children)
+					}
+				}
 				if(data[item] === true){
+					if(!currentEl.hasAppend){
+						currentEl.childrenCommit.forEach(item => currentEl.appendChild(item))
+					}
 					currentEl.if = true
-					currentEl.style.display = 'block'
+					currentEl.hasAppend = true
+					applyChildren()
 				}
 				else {
 					currentEl.if = false
-					currentEl.style.display = 'none'
+					currentEl.hasAppend = false
+					applyChildren()
+					Array.from(currentEl.children).forEach(item => item.remove())
 				}
-
-				// delete data.if
-				// log(1, find.el, el)
 			}
 			handle()
 		}
@@ -159,34 +136,44 @@ export const e = function(isFirst, component, nodeName, data, ...children){
 		el[item] = data[item]
 	})
 	// first render
-	if(!component.$deep.update){
-		if(!component.$deep.$id){
-			component.$deep.$id = 1
+	if(!$deep.update){
+		if(!$deep.$id){
+			$deep.$id = 1
 		}
 
-		if(isFirst) {
-			if(component.$deep.mount) {
-				component.$deep.mount.handle()
+		if(first) {
+			if($deep.mount && el.isConnected) {
+				$deep.mount.handle()
 			}
+			el.dataset.component = component.constructor.name
 		}
-		component.$deep.node.push({
-			key: component.$deep.$id,
+		$deep.node.push({
+			key: $deep.$id,
 			el
 		})
-		component.$deep.$id++
+		$deep.$id++
 		return el
 	}
 	// update render
 	else {
 		// diff in here
 		let prev = getPrevious()
-		if(!isFirst){
+		if(!first){
 			let difference = diff(prev, el)
 			difference.forEach(batch => {
 				batch()
 			})
-			component.$deep.$id++
+			$deep.$id++
 			return prev
+		}
+		if(first && prev){
+			if(prev.dataset && prev.childrenComponent){
+				let dataset = prev.dataset
+				let check = prev.childrenComponent.$deep.registry.find(item => item.component.constructor.name === dataset.component && item.key === Number(dataset.key))
+				if(check.component.$node.isConnected){
+					check.component.$deep.mount.handle()
+				}
+			}
 		}
 	}
 }
@@ -198,58 +185,21 @@ export const init = (component) => {
 			batch: false,
 			node: [],
 			registry: [],
+			watch: [],
 			update: 0,
 			mount: {
 				run: false,
-				handle: Function
-			}
-		}
-		component.$h = jsx(component)
-	}
-}
-// utilites
-export const render = (callback, component) => component.render = callback
-export const state = function(name, initial, component){
-	component[name] = new Proxy(initial, {
-		set(a, b, c){
-			a[b] = c
-			if(!component.$deep.batch){
+				handle: (props) => false
+			},
+			trigger: () => {
 				component.$deep.update++
 				component.$deep.$id = 1
 				component.render()
-			}
-			// watching
-			if(component.$watch){
-				component.$watch.forEach(watch => {
-					let find = watch.dependencies.find(item => item === `${name}.${b}`)
-					if(find) {
-						watch.handle(b, c)
-					}
-				})
-			}
-			return true
+			},
 		}
-	})
-	return component[name]
-}
-export const watch = function(dependencies, handle, component) {
-	if(!component.$watch){
-		component.$watch = []
-	}
-	component.$watch.push({
-		dependencies, handle
-	})
-}
-export const mount = (callback, component) => {
-	component.$deep.mount.run = false
-	component.$deep.mount.handle = (defineConfig = {}) => {
-		if(defineConfig.props) {
-			component.props = defineConfig.props
-		}
-		if(!component.$deep.mount.run) {
-			component.$deep.mount.run = true
-			callback()
-		}
+
+		component.props = {}
+		component.$h = jsx(component)
 	}
 }
 export const jsx = (component) => {
@@ -260,31 +210,3 @@ export const jsx = (component) => {
 		Fragment: 'Fragment'
 	}
 }
-export const batch = async(callback, component) => {
-	component.$deep.batch = true
-	await callback()
-	component.$deep.batch = false
-	component.$deep.update++
-	component.$deep.$id = 1
-	component.render()
-}
-
-// App
-const App = function(el, component){
-	this.mount = () => {
-		document.addEventListener('DOMContentLoaded', () => {
-			let $app = new component()
-			$app.$node = $app.render()
-			window.$app = $app
-			document.querySelector(el).append($app.$node)
-
-			// setInterval(console.clear, 10000)
-		})
-	}
-	this.use = () => {
-		return this
-	}
-	return this
-}
-
-export default App
