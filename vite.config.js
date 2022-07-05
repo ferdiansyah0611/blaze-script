@@ -1,13 +1,7 @@
 import { defineConfig } from 'vite'
 import path from 'path'
 
-// https://vitejs.dev/config/
 export default defineConfig({
-  // define: {
-  //   $app: JSON.stringify('$app'),
-  //   $router: JSON.stringify('$router'),
-  //   store: JSON.stringify('store'),
-  // },
   resolve: {
   	alias: {
   		'blaze': path.resolve(__dirname, './blaze'),
@@ -18,6 +12,7 @@ export default defineConfig({
   },
   esbuild: {
     jsxFactory: 'this.$h.h',
-    jsxFragment: 'this.$h.Fragment'
+    jsxFragment: 'this.$h.Fragment',
+    jsxInject: 'import { render, state, watch, batch, mount, refs, log, init } from "./blaze"'
   }
 })
