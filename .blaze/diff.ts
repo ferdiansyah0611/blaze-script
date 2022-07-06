@@ -1,6 +1,6 @@
 import { log } from "./utils";
 
-const diff = function (prev, el) {
+const diff = function (prev: HTMLElement, el: HTMLElement) {
 	let batch = [];
 	if (!prev) {
 		return batch;

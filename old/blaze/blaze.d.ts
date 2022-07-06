@@ -46,3 +46,9 @@ export interface PropChangeInterface{
     name: string,
     action: ((old: string, value: string) => void)
 }
+
+export interface StoreInterface{
+    registery: any[],
+    dispatch: (path: string, payload: any) => any,
+    addWatch: (classes: any) => void
+}

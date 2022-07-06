@@ -1,8 +1,5 @@
-interface StoreInterface{
-    registery: any[],
-    dispatch: (path: string, payload: any) => any,
-    addWatch: (classes: any) => void
-}
+import { StoreInterface } from './blaze.d'
+
 export class Store implements StoreInterface{
     name: string = 'store'
     reducers: typeof Object[]

@@ -30,35 +30,25 @@ export function component(data: ComponentDecorationInterface): any {
 }
 export function prop(name: string[], action: ((old: string, value: string) => void)): any {
     return function(target: any, propertyKey: string, descriptor: PropertyDescriptor): PropertyDescriptor {
-        if (target.prototype.propchange) {
-            target.prototype.propchange.push({
-                name,
-                action: action
-            })
-        } else {
+        if (!target.prototype.propchange) {
             target.prototype.propchange = []
-            target.prototype.propchange.push({
-                name,
-                action: action
-            })
         }
+        target.prototype.propchange.push({
+            name,
+            action: action
+        })
         return descriptor
     }
 }
 export function effect(name: string[], action: any): any {
     return function(target: any, propertyKey: string, descriptor: PropertyDescriptor): PropertyDescriptor {
-        if (target.prototype.effectchange) {
-            target.prototype.effectchange.push({
-                name,
-                action: action
-            })
-        } else {
+        if (!target.prototype.effectchange) {
             target.prototype.effectchange = []
-            target.prototype.effectchange.push({
-                name,
-                action: action
-            })
         }
+        target.prototype.effectchange.push({
+            name,
+            action: action
+        })
         return descriptor
     }
 }
@@ -73,10 +63,10 @@ export const LISTENER_ROUTE = (root: HTMLElement | HTMLDocument) => root.querySe
 export const LISTENER_INPUT = (keys: typeof Object, component: E) => {
     Object.keys(keys).forEach((name: any) => {
         name = keys[name]
-        var el: HTMLElement = component.querySelector(`${name.path}[name="${name.name}"]`)
+        var el: HTMLElement = component.querySelector(`[name="${name.name}"]`)
         if(el){
             el['value'] = name.value
-            if(name.path === 'select') {
+            if(el.nodeName.toLowerCase() === 'select') {
                 el.addEventListener('change', (e: KeyboardEvent) => {
                     name.value = e['target']['value']
                     component.setInput(name.name, name.value)
@@ -258,7 +248,7 @@ class E extends HTMLElement implements BlazeComponent {
         this.rendered()
     }
     get parseDataRender(){
-        var data = {
+        let data = {
             state: this.state, prop: this.prop, $app: window.$app
         }
         if(this['input'])       data = Object.assign(data, { input: this['input'] })
@@ -321,6 +311,8 @@ class E extends HTMLElement implements BlazeComponent {
                 el.removeEventListener(data.type, data.call, data.capture)
             })
         })
+        this.propchange = []
+        this.effectchange = []
         if (this['unmount']) this['unmount']()
     }
     attributeChangedCallback(attr: string | object | boolean | any[], old: string | object | boolean | any[], value: string | object | boolean | any[]) {

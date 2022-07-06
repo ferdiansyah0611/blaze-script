@@ -1,17 +1,36 @@
 import diff from "./diff";
-import { log, render, state, watch, batch, mount, refs, App } from "./utils";
+import {
+	log,
+	render,
+	state,
+	watch,
+	batch,
+	mount,
+	refs,
+	context,
+	App,
+} from "./utils";
 import {
 	childrenUtilites,
 	getPreviousUtilites,
 	attributeUtilites,
+	mountUtilities,
+	unmountUtilities,
+	init,
 } from "./core";
+import { Component } from "./blaze.d";
 
-export { log, render, state, watch, mount, refs, batch };
+export { log, render, state, watch, mount, refs, batch, init, context };
 export default App;
 
-export const e = function (first, component, nodeName, data, ...children) {
-	let text;
-	let $deep = component.$deep;
+export const e = function (
+	first: boolean,
+	component: Component,
+	nodeName: string | Function,
+	data: any,
+	...children: HTMLElement[]
+): HTMLElement {
+	const $deep = component.$deep;
 	data = data ?? {};
 	// component
 	if (typeof nodeName === "function") {
@@ -23,7 +42,7 @@ export const e = function (first, component, nodeName, data, ...children) {
 		);
 		// registry component
 		if (!check) {
-			let current = new nodeName(component);
+			let current = new nodeName(component, window.$app);
 			// props registery
 			state("props", data.props || {}, current);
 
@@ -35,16 +54,16 @@ export const e = function (first, component, nodeName, data, ...children) {
 				component: current,
 			});
 			current.$node.render = false;
+			mountUtilities(current.$deep, true);
 			return current.$node;
 		}
 
-		check.component.$deep.mount.handle(data.props, true);
+		mountUtilities(check.component.$deep, data.props, true);
 		if (
 			!check.component.$node.isConnected &&
 			check.component.$node.render
 		) {
-			log("not connect", check.component.$node.render);
-			check.component.$deep.unmount();
+			unmountUtilities(check.component.$deep);
 			$deep.registry = $deep.registry.filter((item) => item.key !== key);
 		}
 		return check.component.$node;
@@ -56,8 +75,10 @@ export const e = function (first, component, nodeName, data, ...children) {
 	}
 	// element
 	let el = document.createElement(nodeName);
-	childrenUtilites(children, el, $deep);
-	attributeUtilites(first, data, el, $deep, component);
+	let current = getPreviousUtilites(first, $deep, el);
+
+	childrenUtilites(children, el, $deep, current);
+	attributeUtilites(first, data, el, $deep, component, current);
 	// first render
 	if (!$deep.update) {
 		if (!$deep.$id) {
@@ -65,8 +86,8 @@ export const e = function (first, component, nodeName, data, ...children) {
 		}
 
 		if (first) {
-			if ($deep.mount && el.isConnected) {
-				$deep.mount.handle();
+			if (el.isConnected) {
+				mountUtilities($deep, data.props, true);
 			}
 			el.dataset.component = component.constructor.name;
 		}
@@ -80,61 +101,27 @@ export const e = function (first, component, nodeName, data, ...children) {
 	// update render
 	else {
 		// diff in here
-		let prev = getPreviousUtilites(first, $deep, el);
 		if (!first) {
-			let difference = diff(prev, el);
+			let difference = diff(current, el);
 			difference.forEach((batch) => {
 				batch();
 			});
 			$deep.$id++;
-			return prev;
+			return current;
 		}
-		if (first && prev) {
-			if (prev.dataset && prev.childrenComponent) {
-				let dataset = prev.dataset;
-				let check = prev.childrenComponent.$deep.registry.find(
+		if (first && current) {
+			if (current.dataset && current.childrenComponent) {
+				let dataset = current.dataset;
+				let check = current.childrenComponent.$deep.registry.find(
 					(item) =>
 						item.component.constructor.name === dataset.component &&
 						item.key === Number(dataset.key)
 				);
 				if (check && check.component.$node.isConnected) {
 					check.component.$node.render = true;
-					check.component.$deep.mount.handle();
+					mountUtilities(check.component.$deep, data.props, true);
 				}
 			}
 		}
 	}
-};
-
-// setup
-export const init = (component) => {
-	if (!component.$deep) {
-		component.$deep = {
-			batch: false,
-			node: [],
-			registry: [],
-			watch: [],
-			update: 0,
-			mount: {
-				run: false,
-				handle: (props) => false,
-			},
-			trigger: () => {
-				component.$deep.update++;
-				component.$deep.$id = 1;
-				component.render();
-			},
-		};
-
-		component.props = {};
-		component.$h = jsx(component);
-	}
-};
-export const jsx = (component) => {
-	return {
-		h: (...arg) => {
-			return e(false, component, ...arg);
-		},
-		Fragment: "Fragment",
-	};
 };

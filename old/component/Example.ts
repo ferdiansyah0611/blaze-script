@@ -7,10 +7,10 @@ import E, {
     view: import('./example.html?raw')
 })
 @effect(['click'], function(depend: any){
-    // console.log(depend, 'effect')
+    console.log(depend, 'effect')
 })
 @prop(['name'], function(old: string, value: string){
-    // console.log(old, value, 'change')
+    console.log(old, value, 'change')
 })
 class Example extends E{
     constructor(){
@@ -20,7 +20,7 @@ class Example extends E{
                 click: 0
             },
             input: {
-                job: { name: 'job', value: 'ferdy', path: 'input' }
+                job: { name: 'username', value: 'ferdiansyah' }
             }
         })
     }
@@ -34,7 +34,7 @@ class Example extends E{
         // log('effect')
     }
     mount(){
-        // log('mount', this)
+        // log('mount')
     }
     event(q: any){
         q('button', 'click', () => {

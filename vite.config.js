@@ -4,15 +4,14 @@ import path from 'path'
 export default defineConfig({
   resolve: {
   	alias: {
-  		'blaze': path.resolve(__dirname, './blaze'),
-      'blaze.d': path.resolve(__dirname, './blaze.d'),
-      'blaze.component': path.resolve(__dirname, './blaze.component'),
-      'blaze.store': path.resolve(__dirname, './blaze.store'),
+      '@blaze': path.resolve(__dirname, './.blaze/blaze'),
+      '@blaze.utils': path.resolve(__dirname, './.blaze/utils'),
+      '@blaze.router': path.resolve(__dirname, './.blaze/router'),
   	}
   },
   esbuild: {
     jsxFactory: 'this.$h.h',
     jsxFragment: 'this.$h.Fragment',
-    jsxInject: 'import { render, state, watch, batch, mount, refs, log, init } from "./blaze"'
+    jsxInject: 'import { render, state, watch, batch, mount, refs, log, init, context } from "@blaze"'
   }
 })
