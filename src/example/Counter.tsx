@@ -1,4 +1,6 @@
-const Counter = function (app) {
+import { render, state, watch, log, init } from "@blaze";
+
+const Counter = function () {
 	init(this);
 	state(
 		"state",

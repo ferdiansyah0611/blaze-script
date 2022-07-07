@@ -14,7 +14,7 @@ const diff = function (prev: HTMLElement, el: HTMLElement) {
 	}
 	// text
 	if (prev.childNodes.length) {
-		prev.childNodes.forEach((node, i) => {
+		prev.childNodes.forEach((node: any, i: number) => {
 			if (node && el.childNodes[i] !== undefined) {
 				if (node.data && node.data !== el.childNodes[i].data) {
 					batch.push(() => {

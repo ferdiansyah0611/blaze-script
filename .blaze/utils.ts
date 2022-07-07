@@ -1,30 +1,70 @@
-import { init, mountUtilities } from "./core";
-import { Component, RegisteryComponent, Watch } from "./blaze.d";
+import { mountUtilities } from "./core";
+import {
+	Component,
+	RegisteryComponent,
+	Watch,
+	Mount,
+	InterfaceApp,
+	InterfaceBlaze,
+} from "./blaze.d";
 
 // Application
-export const App = function (el: string, component: Component, config: any) {
-	this.plugin = [];
-	this.mount = () => {
+export class App implements InterfaceApp {
+	el: string;
+	component: any;
+	plugin: any[];
+	blaze: any;
+	config?: any;
+	constructor(el: string, component: any, config: any) {
+		this.plugin = [];
+		this.el = el;
+		this.component = component;
+		this.config = config;
+		this.blaze = new Blaze();
+	}
+	mount() {
 		document.addEventListener("DOMContentLoaded", () => {
-			let app = new component();
-			app.$node = app.render();
-			app.$config = config;
+			let app = new this.component();
+			app.$config = this.config;
 			// inject to window
 			if (!window.$app) {
 				window.$app = app;
+				window.$blaze = this.blaze;
 			}
-			document.querySelector(el).append($app.$node);
-			this.plugin.forEach((plugin: any) => plugin(window.$app));
+			this.plugin.forEach((plugin: any) =>
+				plugin(window.$app, window.$blaze)
+			);
+			app.$node = app.render();
+			document.querySelector(this.el).append(window.$app.$node);
 			mountUtilities(app.$deep, {}, false);
 		});
-	};
-	this.use = (plugin) => {
+	}
+	use(plugin: any) {
 		this.plugin.push(plugin);
-		return this;
-	};
-	return this;
-};
+	}
+}
+export class Blaze implements InterfaceBlaze {
+	everyMakeElement: any[];
+	everyMakeComponent: any[];
+	constructor() {
+		this.everyMakeElement = [];
+		this.everyMakeComponent = [];
+	}
+	set onMakeElement(value: any) {
+		this.everyMakeElement.push(value);
+	}
+	runEveryMakeElement(el: HTMLElement) {
+		this.everyMakeElement.forEach((item) => item(el))
+	}
+	set onMakeComponent(value: any) {
+		this.everyMakeComponent.push(value);
+	}
+	runEveryMakeComponent(component: Component) {
+		this.everyMakeComponent.forEach((item) => item(component))
+	}
+}
 export const getAppConfig = () => window.$app?.$config || {};
+export const getBlaze = () => window.$blaze || {};
 // utilites
 export const log = (...msg: any[]) =>
 	getAppConfig().dev && console.log(">", ...msg);
@@ -33,20 +73,20 @@ export const render = (callback: Function, component: Component) =>
 export const state = function (
 	name: string,
 	initial: any,
-	component: Component,
-	registry: RegisteryComponent
+	component: Component | null,
+	registry?: RegisteryComponent[]
 ) {
 	// for context
 	if (Array.isArray(registry)) {
 		return new Proxy(initial, {
-			set(a, b, c) {
+			set(a: any, b: string, c: any) {
 				a[b] = c;
-				registry.forEach((components: Component) => {
-					if (!components.$deep.batch) {
-						components.$deep.trigger();
+				registry.forEach((register: RegisteryComponent) => {
+					if (!register.component.$deep.batch) {
+						register.component.$deep.trigger();
 					}
 					// watching
-					components.$deep.watch.forEach((watch: Watch) => {
+					register.component.$deep.watch.forEach((watch: Watch) => {
 						let find = watch.dependencies.find(
 							(item: string) => item === `ctx.${name}.${b}`
 						);
@@ -61,31 +101,48 @@ export const state = function (
 	}
 	// for state
 	else {
+		let handle = (b, c) => {
+			// watching
+			component.$deep.watch.forEach((watch: Watch) => {
+				let find = watch.dependencies.find(
+					(item: string) => item === `${name}.${b}`
+				);
+				if (find) {
+					watch.handle(b, c);
+				}
+			});
+		};
+		// for update
 		component[name] = new Proxy(initial, {
 			set(a, b, c) {
 				a[b] = c;
-				if (!component.$deep.batch) {
+				if (!component.$deep.batch && !component.$deep.disableTrigger) {
 					component.$deep.trigger();
 				}
-				// watching
-				component.$deep.watch.forEach((watch: Watch) => {
-					let find = watch.dependencies.find(
-						(item: string) => item === `${name}.${b}`
-					);
-					if (find) {
-						watch.handle(b, c);
-					}
-				});
+				if (!component.$deep.disableTrigger) {
+					handle(b, c);
+				}
 				return true;
 			},
 		});
+		// trigger for first render
+		if (name === "props" && !component.$deep.update) {
+			component.$deep.disableTrigger = true;
+			for (const props of Object.entries(component.props)) {
+				handle(props[0], props[1]);
+			}
+			component.$deep.disableTrigger = false;
+			mount(() => {
+				component.$deep.trigger();
+			}, component);
+		}
 		return component[name];
 	}
 };
 
 export const context = (entry: string, defaultContext: any) => {
-	let registery = [];
-	let values = state(entry, defaultContext, {}, registery);
+	let registery: RegisteryComponent[] = [];
+	let values = state(entry, defaultContext, null, registery);
 	return (component) => {
 		registery.push(component);
 		component.ctx[entry] = values;
@@ -106,12 +163,12 @@ export const watch = function (
 	return {
 		clear: () =>
 			(component.$deep.watch = component.$deep.watch.filter(
-				(data: Watch, i: number) => i !== key - 1
+				(...data: any) => data[1] !== key - 1
 			)),
 	};
 };
 export const mount = (callback: Function, component: Component) => {
-	let data = {
+	let data: Mount = {
 		run: false,
 		handle(defineConfig: any = {}, update: boolean = false) {
 			if (update) {
@@ -151,6 +208,7 @@ export const refs = (name: string, component: Component, isArray: boolean) => {
 		return (component[name] = []);
 	}
 	component[name] = null;
+	return true;
 };
 export const batch = async (callback: Function, component: Component) => {
 	component.$deep.batch = true;

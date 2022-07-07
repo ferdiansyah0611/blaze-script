@@ -4,7 +4,7 @@ import { Component } from "./blaze.d";
 
 export const makeRouter = (entry: string, config: any) => {
 	let popstate = false;
-	const goto = (app: any, url: string, component: any, params: any) => {
+	const goto = (app: any, url: string, component: any, params?: any) => {
 		if (popstate) {
 			history.replaceState(null, "", url);
 		} else {
@@ -92,9 +92,9 @@ export const makeRouter = (entry: string, config: any) => {
 			return goto(app, url, found.component, params);
 		}
 	};
-	return (app: Component) => {
+	return (app: Component, blaze) => {
 		// setup
-		app.$router = {
+		let tool = {
 			history: [],
 			go(goNumber: number) {
 				history.go(goNumber);
@@ -108,6 +108,20 @@ export const makeRouter = (entry: string, config: any) => {
 				}
 			},
 		};
+		app.$router = tool;
+
+		blaze.onMakeElement = (el: HTMLElement) => {
+			if (el.nodeName === "A" && el.dataset.link && !el.isRouter) {
+				el.addEventListener("click", (e: any) => {
+					e.preventDefault();
+					tool.push(new URL(e.target.href).pathname);
+				});
+				el.isRouter = true;
+			}
+		};
+		blaze.onMakeComponent = (component) => {
+			component.$router = tool;
+		};
 		// mount
 		mount(() => {
 			ready(app);
@@ -118,7 +132,7 @@ export const makeRouter = (entry: string, config: any) => {
 		}, app);
 	};
 };
-export const page = (path: string, component: Component, config: any = {}) => ({
+export const page = (path: string, component: any, config: any = {}) => ({
 	path,
 	component,
 	config,

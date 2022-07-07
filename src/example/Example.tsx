@@ -1,3 +1,5 @@
+import { render, state, watch, mount, init } from "@blaze";
+
 const Example = function () {
 	init(this);
 	mount(() => {

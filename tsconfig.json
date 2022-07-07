@@ -10,11 +10,24 @@
     "resolveJsonModule": true,
     "esModuleInterop": true,
     "noEmit": true,
-    "noUnusedLocals": false,
+    "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noImplicitReturns": true,
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "emitDecoratorMetadata": true,
+    "baseUrl": "./",
+    "paths": {
+      "@blaze": ["./.blaze/blaze"],
+      "@blaze.d": ["./.blaze/blaze.d"],
+      "@blaze.utils": ["./.blaze/utils"],
+      "@blaze.router": ["./.blaze/router"],
+      "@root": ["./.blaze"]
+    },
+    "jsx": "preserve",
+    "isolatedModules": true,
+    "types": ["vite/client"]
   },
-  "include": ["src"]
+  "files": [".blaze/blaze.ts"],
+  "include": ["src"],
+  "exclude": ["node_modules"]
 }

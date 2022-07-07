@@ -1,13 +1,16 @@
 import { log } from "./utils";
 import { e } from "./blaze";
-import { Component } from "./blaze.d";
+import { Component, NodeDeep } from "./blaze.d";
 
 // setup
 export const init = (component: Component) => {
 	if (!component.$deep) {
 		component.$deep = {
+			$id: 1,
 			update: 0,
 			batch: false,
+			disableTrigger: false,
+			hasMount: false,
 			node: [],
 			registry: [],
 			watch: [],
@@ -39,8 +42,8 @@ export const init = (component: Component) => {
 };
 export const jsx = (component: Component) => {
 	return {
-		h: (...arg) => {
-			return e(false, component, ...arg);
+		h: (nodeName: string | Function | any, data: any, ...children: any[]) => {
+			return e(false, component, nodeName, data, ...children);
 		},
 		Fragment: "Fragment",
 	};
@@ -48,7 +51,7 @@ export const jsx = (component: Component) => {
 
 export const getPreviousUtilites = (
 	first: boolean,
-	$deep: Component.$deep,
+	$deep: Component["$deep"],
 	el: HTMLElement
 ) => {
 	if ($deep.update) {
@@ -64,7 +67,7 @@ export const getPreviousUtilites = (
 export const childrenUtilites = (
 	children: HTMLElement[],
 	el: HTMLElement,
-	$deep: Component.$deep,
+	$deep: Component["$deep"],
 	current: HTMLElement
 ) => {
 	if (children.length === 1 && typeof children[0] === "string") {
@@ -105,10 +108,9 @@ export const childrenUtilites = (
 };
 
 export const attributeUtilites = (
-	first: boolean,
 	data: any,
 	el: HTMLElement,
-	$deep: Component.$deep,
+	$deep: any,
 	component: Component,
 	current: HTMLElement
 ) => {
@@ -121,7 +123,7 @@ export const attributeUtilites = (
 					let isValue = find[0] === "Value";
 					el.addEventListener(
 						item.split(find[0]).join("").toLowerCase().slice(2),
-						(e) => {
+						(e: any) => {
 							e.preventDefault();
 							data[item](isValue ? e.target.value : e);
 						}
@@ -139,7 +141,7 @@ export const attributeUtilites = (
 		if (item === "if") {
 			log("[if]", data[item]);
 
-			let find = $deep.node.find((item) => item.key === $deep.$id) || {};
+			let find = $deep.node.find((item: NodeDeep) => item.key === $deep.$id) || {};
 			if (!find) {
 				$deep.node.push({
 					key: $deep.$id,
@@ -160,7 +162,7 @@ export const attributeUtilites = (
 				if (currentEl) {
 					if (data[item] === true) {
 						if (!currentEl.hasAppend && currentEl.childrenCommit) {
-							currentEl.childrenCommit.forEach((item) =>
+							currentEl.childrenCommit.forEach((item: HTMLElement) =>
 								currentEl.appendChild(item)
 							);
 						}
@@ -171,7 +173,7 @@ export const attributeUtilites = (
 						currentEl.if = false;
 						currentEl.hasAppend = false;
 						applyChildren();
-						Array.from(currentEl.children).forEach((item) =>
+						Array.from(currentEl.children).forEach((item: HTMLElement) =>
 							item.remove()
 						);
 					}
@@ -211,7 +213,7 @@ export const attributeUtilites = (
 						currentEl.if = false;
 						currentEl.hasAppend = false;
 						applyChildren();
-						Array.from(currentEl.children).forEach((item) =>
+						Array.from(currentEl.children).forEach((item: HTMLElement) =>
 							item.remove()
 						);
 					}
@@ -237,12 +239,15 @@ export const attributeUtilites = (
 };
 
 export const mountUtilities = (
-	$deep: Component.$deep,
+	$deep: Component["$deep"],
 	props: any = {},
 	update: boolean = false
 ) => {
-	$deep.mount.forEach((item) => item.handle(props, update));
+	if(!$deep.hasMount) {
+		$deep.mount.forEach((item) => item.handle(props, update));
+		$deep.hasMount = true;
+	}
 };
-export const unmountUtilities = ($deep: Component.$deep) => {
+export const unmountUtilities = ($deep: Component["$deep"]) => {
 	$deep.unmount.forEach((item) => item());
 };

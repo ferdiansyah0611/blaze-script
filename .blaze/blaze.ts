@@ -9,6 +9,7 @@ import {
 	refs,
 	context,
 	App,
+	getBlaze
 } from "./utils";
 import {
 	childrenUtilites,
@@ -18,7 +19,7 @@ import {
 	unmountUtilities,
 	init,
 } from "./core";
-import { Component } from "./blaze.d";
+import { Component, RegisteryComponent } from "./blaze.d";
 
 export { log, render, state, watch, mount, refs, batch, init, context };
 export default App;
@@ -26,17 +27,17 @@ export default App;
 export const e = function (
 	first: boolean,
 	component: Component,
-	nodeName: string | Function,
+	nodeName: string | Function | any,
 	data: any,
 	...children: HTMLElement[]
-): HTMLElement {
+) {
 	const $deep = component.$deep;
 	data = data ?? {};
 	// component
 	if (typeof nodeName === "function") {
 		let key = data.key ?? 0;
 		let check = $deep.registry.find(
-			(item) =>
+			(item: RegisteryComponent) =>
 				item.component.constructor.name === nodeName.name &&
 				item.key === key
 		);
@@ -44,7 +45,7 @@ export const e = function (
 		if (!check) {
 			let current = new nodeName(component, window.$app);
 			// props registery
-			state("props", data.props || {}, current);
+			state("props", data ? {...data} : {}, current);
 
 			current.$node = current.render();
 			current.$node.dataset.key = key;
@@ -54,6 +55,7 @@ export const e = function (
 				component: current,
 			});
 			current.$node.render = false;
+			getBlaze().runEveryMakeComponent(current);
 			mountUtilities(current.$deep, true);
 			return current.$node;
 		}
@@ -78,13 +80,9 @@ export const e = function (
 	let current = getPreviousUtilites(first, $deep, el);
 
 	childrenUtilites(children, el, $deep, current);
-	attributeUtilites(first, data, el, $deep, component, current);
+	attributeUtilites(data, el, $deep, component, current);
 	// first render
 	if (!$deep.update) {
-		if (!$deep.$id) {
-			$deep.$id = 1;
-		}
-
 		if (first) {
 			if (el.isConnected) {
 				mountUtilities($deep, data.props, true);
@@ -95,6 +93,7 @@ export const e = function (
 			key: $deep.$id,
 			el,
 		});
+		getBlaze().runEveryMakeElement(el);
 		$deep.$id++;
 		return el;
 	}
@@ -107,6 +106,7 @@ export const e = function (
 				batch();
 			});
 			$deep.$id++;
+			getBlaze().runEveryMakeElement(current);
 			return current;
 		}
 		if (first && current) {
