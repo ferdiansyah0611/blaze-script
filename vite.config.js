@@ -9,6 +9,7 @@ export default defineConfig({
       "@blaze.utils": path.resolve(__dirname, "./.blaze/utils"),
       "@blaze.router": path.resolve(__dirname, "./.blaze/router"),
       "@root": path.resolve(__dirname, "./.blaze"),
+      "@": path.resolve(__dirname, "./src"),
     },
   },
   esbuild: {

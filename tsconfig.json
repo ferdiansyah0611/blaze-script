@@ -21,13 +21,13 @@
       "@blaze.d": ["./.blaze/blaze.d"],
       "@blaze.utils": ["./.blaze/utils"],
       "@blaze.router": ["./.blaze/router"],
-      "@root": ["./.blaze"]
+      "@root": ["./.blaze"],
+      "@": ["./src"]
     },
     "jsx": "preserve",
     "isolatedModules": true,
     "types": ["vite/client"]
   },
-  "files": [".blaze/blaze.ts"],
   "include": ["src"],
   "exclude": ["node_modules"]
 }

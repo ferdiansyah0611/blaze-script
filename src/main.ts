@@ -18,4 +18,4 @@ declare global{
     }
 }
 
-import "./App.tsx";
+import "@/Apps";
