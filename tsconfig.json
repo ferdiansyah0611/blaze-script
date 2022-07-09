@@ -22,12 +22,15 @@
       "@blaze.utils": ["./.blaze/utils"],
       "@blaze.router": ["./.blaze/router"],
       "@root": ["./.blaze"],
+      "@route": ["./src/route"],
+      "@component/*": ["./src/component/*"],
+      "@style": ["./src/style"],
       "@": ["./src"]
     },
     "jsx": "preserve",
     "isolatedModules": true,
     "types": ["vite/client"]
   },
-  "include": ["src"],
+  "include": ["src", "src/*", "src/**/*"],
   "exclude": ["node_modules"]
 }

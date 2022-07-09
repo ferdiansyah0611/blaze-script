@@ -26,24 +26,11 @@ const Counter = function () {
 	render(() => {
 		return (
 			<>
-				<div>
-					<div>
-						<label
-							for="visitors"
-							className="block mb-2 text-sm font-medium text-gray-900"
-						>
-							Counter
-						</label>
-						<input
-							onKeyUpValue={(value) => (this.state.counter = value)}
-							value={this.state.counter}
-							type="number"
-							id="visitors"
-							className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
-							disabled
-						/>
+				<div d>
+					<div d>
+						<p>{this.state.counter} Click</p>
 					</div>
-					<div className="flex space-x-2 mt-2">
+					<div d className="flex justify-center space-x-2 mt-2">
 						<button onClick={increment} type="button" className={primary}>
 							Increment
 						</button>
@@ -51,6 +38,11 @@ const Counter = function () {
 							Decrement
 						</button>
 					</div>
+				</div>
+				<div className="flex justify-center">
+					<button onClick={() => window.open('/test/index.html')} type="button" className={primary}>
+						More Example
+					</button>
 				</div>
 			</>
 		);

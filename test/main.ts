@@ -11,12 +11,11 @@ declare global{
     	render: boolean,
     	value: any,
     	hasAppend: boolean,
-        isRouter: boolean,
-        d: any
+        isRouter: boolean
     }
     interface ChildNode{
     	data: any
     }
 }
 
-import "@/Apps";
+import "./Apps";

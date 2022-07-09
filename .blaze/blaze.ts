@@ -9,7 +9,7 @@ import {
 	refs,
 	context,
 	App,
-	getBlaze
+	getBlaze,
 } from "./utils";
 import {
 	childrenUtilites,
@@ -45,7 +45,7 @@ export const e = function (
 		if (!check) {
 			let current = new nodeName(component, window.$app);
 			// props registery
-			state("props", data ? {...data} : {}, current);
+			state("props", data ? { ...data } : {}, current);
 
 			current.$node = current.render();
 			current.$node.dataset.key = key;
@@ -77,37 +77,53 @@ export const e = function (
 	}
 	// element
 	let el = document.createElement(nodeName);
-	let current = getPreviousUtilites(first, $deep, el);
+	let current = getPreviousUtilites(first, $deep, el) || component.$node.querySelector(`[data-n="${component.constructor.name}"][data-i="${$deep.$id}"]`);
 
-	childrenUtilites(children, el, $deep, current);
+	// skip diffing
+	if ($deep.update && current && current.d) {
+		return true;
+	}
+
+	childrenUtilites(children, el, $deep);
 	attributeUtilites(data, el, $deep, component, current);
+	(() => {
+		if (first) el.dataset.component = component.constructor.name;
+		el.dataset.n = component.constructor.name;
+	})();
+	getBlaze().runEveryMakeElement(el);
 	// first render
 	if (!$deep.update) {
 		if (first) {
 			if (el.isConnected) {
 				mountUtilities($deep, data.props, true);
 			}
-			el.dataset.component = component.constructor.name;
 		}
 		$deep.node.push({
 			key: $deep.$id,
 			el,
 		});
-		getBlaze().runEveryMakeElement(el);
 		$deep.$id++;
 		return el;
 	}
 	// update render
 	else {
 		// diff in here
+		el.dataset.i = $deep.$id
+		if($deep.updateArray) {
+			$deep.virtual.push({key: $deep.$id, el})
+			$deep.node = [...$deep.virtual]
+		}
 		if (!first) {
 			let difference = diff(current, el);
 			difference.forEach((batch) => {
 				batch();
 			});
 			$deep.$id++;
-			getBlaze().runEveryMakeElement(current);
-			return current;
+			return el;
+		}
+		if (first) {
+			$deep.$id = 0;
+			$deep.virtual = []
 		}
 		if (first && current) {
 			if (current.dataset && current.childrenComponent) {
@@ -123,5 +139,6 @@ export const e = function (
 				}
 			}
 		}
+		return el
 	}
 };

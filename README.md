@@ -8,13 +8,13 @@ Virtual DOM For Single Page Application using Vite & Typescript.
 -   State Management
 -   Lifecycle
 -   Include Router and Context
--   JSX
+-   JSX Syntax
 -   Batch
 
 ## Get Started
 
 ```tsx
-import App, { init, render } from '@blaze';
+import App, { init, render } from "@blaze";
 
 const Hello = function () {
     init(this);
@@ -36,7 +36,7 @@ app.mount();
 ## State Management
 
 ```tsx
-import { init, state, render } from '@blaze';
+import { init, state, render } from "@blaze";
 
 const Hello = function () {
     init(this);
@@ -61,7 +61,7 @@ const Hello = function () {
 ## Lifecycle & Batching
 
 ```tsx
-import { init, state, mount, render } from '@blaze';
+import { init, state, mount, render } from "@blaze";
 
 const Hello = function () {
     init(this);
@@ -84,6 +84,9 @@ const Hello = function () {
                 }
             }, this);
         }, 2000);
+        return() => {
+            clearInterval(interval);
+        }
     }, this);
     render(
         () => (
@@ -101,13 +104,14 @@ const Hello = function () {
 ## Watching State & Prop
 
 ```tsx
-import { watch } from '@blaze';
+import { watch } from "@blaze";
 
 watch(["state.tatus"], (a, b) => console.log(a, b), this);
 watch(["props.status"], (a, b) => console.log(a, b), this);
 ```
 
 ## Logical
+
 Recommendation Because Work 100% Like This
 
 ```tsx
@@ -123,32 +127,36 @@ Recommendation Because Work 100% Like This
     </div>
 </>
 ```
-But This Don't Work
+
+But This Don't Work, Work If Array State Changed.
+
 ```tsx
 <>
-    {
-        this.state.now > 2 && <Example props={{ status: this.state.now }} />
-    }
-    {
-        this.state.now === 5 ?
+    {this.state.now > 2 && <Example props={{ status: this.state.now }} />}
+    {this.state.now === 5 ? (
         <div data-name={this.state.name} if={this.state.now === 5}>
             <p>Done</p>
         </div>
-        :
+    ) : (
         <div else>
             <p>Please Wait...</p>
         </div>
-    }
+    )}
 </>
 ```
+
 Work 100% Logical JSX In TextNode Or Property
+
 ```tsx
 <>
-    <p className={this.state.now === 0 ? "hidden" : "block"}>Lorem {this.state.now === 10 ? "ipsum" : "consectetur"}</p>
+    <p className={this.state.now === 0 ? "hidden" : "block"}>
+        Lorem {this.state.now === 10 ? "ipsum" : "consectetur"}
+    </p>
 </>
 ```
 
 ## Context
+
 ```tsx
 import { context, init, render } from "@blaze";
 
@@ -158,7 +166,7 @@ const user = context("user", {
 
 const Hello = function () {
     init(this);
-    user(this)
+    user(this);
     render(
         () => (
             <>
@@ -169,7 +177,9 @@ const Hello = function () {
     );
 };
 ```
+
 ## Refs
+
 ```tsx
 import { refs, init, render } from "@blaze";
 
@@ -182,33 +192,75 @@ const Hello = function () {
             <>
                 <p refs="hi">Hello World</p>
                 {/*array refs*/}
-                <p refs="text" i={0}>Hello World</p>
-                <p refs="text" i={1}>Hello World</p>
+                <p refs="text" i={0}>
+                    Hello World
+                </p>
+                <p refs="text" i={1}>
+                    Hello World
+                </p>
             </>
         ),
         this
     );
 };
 ```
+
 ## Event
+
 ```tsx
 import { refs, init, render } from "@blaze";
 
 const Hello = function () {
     init(this);
     let click = (e) => {
-        console.log('clicked')
-    }
+        console.log("clicked");
+    };
     render(
         () => (
             <>
                 <button onClick={click}>Click Me</button>
-                <a href="/" onClickPrevent={click}>Click Me</a>
+                <input onChangeValue={(value) => console.log(value)} type="text" />
+                <a href="/" onClickPrevent={click}>
+                    Click Me
+                </a>
             </>
         ),
         this
     );
 };
+```
+
+## Skip Diffing For Performance
+
+use property "d".
+
+```tsx
+<>
+    <div d>
+        <p>{this.state.name}</p>
+    </div>
+</>
+```
+
+## Fragment JSX Only For Use First Element On Component
+
+Work 100%
+
+```tsx
+<>
+    <p>{this.state.name}</p>
+<>
+```
+
+Don't work
+
+```tsx
+<>
+    <p>{this.state.name}</p>
+    <>
+        <p>I'm children</p>
+    </>
+<>
 ```
 
 # Router API
@@ -227,6 +279,8 @@ app.use(
             page("/test/:id", TestParam),
             page("", NotFound),
         ],
+        // option for resolve url
+        resolve: "/test/index.html",
     })
 );
 app.mount();

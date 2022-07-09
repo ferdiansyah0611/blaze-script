@@ -4,6 +4,17 @@ import { Component } from "./blaze.d";
 
 export const makeRouter = (entry: string, config: any) => {
 	let popstate = false;
+	if(config.resolve) {
+		let url = new URL(location.href);
+
+		/*let update = */config.url.map(item => {
+			if(item.path){
+				item.path = url.pathname + (item.path === '/' ? '' : item.path)
+			}
+			return item
+		})
+	}
+
 	const goto = (app: any, url: string, component: any, params?: any) => {
 		if (popstate) {
 			history.replaceState(null, "", url);
@@ -110,11 +121,15 @@ export const makeRouter = (entry: string, config: any) => {
 		};
 		app.$router = tool;
 
-		blaze.onMakeElement = (el: HTMLElement) => {
-			if (el.nodeName === "A" && el.dataset.link && !el.isRouter) {
+		blaze.onMakeElement = (el: any) => {
+			if (el && el.nodeName === "A" && el.dataset.link && !el.isRouter) {
+				if(config.resolve){
+					let url = new URL(el.href);
+					el.dataset.href = url.origin + config.resolve + (url.pathname === '/' ? '' : url.pathname)
+				}
 				el.addEventListener("click", (e: any) => {
 					e.preventDefault();
-					tool.push(new URL(e.target.href).pathname);
+					tool.push(new URL(config.resolve ? e.currentTarget.dataset.href: el.href).pathname);
 				});
 				el.isRouter = true;
 			}

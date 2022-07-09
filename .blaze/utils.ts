@@ -83,7 +83,7 @@ export const state = function (
 				a[b] = c;
 				registry.forEach((register: RegisteryComponent) => {
 					if (!register.component.$deep.batch) {
-						register.component.$deep.trigger();
+						register.component.$deep.trigger(Array.isArray(c));
 					}
 					// watching
 					register.component.$deep.watch.forEach((watch: Watch) => {
@@ -117,7 +117,7 @@ export const state = function (
 			set(a, b, c) {
 				a[b] = c;
 				if (!component.$deep.batch && !component.$deep.disableTrigger) {
-					component.$deep.trigger();
+					component.$deep.trigger(Array.isArray(c));
 				}
 				if (!component.$deep.disableTrigger) {
 					handle(b, c);

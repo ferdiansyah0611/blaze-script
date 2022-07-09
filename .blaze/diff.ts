@@ -5,13 +5,6 @@ const diff = function (prev: HTMLElement, el: HTMLElement) {
 	if (!prev) {
 		return batch;
 	}
-	if (el === undefined) {
-		batch.push(() => prev.remove());
-	}
-	// node
-	if (prev.nodeName !== el.nodeName) {
-		batch.push(() => prev.replaceWith(el));
-	}
 	// text
 	if (prev.childNodes.length) {
 		prev.childNodes.forEach((node: any, i: number) => {
@@ -62,5 +55,17 @@ const diff = function (prev: HTMLElement, el: HTMLElement) {
 
 	return batch;
 };
+
+export const diffChildren = (oldest, newest) => {
+	if(oldest.children.length !== newest.children.length) {
+		// console.log(oldest, newest)
+		oldest.replaceWith(newest)
+	} else {
+		let ar = Array.from(oldest.children)
+		ar.forEach((item, i) => {
+			diffChildren(item, newest.children[i])
+		})
+	}
+}
 
 export default diff;

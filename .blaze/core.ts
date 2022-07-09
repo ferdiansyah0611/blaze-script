@@ -1,6 +1,7 @@
 import { log } from "./utils";
 import { e } from "./blaze";
 import { Component, NodeDeep } from "./blaze.d";
+import { diffChildren } from './diff';
 
 // setup
 export const init = (component: Component) => {
@@ -11,15 +12,21 @@ export const init = (component: Component) => {
 			batch: false,
 			disableTrigger: false,
 			hasMount: false,
+			updateArray: false,
 			node: [],
+			virtual: [],
 			registry: [],
 			watch: [],
 			mount: [],
 			unmount: [],
-			trigger: () => {
+			trigger: (isArrayChange) => {
+				component.$deep.updateArray = isArrayChange;
 				component.$deep.update++;
 				component.$deep.$id = 1;
-				component.render();
+				let newRender = component.render();
+				if(isArrayChange) {
+					diffChildren(component.$node, newRender)
+				}
 			},
 			remove() {
 				this.registry.forEach((item) => {
@@ -68,19 +75,16 @@ export const childrenUtilites = (
 	children: HTMLElement[],
 	el: HTMLElement,
 	$deep: Component["$deep"],
-	current: HTMLElement
 ) => {
 	if (children.length === 1 && typeof children[0] === "string") {
 		el.append(document.createTextNode(children[0]));
 	} else if (children.length) {
 		children.forEach((item) => {
 			// node
-			if (item && item.nodeName) {
-				if (!$deep.update) {
-					log("[appendChild]", item.tagName);
-					el.appendChild(item);
-					return;
-				}
+			if (item && item.nodeName && (!$deep.update || $deep.updateArray)) {
+				log("[appendChild]", item.tagName);
+				el.appendChild(item);
+				return;
 			}
 			// string/number
 			if (["string", "number"].includes(typeof item)) {
@@ -90,17 +94,9 @@ export const childrenUtilites = (
 			if (Array.isArray(item)) {
 				let key = 0;
 				for (const subchildren of item) {
-					if (!$deep.update) {
-						subchildren.key = key;
-						key++;
-						current.appendChild(subchildren);
-					}
-					// update children
-					// else {
-					// 	let find = Array.from(current.childNodes).find(element => (element.key) === key)
-					// 	console.log(find.isEqualNode(subchildren))
-					// 	key++
-					// }
+					subchildren.key = key;
+					key++;
+					el.appendChild(subchildren);
 				}
 			}
 		});
@@ -114,7 +110,7 @@ export const attributeUtilites = (
 	component: Component,
 	current: HTMLElement
 ) => {
-	Object.keys(data).forEach((item) => {
+	Object.keys(data).forEach((item: any) => {
 		// event
 		if (item.match(/^on[A-Z]/)) {
 			if (typeof data[item] === "function") {
@@ -136,6 +132,7 @@ export const attributeUtilites = (
 				}
 			}
 			delete data[item.match(/^on[A-Z][a-z]+/)[0]];
+			return
 		}
 		// logic
 		if (item === "if") {
@@ -180,6 +177,7 @@ export const attributeUtilites = (
 				}
 			};
 			handle();
+			return
 		}
 		if (item === "else") {
 			let find = $deep.node.find((item) => item.key === $deep.$id) || {};
@@ -220,6 +218,7 @@ export const attributeUtilites = (
 				}
 			};
 			handle();
+			return
 		}
 		if (item.match(/^data-/)) {
 			let name = item.split("data-")[1];
@@ -233,6 +232,12 @@ export const attributeUtilites = (
 			} else {
 				component[data[item]] = $deep.node[$deep.$id - 1] || current;
 			}
+			return
+		}
+		if(item === 'class') {
+			el.className = data[item];
+			delete item.class;
+			return
 		}
 		el[item] = data[item];
 	});
