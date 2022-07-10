@@ -15,7 +15,8 @@ declare global{
         d: any
     }
     interface ChildNode{
-    	data: any
+    	data: any,
+        if: boolean
     }
 }
 

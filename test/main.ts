@@ -14,7 +14,8 @@ declare global{
         isRouter: boolean
     }
     interface ChildNode{
-    	data: any
+    	data: any,
+        if: boolean
     }
 }
 
