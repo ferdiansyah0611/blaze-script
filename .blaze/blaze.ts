@@ -1,4 +1,3 @@
-import diff from "./diff";
 import {
 	log,
 	render,
@@ -75,20 +74,29 @@ export const e = function (
 		nodeName = "div";
 		first = true;
 	}
-	// element
-	let el = document.createElement(nodeName);
-	let current = getPreviousUtilites(first, $deep, el) || component.$node.querySelector(`[data-n="${component.constructor.name}"][data-i="${$deep.$id}"]`);
-
-	// skip diffing
-	if ($deep.update && current && current.d) {
-		return true;
+	let el;
+	// only svg element
+	let svg;
+	if(['svg', 'path', 'g', 'circle', 'ellipse', 'line'].includes(nodeName)) {
+		svg = true;
+		el = document.createElementNS('http://www.w3.org/2000/svg', nodeName);
+		for(const [k, v] of Object.entries(data)){
+			el.setAttribute(k, v)
+		}
 	}
+	// element
+	else {
+		el = document.createElement(nodeName);
+	}
+	let current = getPreviousUtilites(first, $deep, component, el)
 
 	childrenUtilites(children, el, $deep);
-	attributeUtilites(data, el, $deep, component, current);
+
+	if(!svg) {
+		attributeUtilites(data, el, component, current);
+	}
 	(() => {
 		if (first) el.dataset.component = component.constructor.name;
-		el.dataset.n = component.constructor.name;
 	})();
 	getBlaze().runEveryMakeElement(el);
 	// first render
@@ -98,32 +106,12 @@ export const e = function (
 				mountUtilities($deep, data.props, true);
 			}
 		}
-		$deep.node.push({
-			key: $deep.$id,
-			el,
-		});
-		$deep.$id++;
 		return el;
 	}
 	// update render
 	else {
-		// diff in here
-		el.dataset.i = $deep.$id
-		if($deep.updateArray) {
-			$deep.virtual.push({key: $deep.$id, el})
-			$deep.node = [...$deep.virtual]
-		}
 		if (!first) {
-			let difference = diff(current, el);
-			difference.forEach((batch) => {
-				batch();
-			});
-			$deep.$id++;
 			return el;
-		}
-		if (first) {
-			$deep.$id = 0;
-			$deep.virtual = []
 		}
 		if (first && current) {
 			if (current.dataset && current.childrenComponent) {

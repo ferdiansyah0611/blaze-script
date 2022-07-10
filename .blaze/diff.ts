@@ -2,7 +2,7 @@ import { log } from "./utils";
 
 const diff = function (prev: HTMLElement, el: HTMLElement) {
 	let batch = [];
-	if (!prev) {
+	if (!prev || (prev.d || el.d) && !(el instanceof SVGElement)) {
 		return batch;
 	}
 	// text
@@ -17,10 +17,6 @@ const diff = function (prev: HTMLElement, el: HTMLElement) {
 				}
 			}
 		});
-	}
-	// class
-	if (prev.className !== el.className) {
-		batch.push(() => (prev.className = el.className));
 	}
 	// attribute
 	if (prev.attributes.length) {
@@ -56,14 +52,22 @@ const diff = function (prev: HTMLElement, el: HTMLElement) {
 	return batch;
 };
 
-export const diffChildren = (oldest, newest) => {
+export const diffChildren = (oldest: any, newest: any, first: boolean = true) => {
+	if(!newest) {
+		return;
+	}
 	if(oldest.children.length !== newest.children.length) {
-		// console.log(oldest, newest)
-		oldest.replaceWith(newest)
+		return oldest.replaceChildren(...newest.children)
 	} else {
-		let ar = Array.from(oldest.children)
-		ar.forEach((item, i) => {
-			diffChildren(item, newest.children[i])
+		let children = Array.from(oldest.children)
+		if(first){
+			let difference = diff(oldest, newest)
+			difference.forEach(rechange => rechange())
+		}
+		children.forEach((item: HTMLElement, i: number) => {
+			let difference2 = diff(item, newest.children[i])
+			difference2.forEach(rechange => rechange())
+			diffChildren(item, newest.children[i], false)
 		})
 	}
 }

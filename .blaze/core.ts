@@ -1,6 +1,6 @@
 import { log } from "./utils";
 import { e } from "./blaze";
-import { Component, NodeDeep } from "./blaze.d";
+import { Component } from "./blaze.d";
 import { diffChildren } from './diff';
 
 // setup
@@ -19,14 +19,12 @@ export const init = (component: Component) => {
 			watch: [],
 			mount: [],
 			unmount: [],
-			trigger: (isArrayChange) => {
-				component.$deep.updateArray = isArrayChange;
+			trigger: () => {
+				component.$deep.updateArray = true;
 				component.$deep.update++;
-				component.$deep.$id = 1;
+				// diff in here
 				let newRender = component.render();
-				if(isArrayChange) {
-					diffChildren(component.$node, newRender)
-				}
+				diffChildren(component.$node, newRender)
 			},
 			remove() {
 				this.registry.forEach((item) => {
@@ -59,11 +57,13 @@ export const jsx = (component: Component) => {
 export const getPreviousUtilites = (
 	first: boolean,
 	$deep: Component["$deep"],
+	component: Component,
 	el: HTMLElement
 ) => {
 	if ($deep.update) {
 		if (first) {
-			return $deep.node[$deep.node.length - 1]?.el;
+			return component.$node;
+			// return $deep.node[$deep.node.length - 1]?.el;
 		}
 		return $deep.node[$deep.$id - 1]?.el;
 	} else {
@@ -79,6 +79,7 @@ export const childrenUtilites = (
 	if (children.length === 1 && typeof children[0] === "string") {
 		el.append(document.createTextNode(children[0]));
 	} else if (children.length) {
+		// log('[children]', children)
 		children.forEach((item) => {
 			// node
 			if (item && item.nodeName && (!$deep.update || $deep.updateArray)) {
@@ -106,7 +107,6 @@ export const childrenUtilites = (
 export const attributeUtilites = (
 	data: any,
 	el: HTMLElement,
-	$deep: any,
 	component: Component,
 	current: HTMLElement
 ) => {
@@ -137,17 +137,8 @@ export const attributeUtilites = (
 		// logic
 		if (item === "if") {
 			log("[if]", data[item]);
-
-			let find = $deep.node.find((item: NodeDeep) => item.key === $deep.$id) || {};
-			if (!find) {
-				$deep.node.push({
-					key: $deep.$id,
-					el: current,
-				});
-				log("[if > current]", current);
-			}
 			let handle = () => {
-				let currentEl = find.el || current;
+				let currentEl = el;
 				let applyChildren = () => {
 					if (!currentEl.childrenCommit) {
 						currentEl.childrenCommit = Array.from(
@@ -180,15 +171,8 @@ export const attributeUtilites = (
 			return
 		}
 		if (item === "else") {
-			let find = $deep.node.find((item) => item.key === $deep.$id) || {};
-			if (!find) {
-				$deep.node.push({
-					key: $deep.$id,
-					el: current,
-				});
-			}
 			let handle = () => {
-				let currentEl = find.el || current;
+				let currentEl = el;
 				let applyChildren = () => {
 					if (!currentEl.childrenCommit) {
 						currentEl.childrenCommit = Array.from(
@@ -224,20 +208,20 @@ export const attributeUtilites = (
 			let name = item.split("data-")[1];
 			el.dataset[name] = data[item];
 			delete data[item.match(/^data-\S+/)[0]];
+			return;
 		}
 		if (item === "refs") {
 			if (typeof data.i === "number") {
-				component[data[item]][data.i] =
-					$deep.node[$deep.$id - 1] || current;
+				component[data[item]][data.i] = current || el;
 			} else {
-				component[data[item]] = $deep.node[$deep.$id - 1] || current;
+				component[data[item]] = current || el;
 			}
-			return
+			return;
 		}
 		if(item === 'class') {
 			el.className = data[item];
 			delete item.class;
-			return
+			return;
 		}
 		el[item] = data[item];
 	});
