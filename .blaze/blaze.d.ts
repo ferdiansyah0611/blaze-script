@@ -41,13 +41,13 @@ export interface Component{
 		updateArray: boolean,
 		update: number,
 		node: NodeDeep[],
-		virtual: NodeDeep[],
 		registry: RegisteryComponent[],
 		watch: Watch[],
 		mount: Mount[],
 		unmount: Function[],
 		trigger: Function,
 		remove: Function
+		dispatch?: any,
 	},
 	$config?: {
 		dev: boolean

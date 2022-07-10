@@ -7,6 +7,7 @@ import {
 	mount,
 	refs,
 	context,
+	dispatch,
 	App,
 	getBlaze,
 } from "./utils";
@@ -20,7 +21,7 @@ import {
 } from "./core";
 import { Component, RegisteryComponent } from "./blaze.d";
 
-export { log, render, state, watch, mount, refs, batch, init, context };
+export { log, render, state, watch, mount, refs, batch, dispatch, init, context };
 export default App;
 
 export const e = function (

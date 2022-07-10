@@ -1,8 +1,20 @@
-import App, { render, state, init, mount, batch } from "@blaze";
+import App, { render, state, init, mount, batch, context, dispatch } from "@blaze";
 import { makeRouter, page } from "@blaze.router";
 import Button from "./component/Button";
 import Navbar from "./component/Navbar";
 import Footer from "./component/Footer";
+
+const movies = context("movies", {
+    data: [],
+    page: 1
+}, {
+	nextPage(state){
+		this.ctx.movies.page++
+	},
+	prevPage(state){
+		this.ctx.movies.page--
+	},
+});
 
 const TestApp = function () {
 	init(this);
@@ -22,6 +34,7 @@ const TestApp = function () {
 };
 const Index = function () {
 	init(this);
+	movies(this);
 	const endpoint = "https://www.omdbapi.com/?apikey=c8a4a454&s=marvel";
 	state(
 		"blog",
@@ -34,37 +47,40 @@ const Index = function () {
 
 	const pagination = (type) => {
 		if (type === null) return true;
-		else if (type) return this.blog.page++;
-		else if (!type) return this.blog.page--;
+		else if (type) return dispatch('movies.nextPage', this);
+		else if (!type) return dispatch('movies.prevPage', this);
 	};
 	const getNews = async (type) => {
 		batch(async () => {
 			pagination(type);
 			let commit = [];
-			let data = await fetch(endpoint + "&page=" + this.blog.page);
+			let data = await fetch(endpoint + "&page=" + this.ctx.movies.page);
 			data = await data.json();
 			commit = data.Search;
-			this.blog.data = commit ? commit : [];
-
+			this.ctx.movies.data = commit ? commit : [];
+			window.scrollTo(0, 0)
 			return Promise.resolve(true);
 		}, this);
 	};
+
 	mount(() => {
-		getNews(null);
+		if(!this.ctx.movies.data.length) {
+			getNews(null);
+		}
 	}, this);
 	render(
 		() => (
 			<>
 				<div refs="hi" className="p-4">
 					<div className="grid gap-2 grid-cols-2 md:grid-cols-4">
-						{this.blog.data.map((item, i) => (
+						{this.ctx.movies.data.map((item, i) => (
 							<div
 								key={i}
 								class="bg-white rounded-lg border border-gray-200 shadow-md dark:bg-gray-800 dark:border-gray-700"
 							>
 								<a href="/">
 									<img
-										class="rounded-t-lg"
+										class="rounded-t-lg w-full"
 										src={item.Poster}
 										alt=""
 									/>
@@ -76,7 +92,7 @@ const Index = function () {
 										</h5>
 									</a>
 									<p class="mb-3 font-normal text-gray-700 dark:text-gray-400">
-										{item.Year.replace('-', '')} - {item.Type}
+										{item.Year.replace('–', '')} - {item.Type}
 									</p>
 									<a
 										href="/"

@@ -1,7 +1,6 @@
 import { mountUtilities } from "./core";
 import {
 	Component,
-	RegisteryComponent,
 	Watch,
 	Mount,
 	InterfaceApp,
@@ -74,19 +73,19 @@ export const state = function (
 	name: string,
 	initial: any,
 	component: Component | null,
-	registry?: RegisteryComponent[]
+	registry?: Component[]
 ) {
 	// for context
 	if (Array.isArray(registry)) {
 		return new Proxy(initial, {
 			set(a: any, b: string, c: any) {
 				a[b] = c;
-				registry.forEach((register: RegisteryComponent) => {
-					if (!register.component.$deep.batch) {
-						register.component.$deep.trigger(Array.isArray(c));
+				registry.forEach((register: Component) => {
+					if (!register.$deep.batch) {
+						register.$deep.trigger(Array.isArray(c));
 					}
 					// watching
-					register.component.$deep.watch.forEach((watch: Watch) => {
+					register.$deep.watch.forEach((watch: Watch) => {
 						let find = watch.dependencies.find(
 							(item: string) => item === `ctx.${name}.${b}`
 						);
@@ -94,6 +93,7 @@ export const state = function (
 							watch.handle(b, c);
 						}
 					});
+
 				});
 				return true;
 			},
@@ -140,10 +140,16 @@ export const state = function (
 	}
 };
 
-export const context = (entry: string, defaultContext: any) => {
-	let registery: RegisteryComponent[] = [];
+export const context = (entry: string, defaultContext: any, action: any) => {
+	let registery: Component[] = [];
 	let values = state(entry, defaultContext, null, registery);
 	return (component) => {
+		if(action) {
+			if(!component.$deep.dispatch) {
+				component.$deep.dispatch = {}
+			}
+			component.$deep.dispatch[entry] = action;
+		}
 		registery.push(component);
 		component.ctx[entry] = values;
 	};
@@ -216,3 +222,12 @@ export const batch = async (callback: Function, component: Component) => {
 	component.$deep.batch = false;
 	component.$deep.trigger();
 };
+export const dispatch = (name: string, component: Component, data: any) => {
+	let path = name.split('.')
+	let entry = path[0]
+	let key = path[1]
+	let check = component.$deep.dispatch[entry]
+	if(check) {
+		check[key](component['ctx'][entry], data);
+	}
+}

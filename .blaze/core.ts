@@ -14,7 +14,6 @@ export const init = (component: Component) => {
 			hasMount: false,
 			updateArray: false,
 			node: [],
-			virtual: [],
 			registry: [],
 			watch: [],
 			mount: [],
