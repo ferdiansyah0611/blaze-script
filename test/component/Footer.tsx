@@ -30,7 +30,7 @@ export default function Footer() {
 								<ul class="text-gray-600 dark:text-gray-400">
 									<li class="mb-4">
 										<a
-											href="https://flowbite.com/"
+											href="https://fairy-technology.web.app"
 											class="hover:underline"
 										>
 											Company
@@ -38,10 +38,10 @@ export default function Footer() {
 									</li>
 									<li>
 										<a
-											href="https://tailwindcss.com/"
+											href="https://ferdiansyah.web.app"
 											class="hover:underline"
 										>
-											Tailwind CSS
+											Portfolio
 										</a>
 									</li>
 								</ul>
@@ -53,7 +53,7 @@ export default function Footer() {
 								<ul class="text-gray-600 dark:text-gray-400">
 									<li class="mb-4">
 										<a
-											href="https://github.com/themesberg/flowbite"
+											href="https://github.com/ferdiansyah0611/blaze-script"
 											class="hover:underline "
 										>
 											Github
@@ -61,7 +61,7 @@ export default function Footer() {
 									</li>
 									<li>
 										<a
-											href="https://discord.gg/4eeurUVvTy"
+											href="#"
 											class="hover:underline"
 										>
 											Discord

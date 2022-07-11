@@ -21,7 +21,18 @@ import {
 } from "./core";
 import { Component, RegisteryComponent } from "./blaze.d";
 
-export { log, render, state, watch, mount, refs, batch, dispatch, init, context };
+export {
+	log,
+	render,
+	state,
+	watch,
+	mount,
+	refs,
+	batch,
+	dispatch,
+	init,
+	context,
+};
 export default App;
 
 export const e = function (
@@ -57,10 +68,12 @@ export const e = function (
 			current.$node.render = false;
 			getBlaze().runEveryMakeComponent(current);
 			mountUtilities(current.$deep, true);
+			console.warn(`[${nodeName.name}] > key component is 0. it's work, but add key property if have more on this component.`)
 			return current.$node;
 		}
-
+		// mount component
 		mountUtilities(check.component.$deep, data.props, true);
+		// unmount component
 		if (
 			!check.component.$node.isConnected &&
 			check.component.$node.render
@@ -78,22 +91,22 @@ export const e = function (
 	let el;
 	// only svg element
 	let svg;
-	if(['svg', 'path', 'g', 'circle', 'ellipse', 'line'].includes(nodeName)) {
+	if (["svg", "path", "g", "circle", "ellipse", "line"].includes(nodeName)) {
 		svg = true;
-		el = document.createElementNS('http://www.w3.org/2000/svg', nodeName);
-		for(const [k, v] of Object.entries(data)){
-			el.setAttribute(k, v)
+		el = document.createElementNS("http://www.w3.org/2000/svg", nodeName);
+		for (const [k, v] of Object.entries(data)) {
+			el.setAttribute(k, v);
 		}
 	}
 	// element
 	else {
 		el = document.createElement(nodeName);
 	}
-	let current = getPreviousUtilites(first, $deep, component, el)
+	let current = getPreviousUtilites(first, $deep, component, el);
 
 	childrenUtilites(children, el, $deep);
 
-	if(!svg) {
+	if (!svg) {
 		attributeUtilites(data, el, component, current);
 	}
 	(() => {
@@ -128,6 +141,6 @@ export const e = function (
 				}
 			}
 		}
-		return el
+		return el;
 	}
 };

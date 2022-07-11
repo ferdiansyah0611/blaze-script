@@ -84,9 +84,9 @@ const Hello = function () {
                 }
             }, this);
         }, 2000);
-        return() => {
+        return () => {
             clearInterval(interval);
-        }
+        };
     }, this);
     render(
         () => (
@@ -110,14 +110,14 @@ watch(["state.tatus"], (a, b) => console.log(a, b), this);
 watch(["props.status"], (a, b) => console.log(a, b), this);
 ```
 
-## Logical
+## Logical (Optional)
 
-Recommendation Because Work 100% Like This
+You can use logical in jsx or this logical.
 
 ```tsx
 <>
     <div if={this.state.now > 2}>
-        <Example props={{ status: this.state.now }} />
+        <Example props={{ status: this.state.now }} key={0} />
     </div>
     <div data-name={this.state.name} if={this.state.now === 5}>
         <p>Done</p>
@@ -128,41 +128,22 @@ Recommendation Because Work 100% Like This
 </>
 ```
 
-But This Don't Work, Work If Array State Changed.
-
-```tsx
-<>
-    {this.state.now > 2 && <Example props={{ status: this.state.now }} />}
-    {this.state.now === 5 ? (
-        <div data-name={this.state.name} if={this.state.now === 5}>
-            <p>Done</p>
-        </div>
-    ) : (
-        <div else>
-            <p>Please Wait...</p>
-        </div>
-    )}
-</>
-```
-
-Work 100% Logical JSX In TextNode Or Property
-
-```tsx
-<>
-    <p className={this.state.now === 0 ? "hidden" : "block"}>
-        Lorem {this.state.now === 10 ? "ipsum" : "consectetur"}
-    </p>
-</>
-```
-
 ## Context
 
 ```tsx
-import { context, init, render } from "@blaze";
+import { context, init, render, dispatch } from "@blaze";
 
-const user = context("user", {
-    email: "admin@gmail.com",
-});
+const user = context(
+    "user",
+    {
+        email: "admin@gmail.com",
+    },
+    {
+        update(state, data) {
+            state.email = data;
+        },
+    }
+);
 
 const Hello = function () {
     init(this);
@@ -171,6 +152,11 @@ const Hello = function () {
         () => (
             <>
                 <p>Hello World, {this.ctx.user.email}</p>
+                <button
+                    onClick={() =>
+                        dispatch("user.update", this, "member@gmail.com")
+                    }
+                ></button>
             </>
         ),
         this
@@ -219,7 +205,10 @@ const Hello = function () {
         () => (
             <>
                 <button onClick={click}>Click Me</button>
-                <input onChangeValue={(value) => console.log(value)} type="text" />
+                <input
+                    onChangeValue={(value) => console.log(value)}
+                    type="text"
+                />
                 <a href="/" onClickPrevent={click}>
                     Click Me
                 </a>
@@ -230,9 +219,9 @@ const Hello = function () {
 };
 ```
 
-## Skip Diffing For Performance
+## Skip Diffing For Performance (Optional)
 
-use property "d".
+If node not interaction with state, you can skip diff with property "d".
 
 ```tsx
 <>
@@ -263,9 +252,9 @@ Don't work
 <>
 ```
 
-# Router API
+## Router API
 
-## Create
+### Create
 
 ```tsx
 // import it
@@ -286,7 +275,23 @@ app.use(
 app.mount();
 ```
 
-## Method
+### Params
+
+```tsx
+const TestParam = function (app) {
+    init(this);
+    render(
+        () => (
+            <>
+                <p>{app.params.id}</p>
+            </>
+        ),
+        this
+    );
+};
+```
+
+### Method
 
 ```tsx
 const history = this.$router.history;
@@ -295,3 +300,17 @@ history.push("/home");
 history.back();
 history.go(-2);
 ```
+
+## More Info
+
+-   Updating TextNode Only Work In /SPAN|P|H1|H2|H3|H4|H5|H6|A|BUTTON/
+
+## Contributing
+
+Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
+
+Please make sure to update tests as appropriate.
+
+## License
+
+[MIT](https://choosealicense.com/licenses/mit/)

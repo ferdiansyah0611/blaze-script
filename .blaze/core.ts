@@ -62,7 +62,6 @@ export const getPreviousUtilites = (
 	if ($deep.update) {
 		if (first) {
 			return component.$node;
-			// return $deep.node[$deep.node.length - 1]?.el;
 		}
 		return $deep.node[$deep.$id - 1]?.el;
 	} else {
@@ -221,6 +220,9 @@ export const attributeUtilites = (
 			el.className = data[item];
 			delete item.class;
 			return;
+		}
+		if(item === 'setHTML' && data[item]) {
+			el.innerHTML = data[item];
 		}
 		el[item] = data[item];
 	});

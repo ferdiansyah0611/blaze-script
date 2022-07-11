@@ -3,6 +3,7 @@ import { mount } from "@blaze";
 import { Component } from "./blaze.d";
 
 export const makeRouter = (entry: string, config: any) => {
+	let tool;
 	let popstate = false;
 	if(config.resolve) {
 		let url = new URL(location.href);
@@ -28,7 +29,10 @@ export const makeRouter = (entry: string, config: any) => {
 		current.$node = current.render();
 		current.$node.render = false;
 
-		mountUtilities(current.$deep, true);
+		// inject router
+		current.$router = tool;
+
+		mountUtilities(current.$deep, {}, true);
 		document.querySelector(entry).append(current.$node);
 		app.$router.history.forEach((data) => {
 			data.current.$deep.remove();
@@ -105,7 +109,7 @@ export const makeRouter = (entry: string, config: any) => {
 	};
 	return (app: Component, blaze) => {
 		// setup
-		let tool = {
+		tool = {
 			history: [],
 			go(goNumber: number) {
 				history.go(goNumber);
@@ -122,7 +126,7 @@ export const makeRouter = (entry: string, config: any) => {
 		app.$router = tool;
 
 		blaze.onMakeElement = (el: any) => {
-			if (el && el.nodeName === "A" && el.dataset.link && !el.isRouter) {
+			if (el && el.nodeName === "A" && el.dataset.link && !el.isRouter && el.href !== '#') {
 				if(config.resolve){
 					let url = new URL(el.href);
 					el.dataset.href = url.origin + config.resolve + (url.pathname === '/' ? '' : url.pathname)
