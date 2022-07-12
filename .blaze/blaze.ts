@@ -1,16 +1,4 @@
-import {
-	log,
-	render,
-	state,
-	watch,
-	batch,
-	mount,
-	refs,
-	context,
-	dispatch,
-	App,
-	getBlaze,
-} from "./utils";
+import { log, render, state, watch, batch, mount, refs, context, dispatch, App, getBlaze } from "./utils";
 import {
 	childrenUtilites,
 	getPreviousUtilites,
@@ -20,19 +8,9 @@ import {
 	init,
 } from "./core";
 import { Component, RegisteryComponent } from "./blaze.d";
+import { addLog } from '@root/plugin/extension';
 
-export {
-	log,
-	render,
-	state,
-	watch,
-	mount,
-	refs,
-	batch,
-	dispatch,
-	init,
-	context,
-};
+export { log, render, state, watch, mount, refs, batch, dispatch, init, context };
 export default App;
 
 export const e = function (
@@ -48,12 +26,11 @@ export const e = function (
 	if (typeof nodeName === "function") {
 		let key = data.key ?? 0;
 		let check = $deep.registry.find(
-			(item: RegisteryComponent) =>
-				item.component.constructor.name === nodeName.name &&
-				item.key === key
+			(item: RegisteryComponent) => item.component.constructor.name === nodeName.name && item.key === key
 		);
 		// registry component
 		if (!check) {
+			let old = performance.now();
 			let current = new nodeName(component, window.$app);
 			// props registery
 			state("props", data ? { ...data } : {}, current);
@@ -68,16 +45,29 @@ export const e = function (
 			current.$node.render = false;
 			getBlaze().runEveryMakeComponent(current);
 			mountUtilities(current.$deep, true);
-			console.warn(`[${nodeName.name}] > key component is 0. it's work, but add key property if have more on this component.`)
+			// warning
+			if(!data.key) {
+				let warn = `[${nodeName.name}] key component is 0. it's work, but add key property if have more on this component.`;
+				console.warn(warn);
+			}
+			// extension
+			let now = performance.now();
+			let duration = Math.round(now - old);
+			let msg = `[${nodeName.name}] ${duration}ms`;
+			if(window.$extension) {
+				batch(() => {
+					addLog({
+						msg,
+					}, false);
+				}, window.$extension)
+			}
+			// node
 			return current.$node;
 		}
 		// mount component
 		mountUtilities(check.component.$deep, data.props, true);
 		// unmount component
-		if (
-			!check.component.$node.isConnected &&
-			check.component.$node.render
-		) {
+		if (!check.component.$node.isConnected && check.component.$node.render) {
 			unmountUtilities(check.component.$deep);
 			$deep.registry = $deep.registry.filter((item) => item.key !== key);
 		}
@@ -131,9 +121,7 @@ export const e = function (
 			if (current.dataset && current.childrenComponent) {
 				let dataset = current.dataset;
 				let check = current.childrenComponent.$deep.registry.find(
-					(item) =>
-						item.component.constructor.name === dataset.component &&
-						item.key === Number(dataset.key)
+					(item) => item.component.constructor.name === dataset.component && item.key === Number(dataset.key)
 				);
 				if (check && check.component.$node.isConnected) {
 					check.component.$node.render = true;

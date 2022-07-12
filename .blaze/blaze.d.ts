@@ -38,7 +38,6 @@ export interface Component{
 		batch: boolean,
 		disableTrigger: boolean,
 		hasMount: boolean,
-		updateArray: boolean,
 		update: number,
 		node: NodeDeep[],
 		registry: RegisteryComponent[],
@@ -47,6 +46,7 @@ export interface Component{
 		unmount: Function[],
 		trigger: Function,
 		remove: Function
+		childrenDiffStatus?: boolean,
 		dispatch?: any,
 	},
 	$config?: {

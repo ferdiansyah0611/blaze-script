@@ -12,14 +12,14 @@ export const init = (component: Component) => {
 			batch: false,
 			disableTrigger: false,
 			hasMount: false,
-			updateArray: false,
+			childrenDiffStatus: false,
 			node: [],
 			registry: [],
 			watch: [],
 			mount: [],
 			unmount: [],
 			trigger: () => {
-				component.$deep.updateArray = true;
+				component.$deep.childrenDiffStatus = true;
 				component.$deep.update++;
 				// diff in here
 				let newRender = component.render();
@@ -80,7 +80,7 @@ export const childrenUtilites = (
 		// log('[children]', children)
 		children.forEach((item) => {
 			// node
-			if (item && item.nodeName && (!$deep.update || $deep.updateArray)) {
+			if (item && item.nodeName && (!$deep.update || $deep.childrenDiffStatus)) {
 				log("[appendChild]", item.tagName);
 				el.appendChild(item);
 				return;
@@ -93,9 +93,11 @@ export const childrenUtilites = (
 			if (Array.isArray(item)) {
 				let key = 0;
 				for (const subchildren of item) {
-					subchildren.key = key;
-					key++;
-					el.appendChild(subchildren);
+					if(subchildren) {
+						subchildren.key = key;
+						key++;
+						el.appendChild(subchildren);
+					}
 				}
 			}
 		});

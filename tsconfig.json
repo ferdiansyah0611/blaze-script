@@ -21,7 +21,7 @@
       "@blaze.d": ["./.blaze/blaze.d"],
       "@blaze.utils": ["./.blaze/utils"],
       "@blaze.router": ["./.blaze/router"],
-      "@root": ["./.blaze"],
+      "@root/*": ["./.blaze/*"],
       "@route": ["./src/route"],
       "@component/*": ["./src/component/*"],
       "@style": ["./src/style"],
@@ -31,6 +31,6 @@
     "isolatedModules": true,
     "types": ["vite/client"]
   },
-  "include": ["src", "src/*", "src/**/*"],
+  "include": ["src", "src/*", "src/**/*", ".blaze/plugin/**.*"],
   "exclude": ["node_modules"]
 }

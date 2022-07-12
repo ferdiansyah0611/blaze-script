@@ -6,6 +6,7 @@ import {
 	InterfaceApp,
 	InterfaceBlaze,
 } from "./blaze.d";
+import { addLog, addComponent } from '@root/plugin/extension';
 
 // Application
 export class App implements InterfaceApp {
@@ -23,6 +24,7 @@ export class App implements InterfaceApp {
 	}
 	mount() {
 		document.addEventListener("DOMContentLoaded", () => {
+			let old = performance.now(), now, msg;
 			let app = new this.component();
 			app.$config = this.config;
 			// inject to window
@@ -34,6 +36,15 @@ export class App implements InterfaceApp {
 				plugin(window.$app, window.$blaze)
 			);
 			app.$node = app.render();
+			// extension
+			now = performance.now();
+			msg = `[${app.constructor.name}] ${(now - old).toFixed(1)}ms`;
+			batch(() => {
+				addLog({
+					msg
+				}, false)
+				addComponent(app, false);
+			}, window.$extension)
 			document.querySelector(this.el).append(window.$app.$node);
 			mountUtilities(app.$deep, {}, false);
 		});
@@ -77,7 +88,7 @@ export const state = function (
 ) {
 	// for context
 	if (Array.isArray(registry)) {
-		return new Proxy(initial, {
+		return new Proxy({...initial, _isContext: true}, {
 			set(a: any, b: string, c: any) {
 				a[b] = c;
 				registry.forEach((register: Component) => {
@@ -113,7 +124,7 @@ export const state = function (
 			});
 		};
 		// for update
-		component[name] = new Proxy(initial, {
+		component[name] = new Proxy({...initial, _isProxy: true}, {
 			set(a, b, c) {
 				a[b] = c;
 				if (!component.$deep.batch && !component.$deep.disableTrigger) {

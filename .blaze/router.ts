@@ -1,22 +1,28 @@
 import { mountUtilities } from "./core";
-import { mount } from "@blaze";
+import { mount, batch } from "@blaze";
 import { Component } from "./blaze.d";
+import { addLog, addComponent } from "@root/plugin/extension";
 
 export const makeRouter = (entry: string, config: any) => {
 	let tool;
 	let popstate = false;
-	if(config.resolve) {
+	if (config.resolve) {
 		let url = new URL(location.href);
 
-		/*let update = */config.url.map(item => {
-			if(item.path){
-				item.path = url.pathname + (item.path === '/' ? '' : item.path)
+		/*let update = */ config.url.map((item) => {
+			if (item.path) {
+				item.path = url.pathname + (item.path === "/" ? "" : item.path);
 			}
-			return item
-		})
+			return item;
+		});
 	}
 
 	const goto = (app: any, url: string, component: any, params?: any) => {
+		if (!document.querySelector(entry)) {
+			let msg = "[Router] entry not found, query is correct?";
+			addLog({ msg });
+			return console.error(msg);
+		}
 		if (popstate) {
 			history.replaceState(null, "", url);
 		} else {
@@ -24,6 +30,7 @@ export const makeRouter = (entry: string, config: any) => {
 		}
 		popstate = false;
 
+		let old = performance.now(), now, msg;
 		let current = new component(Object.assign(app, { params }));
 		// props registery
 		current.$node = current.render();
@@ -38,6 +45,12 @@ export const makeRouter = (entry: string, config: any) => {
 			data.current.$deep.remove();
 		});
 		app.$router.history.push({ url, current });
+		now = performance.now();
+		msg = `[${component.name}] ${(now - old).toFixed(1)}ms`;
+		batch(() => {
+			addLog({ msg }, false);
+			addComponent(current, false);
+		}, window.$extension)
 	};
 
 	const ready = (app: any, url: string = new URL(location.href).pathname) => {
@@ -53,22 +66,14 @@ export const makeRouter = (entry: string, config: any) => {
 				return true;
 			} else {
 				const pathRegex = (path: string) =>
-					new RegExp(
-						"^" +
-							path
-								.replace(/\//g, "\\/")
-								.replace(/:\w+/g, "(.+)") +
-							"$"
-					);
+					new RegExp("^" + path.replace(/\//g, "\\/").replace(/:\w+/g, "(.+)") + "$");
 				const potentialMatched = config.url.map((route: any) => {
 					return {
 						route,
 						result: url.match(pathRegex(route.path)),
 					};
 				});
-				let match = potentialMatched.find(
-					(potentialMatch: any) => potentialMatch.result !== null
-				);
+				let match = potentialMatched.find((potentialMatch: any) => potentialMatch.result !== null);
 				if (!match) {
 					if (routes) {
 						match = {
@@ -76,21 +81,18 @@ export const makeRouter = (entry: string, config: any) => {
 							result: [url],
 						};
 					} else {
-						let current = config.url.find(
-							(path) => path.path.length === 0
-						);
+						let current = config.url.find((path) => path.path.length === 0);
 						component = current.component;
 						found = current;
-						console.warn("404", ">", url);
+						let msg = `[Router] Not Found 404 ${url}`
+						addLog({ msg });
 						goto(app, url, component);
 						return false;
 					}
 				}
 				const getParams = (match: any) => {
 					const values = match.result.slice(1);
-					const keys = Array.from(
-						match.route.path.matchAll(/:(\w+)/g)
-					).map((result: any) => result[1]);
+					const keys = Array.from(match.route.path.matchAll(/:(\w+)/g)).map((result: any) => result[1]);
 					return Object.fromEntries(
 						keys.map((key: any, i: number) => {
 							return [key, values[i]];
@@ -103,7 +105,8 @@ export const makeRouter = (entry: string, config: any) => {
 			}
 		};
 		if (validation()) {
-			console.log(">", url, "GET [200]");
+			let msg = `[Router] GET 200 ${url}`
+			addLog({ msg });
 			return goto(app, url, found.component, params);
 		}
 	};
@@ -126,14 +129,14 @@ export const makeRouter = (entry: string, config: any) => {
 		app.$router = tool;
 
 		blaze.onMakeElement = (el: any) => {
-			if (el && el.nodeName === "A" && el.dataset.link && !el.isRouter && el.href !== '#') {
-				if(config.resolve){
+			if (el && el.nodeName === "A" && el.dataset.link && !el.isRouter && el.href !== "#") {
+				if (config.resolve) {
 					let url = new URL(el.href);
-					el.dataset.href = url.origin + config.resolve + (url.pathname === '/' ? '' : url.pathname)
+					el.dataset.href = url.origin + config.resolve + (url.pathname === "/" ? "" : url.pathname);
 				}
 				el.addEventListener("click", (e: any) => {
 					e.preventDefault();
-					tool.push(new URL(config.resolve ? e.currentTarget.dataset.href: el.href).pathname);
+					tool.push(new URL(config.resolve ? e.currentTarget.dataset.href : el.href).pathname);
 				});
 				el.isRouter = true;
 			}

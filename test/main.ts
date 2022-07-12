@@ -3,6 +3,7 @@ declare global{
     interface Window{
         $app: any,
         $blaze: any,
+        $extension: any
     }
     interface HTMLElement{
     	if: boolean,

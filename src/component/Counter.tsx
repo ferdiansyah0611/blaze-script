@@ -49,4 +49,4 @@ const Counter = function () {
 	}, this);
 };
 
-export default Counter
+export default Counter;

@@ -7,12 +7,11 @@ const diff = function (prev: HTMLElement, el: HTMLElement) {
 	}
 	// text/button/link
 	if (prev.nodeName.match(/SPAN|P|H1|H2|H3|H4|H5|H6|A|BUTTON/)) {
-		if(!prev.childNodes.length && el.childNodes.length){
+		if (!prev.childNodes.length && el.childNodes.length) {
 			el.childNodes.forEach((node: HTMLElement) => {
 				prev.appendChild(node);
-			})
-		}
-		else {
+			});
+		} else {
 			prev.childNodes.forEach((node: any, i: number) => {
 				if (node && el.childNodes[i] !== undefined) {
 					if (node.data && node.data !== el.childNodes[i].data) {
@@ -34,17 +33,9 @@ const diff = function (prev: HTMLElement, el: HTMLElement) {
 		}
 		batch.push(() => {
 			for (var i = 0; i < prev.attributes.length; i++) {
-				if (
-					prev.attributes[i] &&
-					el.attributes[i] &&
-					prev.attributes[i].name === el.attributes[i].name
-				) {
+				if (prev.attributes[i] && el.attributes[i] && prev.attributes[i].name === el.attributes[i].name) {
 					if (prev.attributes[i].value !== el.attributes[i].value) {
-						log(
-							"[different]",
-							prev.attributes[i].value,
-							el.attributes[i].value
-						);
+						log("[different]", prev.attributes[i].value, el.attributes[i].value);
 						prev.attributes[i].value = el.attributes[i].value;
 					}
 				}
@@ -59,11 +50,7 @@ const diff = function (prev: HTMLElement, el: HTMLElement) {
 	return batch;
 };
 
-export const diffChildren = (
-	oldest: any,
-	newest: any,
-	first: boolean = true
-) => {
+export const diffChildren = (oldest: any, newest: any, first: boolean = true) => {
 	if (!newest) {
 		return;
 	}
@@ -76,9 +63,6 @@ export const diffChildren = (
 			difference.forEach((rechange) => rechange());
 		}
 		children.forEach((item: HTMLElement, i: number) => {
-			// if(item.nodeName === 'H5') {
-			// 	console.log(item.childNodes, item)
-			// }
 			let difference = diff(item, newest.children[i]);
 			difference.forEach((rechange) => rechange());
 			diffChildren(item, newest.children[i], false);
