@@ -24,7 +24,7 @@ export class App implements InterfaceApp {
 	}
 	mount() {
 		document.addEventListener("DOMContentLoaded", () => {
-			let old = performance.now(), now, msg;
+			let old = performance.now(), now, duration, msg;
 			let app = new this.component();
 			app.$config = this.config;
 			// inject to window
@@ -38,7 +38,9 @@ export class App implements InterfaceApp {
 			app.$node = app.render();
 			// extension
 			now = performance.now();
-			msg = `[${app.constructor.name}] ${(now - old).toFixed(1)}ms`;
+			duration = (now - old).toFixed(1)
+			msg = `[${app.constructor.name}] ${duration}ms`;
+			app.$deep.time = duration;
 			batch(() => {
 				addLog({
 					msg

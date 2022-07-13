@@ -10,6 +10,8 @@ export default function helmet(data: Helmet = {}){
 	}
 	if(data.description) {
 		let description = document.querySelector('meta[name="description"]');
-		description['content'] = data.title
+		if(description) {
+			description['content'] = data.title
+		}
 	}
 }

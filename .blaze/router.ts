@@ -30,7 +30,7 @@ export const makeRouter = (entry: string, config: any) => {
 		}
 		popstate = false;
 
-		let old = performance.now(), now, msg;
+		let old = performance.now(), now, duration, msg;
 		let current = new component(Object.assign(app, { params }));
 		// props registery
 		current.$node = current.render();
@@ -45,15 +45,21 @@ export const makeRouter = (entry: string, config: any) => {
 			data.current.$deep.remove();
 		});
 		app.$router.history.push({ url, current });
+		// timer
 		now = performance.now();
-		msg = `[${component.name}] ${(now - old).toFixed(1)}ms`;
+		duration = (now - old).toFixed(1)
+		msg = `[${component.name}] ${duration}ms`;
+		current.$deep.time = duration;
 		batch(() => {
 			addLog({ msg }, false);
 			addComponent(current, false);
 		}, window.$extension)
 	};
 
-	const ready = (app: any, url: string = new URL(location.href).pathname) => {
+	const ready = (app: any, first: boolean = false, url: string = new URL(location.href).pathname) => {
+		// call always change router
+		if(!first) window.$app.$router.$change.forEach(item => item());
+		
 		let routes = config.url.find((v: any) => v.path === url),
 			component: string = "",
 			params: any = {},
@@ -104,15 +110,18 @@ export const makeRouter = (entry: string, config: any) => {
 				return true;
 			}
 		};
+
 		if (validation()) {
 			let msg = `[Router] GET 200 ${url}`
 			addLog({ msg });
 			return goto(app, url, found.component, params);
 		}
+
 	};
 	return (app: Component, blaze) => {
 		// setup
 		tool = {
+			$change: [],
 			history: [],
 			go(goNumber: number) {
 				history.go(goNumber);
@@ -122,9 +131,12 @@ export const makeRouter = (entry: string, config: any) => {
 			},
 			push: (url: string) => {
 				if (!(url === location.pathname)) {
-					ready(app, url);
+					ready(app, false, url);
 				}
 			},
+			onChange(data){
+				this.$change.push(data)
+			}
 		};
 		app.$router = tool;
 
@@ -146,10 +158,10 @@ export const makeRouter = (entry: string, config: any) => {
 		};
 		// mount
 		mount(() => {
-			ready(app);
+			ready(app, true);
 			window.addEventListener("popstate", () => {
 				popstate = true;
-				ready(app, location.pathname);
+				ready(app, false, location.pathname);
 			});
 		}, app);
 	};

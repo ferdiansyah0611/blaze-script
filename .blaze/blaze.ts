@@ -9,6 +9,7 @@ import {
 } from "./core";
 import { Component, RegisteryComponent } from "./blaze.d";
 import { addLog } from '@root/plugin/extension';
+import _ from 'lodash'
 
 export { log, render, state, watch, mount, refs, batch, dispatch, init, context };
 export default App;
@@ -30,11 +31,11 @@ export const e = function (
 		);
 		// registry component
 		if (!check) {
-			let old = performance.now();
+			let old = performance.now(), now, duration, msg, warn;
 			let current = new nodeName(component, window.$app);
 			// props registery
 			state("props", data ? { ...data } : {}, current);
-
+			// rendering
 			current.$node = current.render();
 			current.$node.dataset.key = key;
 			current.$node.childrenComponent = component;
@@ -43,33 +44,51 @@ export const e = function (
 				component: current,
 			});
 			current.$node.render = false;
+			// mount
 			getBlaze().runEveryMakeComponent(current);
 			mountUtilities(current.$deep, true);
 			// warning
 			if(!data.key) {
-				let warn = `[${nodeName.name}] key component is 0. it's work, but add key property if have more on this component.`;
+				warn = `[${nodeName.name}] key is 0. it's work, but add key property if have more on this component.`;
 				console.warn(warn);
 			}
+			// timer
+			now = performance.now();
+			duration = (now - old).toFixed(1);
+			msg = `[${nodeName.name}] ${duration}ms`;
+			current.$deep.time = duration;
 			// extension
-			let now = performance.now();
-			let duration = Math.round(now - old);
-			let msg = `[${nodeName.name}] ${duration}ms`;
 			if(window.$extension) {
 				batch(() => {
 					addLog({
 						msg,
 					}, false);
+					if(warn) {
+						addLog({
+							msg: warn,
+							type: 'warn'
+						}, false);
+					}
 				}, window.$extension)
 			}
 			// node
 			return current.$node;
 		}
+		// update component
+
 		// mount component
 		mountUtilities(check.component.$deep, data.props, true);
 		// unmount component
 		if (!check.component.$node.isConnected && check.component.$node.render) {
 			unmountUtilities(check.component.$deep);
 			$deep.registry = $deep.registry.filter((item) => item.key !== key);
+		}
+		// check equal props
+		let propsObject = {...check.component.props}
+		let equal = _.isEqual(propsObject, {...data, _isProxy: true})
+		if(!equal) {
+			state("props", data ? { ...data } : {}, check.component);
+			check.component.$deep.trigger()
 		}
 		return check.component.$node;
 	}
