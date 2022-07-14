@@ -46,6 +46,8 @@ function Extension() {
 			log: [],
 			component: [],
 
+			searchComponent: "",
+
 			open: false,
 			openConsole: false,
 			openLog: false,
@@ -216,8 +218,22 @@ function Extension() {
 							</div>
 							<div class="flex">
 								<div style={"max-height: 50vh;overflow: auto;max-width: 300px;flex: 1;"}>
+									<div class="sticky top-0 z-10">
+										<input
+											value={this.state.searchComponent}
+											onKeyUpValue={(value) => (this.state.searchComponent = value)}
+											placeholder="Search component..."
+											class="bg-black text-sm w-full text-white p-2 focus:border-gray-600 flex-1 focus:outline-none"
+											type="text"
+										/>
+									</div>
 									<div id="list-component" class="flex flex-col text-white p-2">
-										{this.state.component.map((item, i) => (
+										{(this.state.searchComponent
+											? this.state.component.filter(
+													(item) => item.constructor.name.indexOf(this.state.searchComponent) !== -1
+											  )
+											: this.state.component
+										).map((item, i) => (
 											<ListExtension current={0} key={i + 1} setSelectComponent={setSelectComponent} item={item} />
 										))}
 									</div>
@@ -420,7 +436,7 @@ function InputExtension() {
 							value={value}
 							onChangeValue={(val) => (onChange ? onChange(val) : (value = val))}
 							type={typeof value === "number" ? "number" : "text"}
-							disabled={(name === "key" || typeof value === "function")}
+							disabled={name === "key" || typeof value === "function"}
 						/>
 					)}
 					<p class="p-2 italic flex-1 text-green-400">
