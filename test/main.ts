@@ -6,16 +6,19 @@ declare global{
         $extension: any
     }
     interface HTMLElement{
-    	if: boolean,
-    	childrenComponent: any,
-    	childrenCommit: any[],
-    	render: boolean,
-    	value: any,
-    	hasAppend: boolean,
-        isRouter: boolean
+        if: boolean,
+        childrenComponent: any,
+        childrenCommit: any[],
+        render: boolean,
+        value: any,
+        hasAppend: boolean,
+        isRouter: boolean,
+        d: any,
+        refs?: number,
+        i?: number,
     }
     interface ChildNode{
-    	data: any,
+        data: any,
         if: boolean
     }
 }

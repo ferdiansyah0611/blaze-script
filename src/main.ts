@@ -13,7 +13,9 @@ declare global{
     	value: any,
     	hasAppend: boolean,
         isRouter: boolean,
-        d: any
+        d: any,
+        refs?: number,
+        i?: number,
     }
     interface ChildNode{
     	data: any,

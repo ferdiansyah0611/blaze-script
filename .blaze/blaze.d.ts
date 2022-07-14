@@ -48,7 +48,8 @@ export interface Component{
 		remove: Function
 		childrenDiffStatus?: boolean,
 		dispatch?: any,
-		time?: string
+		time?: string,
+		layout?: Function[],
 	},
 	$config?: {
 		dev: boolean

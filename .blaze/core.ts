@@ -1,9 +1,12 @@
 import { log } from "./utils";
 import { e } from "./blaze";
 import { Component } from "./blaze.d";
-import { diffChildren } from './diff';
+import { diffChildren } from "./diff";
 
-// setup
+/**
+ * @init
+ * setup/initialize a component
+ */
 export const init = (component: Component) => {
 	if (!component.$deep) {
 		component.$deep = {
@@ -23,13 +26,13 @@ export const init = (component: Component) => {
 				component.$deep.update++;
 				// diff in here
 				let newRender = component.render();
-				diffChildren(component.$node, newRender)
+				diffChildren(component.$node, newRender, component);
 			},
 			remove() {
 				this.registry.forEach((item) => {
 					item.component.$deep.remove();
 				});
-				unmountUtilities(this);
+				unmountCall(component.$deep);
 				component.$node.remove();
 
 				this.node = [];
@@ -44,6 +47,11 @@ export const init = (component: Component) => {
 		component.$h = jsx(component);
 	}
 };
+
+/**
+ * @jsx
+ * jsx support for blaze
+ */
 export const jsx = (component: Component) => {
 	return {
 		h: (nodeName: string | Function | any, data: any, ...children: any[]) => {
@@ -53,31 +61,14 @@ export const jsx = (component: Component) => {
 	};
 };
 
-export const getPreviousUtilites = (
-	first: boolean,
-	$deep: Component["$deep"],
-	component: Component,
-	el: HTMLElement
-) => {
-	if ($deep.update) {
-		if (first) {
-			return component.$node;
-		}
-		return $deep.node[$deep.$id - 1]?.el;
-	} else {
-		return el;
-	}
-};
-
-export const childrenUtilites = (
-	children: HTMLElement[],
-	el: HTMLElement,
-	$deep: Component["$deep"],
-) => {
+/**
+ * @childrenObserve
+ * manage children element, like appendChild a node/string/number
+ */
+export const childrenObserve = (children: HTMLElement[], el: HTMLElement, $deep: Component["$deep"]) => {
 	if (children.length === 1 && typeof children[0] === "string") {
 		el.append(document.createTextNode(children[0]));
 	} else if (children.length) {
-		// log('[children]', children)
 		children.forEach((item) => {
 			// node
 			if (item && item.nodeName && (!$deep.update || $deep.childrenDiffStatus)) {
@@ -93,7 +84,7 @@ export const childrenUtilites = (
 			if (Array.isArray(item)) {
 				let key = 0;
 				for (const subchildren of item) {
-					if(subchildren) {
+					if (subchildren) {
 						subchildren.key = key;
 						key++;
 						el.appendChild(subchildren);
@@ -104,12 +95,11 @@ export const childrenUtilites = (
 	}
 };
 
-export const attributeUtilites = (
-	data: any,
-	el: HTMLElement,
-	component: Component,
-	current: HTMLElement
-) => {
+/**
+ * @attributeObserve
+ * manage attribute element, like dataset, event, etc
+ */
+export const attributeObserve = (data: any, el: HTMLElement, component: Component) => {
 	Object.keys(data).forEach((item: any) => {
 		// event
 		if (item.match(/^on[A-Z]/)) {
@@ -117,22 +107,15 @@ export const attributeUtilites = (
 				let find = item.match(/Prevent|StopPropagation|Value/);
 				if (find) {
 					let isValue = find[0] === "Value";
-					el.addEventListener(
-						item.split(find[0]).join("").toLowerCase().slice(2),
-						(e: any) => {
-							e.preventDefault();
-							data[item](isValue ? e.target.value : e);
-						}
-					);
+					el.addEventListener(item.split(find[0]).join("").toLowerCase().slice(2), (e: any) => {
+						e.preventDefault();
+						data[item](isValue ? e.target.value : e);
+					});
 				} else {
-					el.addEventListener(
-						item.toLowerCase().slice(2),
-						data[item]
-					);
+					el.addEventListener(item.toLowerCase().slice(2), data[item]);
 				}
 			}
-			delete data[item.match(/^on[A-Z][a-z]+/)[0]];
-			return
+			return;
 		}
 		// logic
 		if (item === "if") {
@@ -141,18 +124,14 @@ export const attributeUtilites = (
 				let currentEl = el;
 				let applyChildren = () => {
 					if (!currentEl.childrenCommit) {
-						currentEl.childrenCommit = Array.from(
-							currentEl.children
-						);
+						currentEl.childrenCommit = Array.from(currentEl.children);
 					}
 				};
 
 				if (currentEl) {
 					if (data[item] === true) {
 						if (!currentEl.hasAppend && currentEl.childrenCommit) {
-							currentEl.childrenCommit.forEach((item: HTMLElement) =>
-								currentEl.appendChild(item)
-							);
+							currentEl.childrenCommit.forEach((item: HTMLElement) => currentEl.appendChild(item));
 						}
 						currentEl.if = true;
 						currentEl.hasAppend = true;
@@ -161,32 +140,26 @@ export const attributeUtilites = (
 						currentEl.if = false;
 						currentEl.hasAppend = false;
 						applyChildren();
-						Array.from(currentEl.children).forEach((item: HTMLElement) =>
-							item.remove()
-						);
+						Array.from(currentEl.children).forEach((item: HTMLElement) => item.remove());
 					}
 				}
 			};
 			handle();
-			return
+			return;
 		}
 		if (item === "else") {
 			let handle = () => {
 				let currentEl = el;
 				let applyChildren = () => {
 					if (!currentEl.childrenCommit) {
-						currentEl.childrenCommit = Array.from(
-							currentEl.children
-						);
+						currentEl.childrenCommit = Array.from(currentEl.children);
 					}
 				};
 
 				if (currentEl && currentEl.previousSibling) {
 					if (currentEl.previousSibling.if === false) {
 						if (!currentEl.hasAppend && currentEl.childrenCommit) {
-							currentEl.childrenCommit.forEach((item) =>
-								currentEl.appendChild(item)
-							);
+							currentEl.childrenCommit.forEach((item) => currentEl.appendChild(item));
 						}
 						currentEl.if = true;
 						currentEl.hasAppend = true;
@@ -195,51 +168,64 @@ export const attributeUtilites = (
 						currentEl.if = false;
 						currentEl.hasAppend = false;
 						applyChildren();
-						Array.from(currentEl.children).forEach((item: HTMLElement) =>
-							item.remove()
-						);
+						Array.from(currentEl.children).forEach((item: HTMLElement) => item.remove());
 					}
 				}
 			};
 			handle();
-			return
+			return;
 		}
 		if (item.match(/^data-/)) {
 			let name = item.split("data-")[1];
 			el.dataset[name] = data[item];
-			delete data[item.match(/^data-\S+/)[0]];
 			return;
 		}
-		if (item === "refs") {
+		if (item === "refs" && !component.$deep.update) {
 			if (typeof data.i === "number") {
-				component[data[item]][data.i] = current || el;
+				if(!component[data[item]]) {
+					component[data[item]] = [];
+				}
+				component[data[item]][data.i] = el;
 			} else {
-				component[data[item]] = current || el;
+				component[data[item]] = el;
 			}
-			return;
+			// don't return
 		}
-		if(item === 'class') {
+		if (item === "class") {
 			el.className = data[item];
-			delete item.class;
 			return;
 		}
-		if(item === 'setHTML' && data[item]) {
+		if (item === "setHTML" && data[item]) {
 			el.innerHTML = data[item];
+			return;
 		}
 		el[item] = data[item];
 	});
 };
 
-export const mountUtilities = (
-	$deep: Component["$deep"],
-	props: any = {},
-	update: boolean = false
-) => {
-	if(!$deep.hasMount) {
+/**
+ * @mountCall
+ * for run mount lifecycle
+ */
+export const mountCall = ($deep: Component["$deep"], props: any = {}, update: boolean = false) => {
+	if (!$deep.hasMount) {
 		$deep.mount.forEach((item) => item.handle(props, update));
 		$deep.hasMount = true;
 	}
 };
-export const unmountUtilities = ($deep: Component["$deep"]) => {
+
+/**
+ * @unmountCall
+ * for run unmount lifecycle
+ */
+export const unmountCall = ($deep: Component["$deep"]) => {
 	$deep.unmount.forEach((item) => item());
+};
+
+/**
+ * @layoutCall
+ * for run layout lifecycle
+ */
+export const layoutCall = ($deep: Component["$deep"]) => {
+	if ($deep.layout) $deep.layout.forEach((item) => item());
 };

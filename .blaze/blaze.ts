@@ -1,19 +1,25 @@
-import { log, render, state, watch, batch, mount, refs, context, dispatch, App, getBlaze } from "./utils";
+import _ from "lodash";
+import { log, render, state, watch, batch, mount, layout, context, dispatch, App, getBlaze } from "./utils";
 import {
-	childrenUtilites,
-	getPreviousUtilites,
-	attributeUtilites,
-	mountUtilities,
-	unmountUtilities,
+	childrenObserve,
+	attributeObserve,
+	mountCall,
+	unmountCall,
+	layoutCall,
 	init,
 } from "./core";
 import { Component, RegisteryComponent } from "./blaze.d";
-import { addLog } from '@root/plugin/extension';
-import _ from 'lodash'
-
-export { log, render, state, watch, mount, refs, batch, dispatch, init, context };
+// extension
+import { addLog } from "@root/plugin/extension";
+// export
+export { log, render, state, watch, mount, layout, batch, dispatch, init, context };
 export default App;
 
+/**
+ * @createElement
+ * createElement for blaze
+ * @return HTMLElement
+ */
 export const e = function (
 	first: boolean,
 	component: Component,
@@ -21,34 +27,53 @@ export const e = function (
 	data: any,
 	...children: HTMLElement[]
 ) {
+	/**
+	 * @delcaration
+	 */
 	const $deep = component.$deep;
-	data = data ?? {};
-	// component
-	if (typeof nodeName === "function") {
+	const current = component.$node;
+
+	let el;
+
+	if (!data) {
+		data = {};
+	}
+
+	/**
+	 * @component
+	 * check component if not exist add to registery $deep, rendering, and lifecycle. if exists and props has changed are will trigger
+	 */
+	if (_.isFunction(nodeName)) {
 		let key = data.key ?? 0;
 		let check = $deep.registry.find(
 			(item: RegisteryComponent) => item.component.constructor.name === nodeName.name && item.key === key
 		);
-		// registry component
+		/**
+		 * @registry
+		 */
 		if (!check) {
-			let old = performance.now(), now, duration, msg, warn;
-			let current = new nodeName(component, window.$app);
+			let old = performance.now(),
+				now,
+				duration,
+				msg,
+				warn;
+			let newComponent = new nodeName(component, window.$app);
 			// props registery
-			state("props", data ? { ...data } : {}, current);
+			state("props", data ? { ...data } : {}, newComponent);
 			// rendering
-			current.$node = current.render();
-			current.$node.dataset.key = key;
-			current.$node.childrenComponent = component;
+			newComponent.$node = newComponent.render();
+			newComponent.$node.dataset.key = key;
+			newComponent.$node.childrenComponent = component;
 			$deep.registry.push({
 				key,
-				component: current,
+				component: newComponent,
 			});
-			current.$node.render = false;
+			newComponent.$node.render = false;
 			// mount
-			getBlaze().runEveryMakeComponent(current);
-			mountUtilities(current.$deep, true);
+			getBlaze().runEveryMakeComponent(newComponent);
+			mountCall(newComponent.$deep, true);
 			// warning
-			if(!data.key) {
+			if (!data.key) {
 				warn = `[${nodeName.name}] key is 0. it's work, but add key property if have more on this component.`;
 				console.warn(warn);
 			}
@@ -56,87 +81,115 @@ export const e = function (
 			now = performance.now();
 			duration = (now - old).toFixed(1);
 			msg = `[${nodeName.name}] ${duration}ms`;
-			current.$deep.time = duration;
+			newComponent.$deep.time = duration;
 			// extension
-			if(window.$extension) {
+			if (window.$extension) {
 				batch(() => {
-					addLog({
-						msg,
-					}, false);
-					if(warn) {
-						addLog({
-							msg: warn,
-							type: 'warn'
-						}, false);
+					addLog(
+						{
+							msg,
+						},
+						false
+					);
+					if (warn) {
+						addLog(
+							{
+								msg: warn,
+								type: "warn",
+							},
+							false
+						);
 					}
-				}, window.$extension)
+				}, window.$extension);
 			}
-			// node
-			return current.$node;
+			return newComponent.$node;
 		}
-		// update component
-
-		// mount component
-		mountUtilities(check.component.$deep, data.props, true);
-		// unmount component
+		/**
+		 * @lifecycle
+		 * call lifecycle component
+		 * check equal old props with new props, if different then call trigger
+		 */
+		mountCall(check.component.$deep, data.props, true);
 		if (!check.component.$node.isConnected && check.component.$node.render) {
-			unmountUtilities(check.component.$deep);
+			unmountCall(check.component.$deep);
 			$deep.registry = $deep.registry.filter((item) => item.key !== key);
 		}
-		// check equal props
-		let propsObject = {...check.component.props}
-		let equal = _.isEqual(propsObject, {...data, _isProxy: true})
-		if(!equal) {
+
+		let propsObject = { ...check.component.props };
+		let equal = _.isEqualWith(propsObject, { ...data, _isProxy: true }, function (val1, val2): any {
+			if (_.isFunction(val1) && _.isFunction(val2)) {
+				return val1.toString() === val2.toString();
+			}
+		});
+
+		if (!equal) {
 			state("props", data ? { ...data } : {}, check.component);
-			check.component.$deep.trigger()
+			check.component.$deep.trigger();
 		}
 		return check.component.$node;
 	}
-	// fragment
-	if (nodeName === "Fragment") {
-		nodeName = "div";
-		first = true;
-	}
-	let el;
-	// only svg element
-	let svg;
-	if (["svg", "path", "g", "circle", "ellipse", "line"].includes(nodeName)) {
-		svg = true;
-		el = document.createElementNS("http://www.w3.org/2000/svg", nodeName);
-		for (const [k, v] of Object.entries(data)) {
-			el.setAttribute(k, v);
+
+	/**
+	 * @fragment
+	 * logic if node is fragment/first element on component
+	 */
+	const fragment = () => {
+		if (nodeName === "Fragment") {
+			nodeName = "div";
+			first = true;
 		}
-	}
-	// element
-	else {
-		el = document.createElement(nodeName);
-	}
-	let current = getPreviousUtilites(first, $deep, component, el);
+	};
 
-	childrenUtilites(children, el, $deep);
-
-	if (!svg) {
-		attributeUtilites(data, el, component, current);
-	}
-	(() => {
+	/**
+	 * @makeElement
+	 * create element, svg and observe data property
+	 */
+	const makeElement = () => {
+		let svg;
+		if (["svg", "path", "g", "circle", "ellipse", "line"].includes(nodeName) || data.svg) {
+			svg = true;
+			el = document.createElementNS("http://www.w3.org/2000/svg", nodeName);
+			for (const [k, v] of Object.entries(data)) {
+				el.setAttribute(k, v);
+			}
+		} else {
+			el = document.createElement(nodeName);
+		}
+		childrenObserve(children, el, $deep);
+		if (!svg) {
+			attributeObserve(data, el, component);
+		}
 		if (first) el.dataset.component = component.constructor.name;
-	})();
-	getBlaze().runEveryMakeElement(el);
-	// first render
+
+		getBlaze().runEveryMakeElement(el);
+		return el;
+	};
+	/**
+	 * @call fragment, makeElement
+	 */
+	fragment();
+	makeElement();
+
+	/**
+	 * @render
+	 * first rendering and call lifecycle function in fragment/first element
+	 */
 	if (!$deep.update) {
 		if (first) {
 			if (el.isConnected) {
-				mountUtilities($deep, data.props, true);
+				mountCall($deep, data.props, true);
 			}
+			layoutCall($deep);
 		}
 		return el;
-	}
-	// update render
-	else {
-		if (!first) {
-			return el;
-		}
+	} else {
+	/**
+	 * @updateRender
+	 * update element on props/state change and call lifecycle function
+	 */
 		if (first && current) {
+			layoutCall($deep);
+
 			if (current.dataset && current.childrenComponent) {
 				let dataset = current.dataset;
 				let check = current.childrenComponent.$deep.registry.find(
@@ -144,7 +197,7 @@ export const e = function (
 				);
 				if (check && check.component.$node.isConnected) {
 					check.component.$node.render = true;
-					mountUtilities(check.component.$deep, data.props, true);
+					mountCall(check.component.$deep, data.props, true);
 				}
 			}
 		}

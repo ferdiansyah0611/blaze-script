@@ -1,7 +1,20 @@
 import { log } from "./utils";
+import { Component } from "./blaze.d"
 
-const diff = function (prev: HTMLElement, el: HTMLElement) {
+/**
+ * @diff
+ * diff attribute, skip, textNode, input element
+ * update refs
+ */
+const diff = function (prev: HTMLElement, el: HTMLElement, component: Component) {
 	let batch = [];
+	if(!prev || !el) {
+		return batch;
+	}
+	if(prev.nodeName !== el.nodeName) {
+		batch.push(() => prev.replaceWith(el))
+		return batch;
+	}
 	if (!prev || ((prev.d || el.d) && !(el instanceof SVGElement))) {
 		return batch;
 	}
@@ -42,6 +55,18 @@ const diff = function (prev: HTMLElement, el: HTMLElement) {
 			}
 		});
 	}
+	// update refs if updated
+	if(prev.refs) {
+		let isConnected = prev.isConnected ? prev: el
+		if (typeof prev.i === "number") {
+			if(!component[prev.refs[prev.i]]) {
+				component[prev.refs[prev.i]] = [];
+			}
+			component[prev.refs][prev.i] = isConnected;
+		} else {
+			component[prev.refs] = isConnected;
+		}
+	}
 	// input
 	if (prev.value !== el.value) {
 		batch.push(() => (prev.value = el.value));
@@ -50,22 +75,29 @@ const diff = function (prev: HTMLElement, el: HTMLElement) {
 	return batch;
 };
 
-export const diffChildren = (oldest: any, newest: any, first: boolean = true) => {
+/**
+ * @diffChildren
+ * diffing children component
+ * replaceChildren if old el with new el is different
+ * and diff element
+ */
+export const diffChildren = (oldest: any, newest: any,  component: Component, first: boolean = true) => {
 	if (!newest) {
 		return;
 	}
-	if (oldest.children.length !== newest.children.length) {
+	else if (oldest.children.length !== newest.children.length) {
 		return oldest.replaceChildren(...newest.children);
-	} else {
+	}
+	else {
 		let children = Array.from(oldest.children);
 		if (first) {
-			let difference = diff(oldest, newest);
+			let difference = diff(oldest, newest, component);
 			difference.forEach((rechange) => rechange());
 		}
 		children.forEach((item: HTMLElement, i: number) => {
-			let difference = diff(item, newest.children[i]);
+			let difference = diff(item, newest.children[i], component);
 			difference.forEach((rechange) => rechange());
-			diffChildren(item, newest.children[i], false);
+			diffChildren(item, newest.children[i], component, false);
 		});
 	}
 };

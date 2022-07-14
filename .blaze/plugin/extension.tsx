@@ -1,5 +1,5 @@
 import { render, state, init, mount, batch } from "@blaze";
-import { mountUtilities } from "@root/core";
+import { mountCall } from "@root/core";
 
 type Log = {
 	msg: string;
@@ -31,7 +31,7 @@ export const withExtension = (entry: string, enabled: boolean) => {
 		if (query && enabled) {
 			let component = new Extension();
 			component.$node = component.render();
-			mountUtilities(component.$deep, {}, true);
+			mountCall(component.$deep, {}, true);
 			query.append(component.$node);
 		}
 	};
@@ -60,17 +60,18 @@ function Extension() {
 	mount(() => {
 		// inject to window
 		window.$extension = this;
-		if(window.$app.$router) window.$app.$router.onChange(() => {
-			batch(() => {
-				clearLog()
-				this.state.selectComponent = {
-					$deep: {}
-				}
-				this.state.component = this.state.component.filter(item => item.$node.isConnected)
-			}, this)
-		})
+		if (window.$app.$router)
+			window.$app.$router.onChange(() => {
+				batch(() => {
+					clearLog();
+					this.state.selectComponent = {
+						$deep: {},
+					};
+					this.state.component = this.state.component.filter((item) => item.$node.isConnected);
+				}, this);
+			});
 		// more
-		toggleOpen()
+		toggleOpen();
 		// prototype
 		this.addLog = (data: Log, trigger) => {
 			this.state.log.push(data);
@@ -83,57 +84,59 @@ function Extension() {
 	}, this);
 	// action
 	const toggleOpen = () => {
-		let openClass = "fixed bottom-0 z-10 bg-gray-900 w-full"
-		let closeClass = "fixed bottom-0 right-0 z-10 bg-gray-900"
+		let openClass = "fixed bottom-0 z-10 bg-gray-900 w-full";
+		let closeClass = "fixed bottom-0 right-0 z-10 bg-gray-900";
 		// on open
-		if(!this.state.open) {
-			this.$node.className = openClass
+		if (!this.state.open) {
+			this.$node.className = openClass;
 		}
 		// on close
 		else {
-			this.$node.className = closeClass
+			this.$node.className = closeClass;
 		}
-		this.state.open = !this.state.open
-	}
+		this.state.open = !this.state.open;
+	};
 	const resizeBody = () => {
 		setTimeout(() => {
-			window.$app.$node.style.marginBottom = `${this.$node.offsetHeight}px`
-		}, 1000)
-	}
+			window.$app.$node.style.marginBottom = `${this.$node.offsetHeight}px`;
+		}, 1000);
+	};
 	const handleConsole = () => {
 		batch(() => {
-			this.state.openLog = false
-			this.state.openComponent = false
-			this.state.openConsole = !this.state.openConsole
-		}, this)
-		resizeBody()
+			this.state.openLog = false;
+			this.state.openComponent = false;
+			this.state.openConsole = !this.state.openConsole;
+		}, this);
+		resizeBody();
 	};
 	const handleLog = () => {
 		batch(() => {
-			this.state.openComponent = false
-			this.state.openConsole = false
-			this.state.openLog = !this.state.openLog
-		}, this)
-		resizeBody()
+			this.state.openComponent = false;
+			this.state.openConsole = false;
+			this.state.openLog = !this.state.openLog;
+		}, this);
+		resizeBody();
 	};
 	const handleComponent = () => {
 		batch(() => {
-			this.state.openConsole = false
-			this.state.openLog = false
-			this.state.openComponent = !this.state.openComponent
-		}, this)
-		resizeBody()
+			this.state.openConsole = false;
+			this.state.openLog = false;
+			this.state.openComponent = !this.state.openComponent;
+		}, this);
+		resizeBody();
 	};
 	const clearLog = () => (this.state.log = []);
 	const setSelectComponent = (data) => (this.state.selectComponent = data);
+
 	// render
-	render(() => {
-		let { selectComponent } = this.state;
-		let props = Object.keys(selectComponent.props || {}).filter((item) => item !== "_isProxy");
-		let selectComponentState = Object.keys(selectComponent || {}).filter(
-			(item) => selectComponent[item]._isProxy === true && item !== "props"
+	const selectComponentState = () =>
+		Object.keys(this.state.selectComponent || {}).filter(
+			(item) => this.state.selectComponent[item]._isProxy === true && item !== "props"
 		);
-		let selectComponentContext = Object.keys(selectComponent.ctx || {});
+	const selectComponentContext = () => Object.keys(this.state.selectComponent.ctx || {});
+	const props = () => Object.keys(this.state.selectComponent.props || {}).filter((item) => item !== "_isProxy");
+
+	render(() => {
 		return (
 			<>
 				<div class={this.state.open ? "block" : "hidden"}>
@@ -142,16 +145,19 @@ function Extension() {
 						<div>
 							<div class="flex text-white">
 								<h5 class="p-2 flex-1 font-bold">Console</h5>
-								<button onClick={() => this.state.console = []} class="bg-gray-800 p-2">
+								<button onClick={() => (this.state.console = [])} class="bg-gray-800 p-2">
 									Clear
 								</button>
-								<button onClick={() => {
-									this.state.console.push({
-										data: eval(this.$node.querySelector('#console').value),
-										at: new Date()
-									});
-									this.$deep.trigger();
-								}} class="bg-blue-800 p-2">
+								<button
+									onClick={() => {
+										this.state.console.push({
+											data: eval(this.$node.querySelector("#console").value),
+											at: new Date(),
+										});
+										this.$deep.trigger();
+									}}
+									class="bg-blue-800 p-2"
+								>
 									Run
 								</button>
 							</div>
@@ -218,25 +224,31 @@ function Extension() {
 								</div>
 								<div d class="text-white p-2 flex-1" style={"max-height: 50vh;overflow: auto;"}>
 									<div>
-										{selectComponent.constructor.name !== "Object" ? (
+										{this.state.selectComponent.constructor.name !== "Object" ? (
 											<div d class="flex space-x-2 items-center">
-												<span class={selectComponent.$node.isConnected ? "w-4 h-4 rounded-full bg-green-500" : "w-4 h-4 rounded-full bg-red-500"}></span>
-												<h5 class="font-bold">{selectComponent.constructor.name}</h5>
-												<p class="text-gray-300">{selectComponent.$deep.time + "ms"}</p>
+												<span
+													class={
+														this.state.selectComponent.$node.isConnected
+															? "w-4 h-4 rounded-full bg-green-500"
+															: "w-4 h-4 rounded-full bg-red-500"
+													}
+												></span>
+												<h5 class="font-bold">{this.state.selectComponent.constructor.name}</h5>
+												<p class="text-gray-300">{this.state.selectComponent.$deep.time + "ms"}</p>
 											</div>
 										) : (
 											false
 										)}
-										{props.length ? (
+										{props().length ? (
 											<div>
-												<h6 d>Props</h6>
+												<h6>Props</h6>
 												<div class="flex flex-col">
-													{props.map((item, i) => (
+													{props().map((item, i) => (
 														<InputExtension
 															name={item}
-															value={selectComponent.props[item]}
+															value={this.state.selectComponent.props[item]}
 															disableMargin={true}
-															onChange={(val) => selectComponent.props[item] = val}
+															onChange={(val) => (this.state.selectComponent.props[item] = val)}
 															key={i + 2000}
 														/>
 													))}
@@ -245,20 +257,20 @@ function Extension() {
 										) : (
 											false
 										)}
-										{selectComponentState.length ? (
+										{selectComponentState().length ? (
 											<div>
 												<h6>State</h6>
 												<div class="flex flex-col">
-													{selectComponentState.map((item) => (
+													{selectComponentState().map((item) => (
 														<div>
-															{Object.keys(selectComponent[item] || {})
+															{Object.keys(this.state.selectComponent[item] || {})
 																.filter((items) => items !== "_isProxy")
 																.map((state, i) => (
 																	<InputExtension
 																		name={state}
-																		value={selectComponent[item][state]}
+																		value={this.state.selectComponent[item][state]}
 																		disableMargin={true}
-																		onChange={(val) => selectComponent[item][state] = val}
+																		onChange={(val) => (this.state.selectComponent[item][state] = val)}
 																		key={i + 1}
 																	/>
 																))}
@@ -269,23 +281,23 @@ function Extension() {
 										) : (
 											false
 										)}
-										{selectComponentContext.length ? (
+										{selectComponentContext().length ? (
 											<div>
 												<h6>Context</h6>
 												<div class="flex flex-col">
-													{selectComponentContext.map((item, key) => (
+													{selectComponentContext().map((item, key) => (
 														<div>
 															<h5 class="text-gray-200">
 																{key + 1}. {item}
 															</h5>
-															{Object.keys(selectComponent["ctx"][item] || {})
+															{Object.keys(this.state.selectComponent["ctx"][item] || {})
 																.filter((items) => items !== "_isContext")
 																.map((state, i) => (
 																	<InputExtension
 																		name={state}
-																		value={selectComponent["ctx"][item][state]}
+																		value={this.state.selectComponent["ctx"][item][state]}
 																		disableMargin={true}
-																		onChange={(val) => selectComponent["ctx"][item][state] = val}
+																		onChange={(val) => (this.state.selectComponent["ctx"][item][state] = val)}
 																		key={i + 1000}
 																	/>
 																))}
@@ -297,12 +309,18 @@ function Extension() {
 											false
 										)}
 										<div className="mt-2">
-											{selectComponent.constructor.name !== "Object" ? (
+											{this.state.selectComponent.constructor.name !== "Object" ? (
 												<div>
-													<button onClick={() => selectComponent.$deep.trigger()} class="bg-gray-800 p-2 text-sm">
+													<button
+														onClick={() => this.state.selectComponent.$deep.trigger()}
+														class="bg-gray-800 p-2 text-sm"
+													>
 														Trigger
 													</button>
-													<button onClick={() => selectComponent.$deep.remove()} class="bg-gray-800 p-2 text-sm">
+													<button
+														onClick={() => this.state.selectComponent.$deep.remove()}
+														class="bg-gray-800 p-2 text-sm"
+													>
 														Remove
 													</button>
 												</div>
@@ -317,34 +335,35 @@ function Extension() {
 					)}
 				</div>
 				<div>
-					{
-						this.state.open ?
-							<div d className="flex space-x-2 text-white text-sm p-2">
-								<a className="bg-gray-800 p-2" onClickPrevent={handleConsole} href="/">
-									Console
+					{this.state.open ? (
+						<div d className="flex space-x-2 text-white text-sm p-2">
+							<a className="bg-gray-800 p-2" onClickPrevent={handleConsole} href="/">
+								Console
+							</a>
+							<a className="bg-gray-800 p-2" onClickPrevent={handleComponent} href="/">
+								Component
+							</a>
+							<a className="bg-gray-800 p-2" onClickPrevent={handleLog} href="/">
+								{!this.state.openLog ? "Open Log" : "Close Log"}
+							</a>
+							<div class="flex-1 flex justify-end items-center">
+								<a href="/" onClickPrevent={toggleOpen}>
+									<span class="material-symbols-outlined">close</span>
 								</a>
-								<a className="bg-gray-800 p-2" onClickPrevent={handleComponent} href="/">
-									Component
-								</a>
-								<a className="bg-gray-800 p-2" onClickPrevent={handleLog} href="/">
-									{!this.state.openLog ? "Open Log" : "Close Log"}
-								</a>
-								<div class="flex-1 flex justify-end items-center">
-									<a href="/" onClickPrevent={toggleOpen}>
-										<span class="material-symbols-outlined">close</span>
-									</a>
-								</div>
 							</div>
-						: false
-					}
+						</div>
+					) : (
+						false
+					)}
 				</div>
 				<div>
-					{!this.state.open ?
+					{!this.state.open ? (
 						<a href="/" class="text-white" onClickPrevent={toggleOpen}>
 							<span class="material-symbols-outlined p-2">construction</span>
 						</a>
-						: false
-					}
+					) : (
+						false
+					)}
 				</div>
 			</>
 		);
@@ -386,12 +405,12 @@ function InputExtension() {
 			<>
 				<div class={"flex space-x-2 items-center mt-1 text-sm" + (disableMargin ? "" : " ml-2")}>
 					<p class="p-2 flex-1">{name}</p>
-					{((Array.isArray(value) || typeof value === "object") && !(typeof value === 'function')) ? (
+					{(Array.isArray(value) || typeof value === "object") && !(typeof value === "function") ? (
 						<textarea
 							class="bg-black text-white p-2 focus:border-gray-600 flex-1"
-							onChangeValue={(val) => onChange ? onChange(JSON.parse(val)) : value = JSON.parse(val)}
+							onChangeValue={(val) => (onChange ? onChange(JSON.parse(val)) : (value = JSON.parse(val)))}
 							rows="5"
-							disabled={name === 'key'}
+							disabled={name === "key"}
 						>
 							{JSON.stringify(value)}
 						</textarea>
@@ -399,9 +418,9 @@ function InputExtension() {
 						<input
 							class="bg-black text-white p-2 focus:border-gray-600 flex-1"
 							value={value}
-							onChangeValue={(val) => onChange ? onChange(val) : value = val}
+							onChangeValue={(val) => (onChange ? onChange(val) : (value = val))}
 							type={typeof value === "number" ? "number" : "text"}
-							disabled={name === 'key' || typeof value === 'function'}
+							disabled={(name === "key" || typeof value === "function")}
 						/>
 					)}
 					<p class="p-2 italic flex-1 text-green-400">

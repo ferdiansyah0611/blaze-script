@@ -117,7 +117,7 @@ You can use logical in jsx or this logical.
 ```tsx
 <>
     <div if={this.state.now > 2}>
-        <Example props={{ status: this.state.now }} key={0} />
+        <Example status={this.state.now} key={1} />
     </div>
     <div data-name={this.state.name} if={this.state.now === 5}>
         <p>Done</p>
@@ -152,11 +152,7 @@ const Hello = function () {
         () => (
             <>
                 <p>Hello World, {this.ctx.user.email}</p>
-                <button
-                    onClick={() =>
-                        dispatch("user.update", this, "member@gmail.com")
-                    }
-                ></button>
+                <button onClick={() => dispatch("user.update", this, "member@gmail.com")}></button>
             </>
         ),
         this
@@ -167,17 +163,16 @@ const Hello = function () {
 ## Refs
 
 ```tsx
-import { refs, init, render } from "@blaze";
+import { init, render } from "@blaze";
 
 const Hello = function () {
     init(this);
-    refs("hi", this);
-    refs("text", this, true);
     render(
         () => (
             <>
+                {/*access refs with this.hi*/}
                 <p refs="hi">Hello World</p>
-                {/*array refs*/}
+                {/*array refs. access with this.text[i]*/}
                 <p refs="text" i={0}>
                     Hello World
                 </p>
@@ -194,7 +189,7 @@ const Hello = function () {
 ## Event
 
 ```tsx
-import { refs, init, render } from "@blaze";
+import { init, render } from "@blaze";
 
 const Hello = function () {
     init(this);
@@ -205,10 +200,7 @@ const Hello = function () {
         () => (
             <>
                 <button onClick={click}>Click Me</button>
-                <input
-                    onChangeValue={(value) => console.log(value)}
-                    type="text"
-                />
+                <input onChangeValue={(value) => console.log(value)} type="text" />
                 <a href="/" onClickPrevent={click}>
                     Click Me
                 </a>
@@ -262,12 +254,7 @@ import { makeRouter, page } from "@blaze.router";
 
 app.use(
     makeRouter("#route", {
-        url: [
-            page("/", Index),
-            page("/test", Test),
-            page("/test/:id", TestParam),
-            page("", NotFound),
-        ],
+        url: [page("/", Index), page("/test", Test), page("/test/:id", TestParam), page("", NotFound)],
         // option for resolve url
         resolve: "/test/index.html",
     })
@@ -301,9 +288,37 @@ history.back();
 history.go(-2);
 ```
 
+## Extension API (Plugin)
+
+Extension tools for view component, performance, log, console, etc.
+
+### Setup
+
+```tsx
+import { withExtension } from "@root/plugin/extension";
+
+app.use(withExtension("#extension", import.meta.env.DEV));
+```
+
+## Helmet API (Plugin)
+
+Helmet tools for title and description meta.
+
+### Get Started
+
+```tsx
+import helmet from "@root/plugin/helmet";
+
+helmet({
+    title: "Hello World",
+    description: "lorem ipsum",
+});
+```
+
 ## More Info
 
 -   Updating TextNode Only Work In /SPAN|P|H1|H2|H3|H4|H5|H6|A|BUTTON/
+-   Component must be have a key props if more than one.
 
 ## Contributing
 

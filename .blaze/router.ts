@@ -1,4 +1,4 @@
-import { mountUtilities } from "./core";
+import { mountCall } from "./core";
 import { mount, batch } from "@blaze";
 import { Component } from "./blaze.d";
 import { addLog, addComponent } from "@root/plugin/extension";
@@ -9,7 +9,7 @@ export const makeRouter = (entry: string, config: any) => {
 	if (config.resolve) {
 		let url = new URL(location.href);
 
-		/*let update = */ config.url.map((item) => {
+		config.url.map((item) => {
 			if (item.path) {
 				item.path = url.pathname + (item.path === "/" ? "" : item.path);
 			}
@@ -39,7 +39,7 @@ export const makeRouter = (entry: string, config: any) => {
 		// inject router
 		current.$router = tool;
 
-		mountUtilities(current.$deep, {}, true);
+		mountCall(current.$deep, {}, true);
 		document.querySelector(entry).append(current.$node);
 		app.$router.history.forEach((data) => {
 			data.current.$deep.remove();
