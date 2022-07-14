@@ -25,8 +25,7 @@ export const init = (component: Component) => {
 				component.$deep.childrenDiffStatus = true;
 				component.$deep.update++;
 				// diff in here
-				let newRender = component.render();
-				diffChildren(component.$node, newRender, component);
+				diffChildren(component.$node, component.render(), component);
 			},
 			remove() {
 				this.registry.forEach((item) => {
@@ -39,6 +38,8 @@ export const init = (component: Component) => {
 				this.registry = [];
 				this.watch = [];
 				this.mount = [];
+				this.unmount = [];
+				this.layout = [];
 			},
 		};
 

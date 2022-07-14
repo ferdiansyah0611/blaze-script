@@ -146,6 +146,7 @@ export const e = function (
 	 */
 	const makeElement = () => {
 		let svg;
+		let componentName = component.constructor.name;
 		if (["svg", "path", "g", "circle", "ellipse", "line"].includes(nodeName) || data.svg) {
 			svg = true;
 			el = document.createElementNS("http://www.w3.org/2000/svg", nodeName);
@@ -156,11 +157,9 @@ export const e = function (
 			el = document.createElement(nodeName);
 		}
 		childrenObserve(children, el, $deep);
-		if (!svg) {
-			attributeObserve(data, el, component);
-		}
-		if (first) el.dataset.component = component.constructor.name;
-
+		if (!svg) attributeObserve(data, el, component);
+		if (first) el.dataset.component = componentName;
+		el.$name = componentName;
 		getBlaze().runEveryMakeElement(el);
 		return el;
 	};
@@ -183,10 +182,10 @@ export const e = function (
 		}
 		return el;
 	} else {
-	/**
-	 * @updateRender
-	 * update element on props/state change and call lifecycle function
-	 */
+		/**
+		 * @updateRender
+		 * update element on props/state change and call lifecycle function
+		 */
 		if (first && current) {
 			layoutCall($deep);
 

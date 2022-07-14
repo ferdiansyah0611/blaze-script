@@ -79,10 +79,14 @@ const diff = function (prev: HTMLElement, el: HTMLElement, component: Component)
  * @diffChildren
  * diffing children component
  * replaceChildren if old el with new el is different
+ * skip diff if el not different with current component
  * and diff element
  */
 export const diffChildren = (oldest: any, newest: any,  component: Component, first: boolean = true) => {
 	if (!newest) {
+		return;
+	}
+	else if((oldest.$name || newest.$name) !== component.constructor.name) {
 		return;
 	}
 	else if (oldest.children.length !== newest.children.length) {
