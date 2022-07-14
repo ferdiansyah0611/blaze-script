@@ -148,11 +148,12 @@ const user = context(
 const Hello = function () {
     init(this);
     user(this);
+    const autoBatching = true
     render(
         () => (
             <>
                 <p>Hello World, {this.ctx.user.email}</p>
-                <button onClick={() => dispatch("user.update", this, "member@gmail.com")}></button>
+                <button onClick={() => dispatch("user.update", this, "member@gmail.com", autoBatching)}></button>
             </>
         ),
         this
