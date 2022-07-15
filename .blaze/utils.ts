@@ -1,6 +1,6 @@
 import { mountCall } from "./core";
 import { Component, Watch, Mount, InterfaceApp, InterfaceBlaze } from "./blaze.d";
-import { addLog, addComponent } from "@root/plugin/extension";
+import { addLog, addComponent, reload } from "@root/plugin/extension";
 
 /**
  * @App
@@ -20,7 +20,7 @@ export class App implements InterfaceApp {
 		this.blaze = new Blaze();
 	}
 	mount() {
-		document.addEventListener("DOMContentLoaded", () => {
+		const load = (hmr = false) => {
 			let old = performance.now(),
 				now,
 				duration,
@@ -28,13 +28,13 @@ export class App implements InterfaceApp {
 			let app = new this.component();
 			app.$config = this.config;
 			// inject to window
-			if (!window.$app) {
-				window.$app = app;
-				window.$blaze = this.blaze;
-			}
-			this.plugin.forEach((plugin: any) => plugin(window.$app, window.$blaze));
+			window.$app = app;
+			window.$blaze = this.blaze;
+			// run plugin
+			this.plugin.forEach((plugin: any) => plugin(window.$app, window.$blaze, hmr));
+			// render
 			app.$node = app.render();
-			// extension
+			// extension & timer
 			now = performance.now();
 			duration = (now - old).toFixed(1);
 			msg = `[${app.constructor.name}] ${duration}ms`;
@@ -48,8 +48,29 @@ export class App implements InterfaceApp {
 				);
 				addComponent(app, false);
 			}, window.$extension);
-			document.querySelector(this.el).append(window.$app.$node);
+
+			let query = document.querySelector(this.el);
+			Array.from(query.children).forEach((node: HTMLElement) => node.remove());
+			query.append(window.$app.$node);
 			mountCall(app.$deep, {}, false);
+		}
+
+		if(window.$app) {
+			reload();
+			batch(() => {
+				addLog(
+					{
+						msg: '[HMR] reloading app',
+					},
+					false
+				);
+				addComponent(window.$app, false);
+			}, window.$extension);
+			load(true);
+			return;
+		}
+		document.addEventListener("DOMContentLoaded", () => {
+			load()
 		});
 	}
 	use(plugin: any) {
@@ -269,10 +290,12 @@ export const layout = (callback: Function, component: Component) => {
  * utils for re-rendering
  */
 export const batch = async (callback: Function, component: Component) => {
-	component.$deep.batch = true;
-	await callback();
-	component.$deep.batch = false;
-	component.$deep.trigger();
+	if(component) {
+		component.$deep.batch = true;
+		await callback();
+		component.$deep.batch = false;
+		component.$deep.trigger();
+	}
 };
 
 /**

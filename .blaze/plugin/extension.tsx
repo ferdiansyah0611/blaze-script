@@ -28,14 +28,20 @@ export const addComponent = (data, trigger = true) => {
 export const withExtension = (entry: string, enabled: boolean) => {
 	return () => {
 		let query = document.querySelector(entry);
-		if (query && enabled) {
+		if (query && enabled && !window.$extension) {
 			let component = new Extension();
 			component.$node = component.render();
 			mountCall(component.$deep, {}, true);
-			query.append(component.$node);
+			query.replaceChildren(component.$node);
 		}
 	};
 };
+
+export const reload = () => {
+	if (window.$extension) {
+		window.$extension.reload();
+	}
+}
 
 function Extension() {
 	init(this);
@@ -76,13 +82,24 @@ function Extension() {
 		toggleOpen();
 		// prototype
 		this.addLog = (data: Log, trigger) => {
-			this.state.log.push(data);
-			if (trigger) this.$deep.trigger();
+			if(!data.disableExtension) {
+				this.state.log.push(data);
+				if (trigger) this.$deep.trigger();
+			}
 		};
 		this.addComponent = (data, trigger) => {
 			this.state.component.push(data);
 			if (trigger) this.$deep.trigger();
 		};
+		this.reload = () => {
+			batch(() => {
+				clearLog();
+				this.state.selectComponent = {
+					$deep: {},
+				};
+				this.state.component = [];
+			}, this);
+		}
 	}, this);
 	// action
 	const toggleOpen = () => {
@@ -97,6 +114,8 @@ function Extension() {
 			this.$node.className = closeClass;
 		}
 		this.state.open = !this.state.open;
+
+		resizeBody();
 	};
 	const resizeBody = () => {
 		setTimeout(() => {
@@ -196,7 +215,7 @@ function Extension() {
 							</div>
 							<div className="text-sm mb-2 p-2" id="list-log" style={"max-height: 30vh;overflow: auto;"}>
 								{this.state.log
-									.reverse()
+									.sort((a, b) => b.at - a.at)
 									.slice(0, 50)
 									.map((item) => (
 										<div className="border-b flex">
@@ -238,10 +257,10 @@ function Extension() {
 										))}
 									</div>
 								</div>
-								<div d class="text-white p-2 flex-1" style={"max-height: 50vh;overflow: auto;"}>
+								<div d class="text-white flex-1" style={"max-height: 50vh;overflow: auto;"}>
 									<div>
 										{this.state.selectComponent.constructor.name !== "Object" ? (
-											<div d class="flex space-x-2 items-center">
+											<div d class="flex space-x-2 items-center p-2">
 												<span
 													class={
 														this.state.selectComponent.$node.isConnected
@@ -257,8 +276,8 @@ function Extension() {
 										)}
 										{props().length ? (
 											<div>
-												<h6>Props</h6>
-												<div class="flex flex-col">
+												<h6 class="ml-2 font-medium p-2">Props</h6>
+												<div class="flex flex-col border-b border-gray-500 pb-2">
 													{props().map((item, i) => (
 														<InputExtension
 															name={item}
@@ -275,8 +294,8 @@ function Extension() {
 										)}
 										{selectComponentState().length ? (
 											<div>
-												<h6>State</h6>
-												<div class="flex flex-col">
+												<h6 class="ml-2 font-medium p-2">State</h6>
+												<div class="flex flex-col border-b border-gray-500 pb-2">
 													{selectComponentState().map((item) => (
 														<div>
 															{Object.keys(this.state.selectComponent[item] || {})
@@ -299,11 +318,11 @@ function Extension() {
 										)}
 										{selectComponentContext().length ? (
 											<div>
-												<h6>Context</h6>
-												<div class="flex flex-col">
+												<h6 class="ml-2 font-medium p-2">Context</h6>
+												<div class="flex flex-col border-b border-gray-500 pb-2">
 													{selectComponentContext().map((item, key) => (
 														<div>
-															<h5 class="text-gray-200">
+															<h5 class="text-gray-200 p-2 ml-2">
 																{key + 1}. {item}
 															</h5>
 															{Object.keys(this.state.selectComponent["ctx"][item] || {})
@@ -324,21 +343,28 @@ function Extension() {
 										) : (
 											false
 										)}
-										<div className="mt-2">
+										<div d className="mt-2">
 											{this.state.selectComponent.constructor.name !== "Object" ? (
 												<div>
-													<button
-														onClick={() => this.state.selectComponent.$deep.trigger()}
-														class="bg-gray-800 p-2 text-sm"
-													>
-														Trigger
-													</button>
-													<button
-														onClick={() => this.state.selectComponent.$deep.remove()}
-														class="bg-gray-800 p-2 text-sm"
-													>
-														Remove
-													</button>
+													<div d class="ml-2">
+														<h5 d class="p-2 flex-1 font-bold">More</h5>
+													</div>
+													<div d class="p-2 flex space-x-1 ml-2">
+														<button
+															onClick={() => this.state.selectComponent.$deep.trigger()}
+															class="bg-gray-800 p-2 text-sm"
+															d
+														>
+															Trigger
+														</button>
+														<button
+															onClick={() => this.state.selectComponent.$deep.remove()}
+															class="bg-gray-800 p-2 text-sm"
+															d
+														>
+															Remove
+														</button>
+													</div>
 												</div>
 											) : (
 												false
@@ -388,15 +414,16 @@ function Extension() {
 
 function ListExtension() {
 	init(this);
+	this.disableExtension = true;
 	render(() => {
 		return (
 			<>
 				<div style={this.props.style || ""} class="flex-1">
 					<button
 						onClick={() => this.props.setSelectComponent(this.props.item)}
-						class="bg-gray-800 p-2 w-full rounded-md mb-1 text-sm"
+						class="bg-gray-800 p-2 w-full rounded-md mb-1 text-sm text-left"
 					>
-						{this.props.item.constructor.name}
+						{"<"}{this.props.item.constructor.name}{this.props.item.props.key ? ` key="${this.props.item.props.key}"` : ""}{"/>"}
 					</button>
 					{this.props.item.$deep.registry.map((item, i) => (
 						<ListExtension
@@ -415,15 +442,16 @@ function ListExtension() {
 
 function InputExtension() {
 	init(this);
+	this.disableExtension = true;
 	render(() => {
 		let { name, value, disableMargin, onChange } = this.props;
 		return (
 			<>
-				<div class={"flex space-x-2 items-center mt-1 text-sm" + (disableMargin ? "" : " ml-2")}>
+				<div class={"flex space-x-2 items-center mt-1 text-sm p-2" + (disableMargin ? "" : " ml-2")}>
 					<p class="p-2 flex-1">{name}</p>
 					{(Array.isArray(value) || typeof value === "object") && !(typeof value === "function") ? (
 						<textarea
-							class="bg-black text-white p-2 focus:border-gray-600 flex-1"
+							class="bg-black text-white p-2 flex-1 focus:outline-none"
 							onChangeValue={(val) => (onChange ? onChange(JSON.parse(val)) : (value = JSON.parse(val)))}
 							rows="5"
 							disabled={name === "key"}
@@ -432,7 +460,7 @@ function InputExtension() {
 						</textarea>
 					) : (
 						<input
-							class="bg-black text-white p-2 focus:border-gray-600 flex-1"
+							class="bg-black text-white p-2 flex-1 focus:outline-none"
 							value={value}
 							onChangeValue={(val) => (onChange ? onChange(val) : (value = val))}
 							type={typeof value === "number" ? "number" : "text"}

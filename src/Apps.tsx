@@ -20,17 +20,21 @@ const MyApp = function () {
 	);
 };
 
-const app = new App("#app", MyApp, {
-	dev: import.meta.env.DEV,
-});
-app.use(
-	makeRouter("#route", {
-		url: [
-			page("/", Index),
-			page("/page", PageExample),
-			page("/page/:id", PageExample),
-			page("", NotFound),
-		],
-	})
-);
-app.mount();
+export default function Apps() {
+	const app = new App("#app", MyApp, {
+		dev: import.meta.env.DEV,
+	});
+	app.use(
+		makeRouter("#route", {
+			url: [
+				page("/", Index),
+				page("/page", PageExample),
+				page("/page/:id", PageExample),
+				page("", NotFound),
+			],
+		})
+	);
+	app.mount();
+
+	return app;
+}

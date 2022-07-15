@@ -319,7 +319,8 @@ helmet({
 ## More Info
 
 -   Updating TextNode Only Work In /SPAN|P|H1|H2|H3|H4|H5|H6|A|BUTTON/
--   Component must be have a key props if more than one.
+-   Component must be have a key props if more than one
+-   SVG work but if not work in anycase, add element property svg=""
 
 ## Contributing
 

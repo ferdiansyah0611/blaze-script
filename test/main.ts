@@ -23,4 +23,13 @@ declare global{
     }
 }
 
-import "./Apps";
+import Apps from "./Apps";
+
+// hmr
+if(import.meta.hot) {
+    import.meta.hot.accept((modules) => {
+        if(modules.default) modules.default();
+    })
+}
+
+Apps();

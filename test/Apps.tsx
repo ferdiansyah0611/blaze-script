@@ -26,19 +26,18 @@ const TestApp = function () {
 	);
 };
 
-const app = new App("#app", TestApp, {
-	// dev: import.meta.env.DEV,
-	dev: false,
-});
-app.use(
-	makeRouter("#route", {
-		resolve: "/test/index.html",
-		url: [
-			page("/", Index),
-			page("/home", Home),
-			page("/blog/:id", Show),
-			page("", NotFound)
-		],
-	})
-);
-app.mount();
+export default function Apps() {
+	const app = new App("#app", TestApp, {
+		// dev: import.meta.env.DEV,
+		dev: false,
+	});
+	app.use(
+		makeRouter("#route", {
+			resolve: "/test/index.html",
+			url: [page("/", Index), page("/home", Home), page("/blog/:id", Show), page("", NotFound)],
+		})
+	);
+	app.mount();
+
+	return app;
+}

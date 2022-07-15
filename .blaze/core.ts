@@ -1,6 +1,6 @@
 import { log } from "./utils";
 import { e } from "./blaze";
-import { Component } from "./blaze.d";
+import { Component, Mount } from "./blaze.d";
 import { diffChildren } from "./diff";
 
 /**
@@ -101,7 +101,46 @@ export const childrenObserve = (children: HTMLElement[], el: HTMLElement, $deep:
  * manage attribute element, like dataset, event, etc
  */
 export const attributeObserve = (data: any, el: HTMLElement, component: Component) => {
+
 	Object.keys(data).forEach((item: any) => {
+		// class
+		if (item === "class") {
+			el.className = data[item];
+			return;
+		}
+		// style object
+		if(item === 'style' && typeof data[item] === 'object') {
+			for(let [name, value] of Object.entries(data[item])) {
+				if(typeof value === 'number') {
+					value = value + 'px';
+				}
+				el.style[name] = value;
+			}
+			return;
+		}
+		// dataset
+		if (item.match(/^data-/)) {
+			let name = item.split("data-")[1];
+			el.dataset[name] = data[item];
+			return;
+		}
+		// refs
+		if (item === "refs" && !component.$deep.update) {
+			if (typeof data.i === "number") {
+				if(!component[data[item]]) {
+					component[data[item]] = [];
+				}
+				component[data[item]][data.i] = el;
+			} else {
+				component[data[item]] = el;
+			}
+			// don't return
+		}
+		// setHTML
+		if (item === "setHTML" && data[item]) {
+			el.innerHTML = data[item];
+			return;
+		}
 		// event
 		if (item.match(/^on[A-Z]/)) {
 			if (typeof data[item] === "function") {
@@ -160,7 +199,7 @@ export const attributeObserve = (data: any, el: HTMLElement, component: Componen
 				if (currentEl && currentEl.previousSibling) {
 					if (currentEl.previousSibling.if === false) {
 						if (!currentEl.hasAppend && currentEl.childrenCommit) {
-							currentEl.childrenCommit.forEach((item) => currentEl.appendChild(item));
+							currentEl.childrenCommit.forEach((item: HTMLElement) => currentEl.appendChild(item));
 						}
 						currentEl.if = true;
 						currentEl.hasAppend = true;
@@ -176,30 +215,6 @@ export const attributeObserve = (data: any, el: HTMLElement, component: Componen
 			handle();
 			return;
 		}
-		if (item.match(/^data-/)) {
-			let name = item.split("data-")[1];
-			el.dataset[name] = data[item];
-			return;
-		}
-		if (item === "refs" && !component.$deep.update) {
-			if (typeof data.i === "number") {
-				if(!component[data[item]]) {
-					component[data[item]] = [];
-				}
-				component[data[item]][data.i] = el;
-			} else {
-				component[data[item]] = el;
-			}
-			// don't return
-		}
-		if (item === "class") {
-			el.className = data[item];
-			return;
-		}
-		if (item === "setHTML" && data[item]) {
-			el.innerHTML = data[item];
-			return;
-		}
 		el[item] = data[item];
 	});
 };
@@ -210,7 +225,7 @@ export const attributeObserve = (data: any, el: HTMLElement, component: Componen
  */
 export const mountCall = ($deep: Component["$deep"], props: any = {}, update: boolean = false) => {
 	if (!$deep.hasMount) {
-		$deep.mount.forEach((item) => item.handle(props, update));
+		$deep.mount.forEach((item: Mount) => item.handle(props, update));
 		$deep.hasMount = true;
 	}
 };
@@ -220,7 +235,7 @@ export const mountCall = ($deep: Component["$deep"], props: any = {}, update: bo
  * for run unmount lifecycle
  */
 export const unmountCall = ($deep: Component["$deep"]) => {
-	$deep.unmount.forEach((item) => item());
+	$deep.unmount.forEach((item: Function) => item());
 };
 
 /**
@@ -228,5 +243,5 @@ export const unmountCall = ($deep: Component["$deep"]) => {
  * for run layout lifecycle
  */
 export const layoutCall = ($deep: Component["$deep"]) => {
-	if ($deep.layout) $deep.layout.forEach((item) => item());
+	if ($deep.layout) $deep.layout.forEach((item: Function) => item());
 };
