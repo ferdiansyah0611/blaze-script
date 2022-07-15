@@ -82,10 +82,8 @@ function Extension() {
 		toggleOpen();
 		// prototype
 		this.addLog = (data: Log, trigger) => {
-			if(!data.disableExtension) {
-				this.state.log.push(data);
-				if (trigger) this.$deep.trigger();
-			}
+			this.state.log.push(data);
+			if (trigger) this.$deep.trigger();
 		};
 		this.addComponent = (data, trigger) => {
 			this.state.component.push(data);

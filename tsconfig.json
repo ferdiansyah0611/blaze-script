@@ -25,7 +25,7 @@
       "@route": ["./src/route"],
       "@component/*": ["./src/component/*"],
       "@style": ["./src/style"],
-      "@": ["./src"]
+      "@/*": ["./src/*"]
     },
     "jsx": "preserve",
     "isolatedModules": true,

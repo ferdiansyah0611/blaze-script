@@ -10,7 +10,6 @@ import { addLog, addComponent } from "@root/plugin/extension";
 export const makeRouter = (entry: string, config: any) => {
 	let tool;
 	let popstate = false;
-	let url = new URL(location.href);
 	config.url.map((item) => {
 		if (item.path) {
 			item.path = config.resolve + (item.path === "/" ? "" : item.path);

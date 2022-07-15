@@ -101,18 +101,69 @@ export const childrenObserve = (children: HTMLElement[], el: HTMLElement, $deep:
  * manage attribute element, like dataset, event, etc
  */
 export const attributeObserve = (data: any, el: HTMLElement, component: Component) => {
-
 	Object.keys(data).forEach((item: any) => {
+		if (item === "model") {
+			let path = data[item];
+			let value;
+			let split = path.split(".");
+
+			let deepObjectState = (isValue?: any) => {
+				if (!(typeof isValue === "string")) {
+					if (split.length <= 5 && split.length > 0) {
+						split.forEach((name: string, i: number) => {
+							if (!i) {
+								value = component[name];
+							} else {
+								value = value[name];
+							}
+						});
+					}
+				} else {
+					if(data.trigger === 0 && data.trigger !== undefined) {
+						component.$deep.disableTrigger = true;
+					}
+
+					if (split.length === 1) {
+						component[split[0]] = isValue;
+					}
+					if (split.length === 2) {
+						component[split[0]][split[1]] = isValue;
+					}
+					if (split.length === 3) {
+						component[split[0]][split[1]][split[2]] = isValue;
+					}
+					if (split.length === 4) {
+						component[split[0]][split[1]][split[2]][split[3]] = isValue;
+					}
+					if (split.length === 5) {
+						component[split[0]][split[1]][split[2]][split[3]][split[4]] = isValue;
+					}
+
+					if(data.trigger === 0 && data.trigger !== undefined) {
+						component.$deep.disableTrigger = false;
+					}
+					if(data.trigger) {
+						component.$deep.trigger();
+					}
+				}
+				return value;
+			};
+			el.addEventListener("change", (e: any) => {
+				deepObjectState(e.target.value);
+			});
+			el.value = deepObjectState();
+			return;
+		}
 		// class
 		if (item === "class") {
 			el.className = data[item];
 			return;
 		}
 		// style object
-		if(item === 'style' && typeof data[item] === 'object') {
-			for(let [name, value] of Object.entries(data[item])) {
-				if(typeof value === 'number') {
-					value = value + 'px';
+		if (item === "style" && typeof data[item] === "object") {
+			for (let [name, value] of Object.entries(data[item])) {
+				if (typeof value === "number") {
+					value = value + "px";
 				}
 				el.style[name] = value;
 			}
@@ -127,7 +178,7 @@ export const attributeObserve = (data: any, el: HTMLElement, component: Componen
 		// refs
 		if (item === "refs" && !component.$deep.update) {
 			if (typeof data.i === "number") {
-				if(!component[data[item]]) {
+				if (!component[data[item]]) {
 					component[data[item]] = [];
 				}
 				component[data[item]][data.i] = el;
