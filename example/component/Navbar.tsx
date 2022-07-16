@@ -12,7 +12,7 @@ const Navbar = function () {
                 <nav class="bg-blue-700 text-white w-full flex sticky top-0 justify-center items-center px-8 space-x-4">
                     <p class="p-4 flex-1 font-bold">Blaze Script</p>
                     <a class="p-4" data-link href="/">Index</a>
-                    <a class="p-4" data-link href="/home">Home</a>
+                    <a class="p-4" data-link href="/about">About</a>
                 </nav>
             </>
         ),

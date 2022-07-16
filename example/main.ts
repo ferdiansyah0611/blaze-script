@@ -3,8 +3,6 @@ declare global{
     interface Window{
         $app: any,
         $blaze: any,
-        $extension: any,
-        $test: any,
     }
     interface HTMLElement{
     	if: boolean,
@@ -13,10 +11,7 @@ declare global{
     	render: boolean,
     	value: any,
     	hasAppend: boolean,
-        isRouter: boolean,
-        d: any,
-        refs?: number,
-        i?: number,
+        isRouter: boolean
     }
     interface ChildNode{
     	data: any,
@@ -24,12 +19,11 @@ declare global{
     }
 }
 
-import Apps from "@/Apps";
+import Apps from "./Apps";
 
-// hmr
 if(import.meta.hot) {
     import.meta.hot.accept((modules) => {
-        if(modules.default) modules.default();
+        if(modules.default) modules.default()
     })
 }
 
