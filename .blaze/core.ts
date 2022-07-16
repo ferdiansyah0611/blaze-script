@@ -1,5 +1,14 @@
 import { log } from "./utils";
-import { e } from "./blaze";
+import {
+	e,
+	mount,
+	layout,
+	dispatch,
+	render,
+	batch,
+	state,
+	watch
+} from "./blaze";
 import { Component, Mount } from "./blaze.d";
 import { diffChildren } from "./diff";
 
@@ -46,6 +55,16 @@ export const init = (component: Component) => {
 		component.ctx = {};
 		component.props = {};
 		component.$h = jsx(component);
+	}
+
+	return{
+		mount: (callback: Function) => mount(callback, component),
+		layout: (callback: Function) => layout(callback, component),
+		dispatch: (name: string, data: any) => dispatch(name, component, data),
+		render: (callback: Function) => render(callback, component),
+		batch: (callback: Function) => batch(callback, component),
+		state: (...argv: any[]) => state.apply(null, [...argv, component]),
+		watch: (...argv: any[]) => watch.apply(null, [...argv, component]),
 	}
 };
 

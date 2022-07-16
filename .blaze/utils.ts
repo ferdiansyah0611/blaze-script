@@ -274,7 +274,7 @@ export const mount = (callback: Function, component: Component) => {
 };
 
 /**
- * @mount
+ * @layout
  * lifecycle methods on all render
  */
 export const layout = (callback: Function, component: Component) => {

@@ -11,7 +11,7 @@ export const addLog = (data: Log, trigger = true) => {
 	if (window.$extension) {
 		window.$extension.addLog(
 			{
-				msg: data.msg,
+				msg: typeof data.msg === 'string' ? data.msg : JSON.stringify(data.msg),
 				type: data.type,
 				at: new Date(),
 			},
@@ -59,6 +59,8 @@ function Extension() {
 			openLog: false,
 			openComponent: false,
 
+			runTest: {},
+
 			selectComponent: {
 				$deep: {},
 			},
@@ -96,6 +98,7 @@ function Extension() {
 					$deep: {},
 				};
 				this.state.component = [];
+				this.state.runTest = false;
 			}, this);
 		}
 	}, this);
@@ -144,6 +147,27 @@ function Extension() {
 		}, this);
 		resizeBody();
 	};
+	const runConsole = () => {
+		try{
+			this.state.console.push({
+				data: eval(this.$node.querySelector("#console").value),
+				at: new Date(),
+			});
+			this.$deep.trigger();
+		}catch(err){
+
+		}
+	}
+	const runTest = () => {
+		this.state.runTest = true
+		if(window.$test) {
+			let check = window.$test.find((test) => test.name === this.state.selectComponent.constructor.name)
+			if(check) {
+				check.callback(this.state.selectComponent)
+				this.$deep.trigger();
+			}
+		}
+	}
 	const clearLog = () => (this.state.log = []);
 	const setSelectComponent = (data) => (this.state.selectComponent = data);
 
@@ -168,13 +192,7 @@ function Extension() {
 									Clear
 								</button>
 								<button
-									onClick={() => {
-										this.state.console.push({
-											data: eval(this.$node.querySelector("#console").value),
-											at: new Date(),
-										});
-										this.$deep.trigger();
-									}}
+									onClick={runConsole}
 									class="bg-blue-800 p-2"
 								>
 									Run
@@ -185,7 +203,7 @@ function Extension() {
 									<div class="text-sm mb-2 p-2">
 										{this.state.console.map((item) => (
 											<div d class="border-b flex">
-												<p className="text-gray-100 flex-1">{item.data}</p>
+												<p className="text-gray-100 flex-1">{typeof item.data === "string" ? item.data : JSON.stringify(item.data)}</p>
 												<p className="text-gray-100">{item.at.toLocaleString()}</p>
 											</div>
 										))}
@@ -234,11 +252,18 @@ function Extension() {
 								<h5 class="p-2 flex-1 font-bold">Component</h5>
 							</div>
 							<div class="flex">
-								<div style={"max-height: 50vh;overflow: auto;max-width: 300px;flex: 1;"}>
-									<div class="sticky top-0 z-10">
+								<div refs="bodyComponent" style={"max-height: 50vh;overflow: auto;max-width: 300px;flex: 1;"}>
+									<div class="sticky top-0 z-10 pr-2">
 										<input
-											value={this.state.searchComponent}
-											onKeyUpValue={(value) => (this.state.searchComponent = value)}
+											onKeyUpValue={(value) => {
+												let number = value.match(/[0-9]+/)
+												if(number) {
+													return this.bodyComponent.scrollTo(0, this.bodyComponent.querySelector(`[data-search="${value}"][data-i="${Number(number[0])}"]`)?.offsetTop)
+												}
+												else {
+													return this.bodyComponent.scrollTo(0, this.bodyComponent.querySelector(`[data-search="${value}"]`)?.offsetTop)
+												}
+											}}
 											placeholder="Search component..."
 											class="bg-black text-sm w-full text-white p-2 focus:border-gray-600 flex-1 focus:outline-none"
 											type="text"
@@ -341,6 +366,7 @@ function Extension() {
 										) : (
 											false
 										)}
+										<TestApp runTest={this.state.runTest} describe={(this.state.selectComponent?.$deep?.test?.result || [])} />
 										<div d className="mt-2">
 											{this.state.selectComponent.constructor.name !== "Object" ? (
 												<div>
@@ -348,6 +374,13 @@ function Extension() {
 														<h5 d class="p-2 flex-1 font-bold">More</h5>
 													</div>
 													<div d class="p-2 flex space-x-1 ml-2">
+														<button
+															onClick={runTest}
+															class="bg-green-800 p-2 text-sm"
+															d
+														>
+															Run Test
+														</button>
 														<button
 															onClick={() => this.state.selectComponent.$deep.trigger()}
 															class="bg-gray-800 p-2 text-sm"
@@ -410,6 +443,46 @@ function Extension() {
 	}, this);
 }
 
+function TestApp() {
+	const { render } = init(this);
+	render(() => <>
+		{
+			(window.$test && this.props.runTest === true) ?
+			<div class="border-b border-gray-500 pl-4">
+				<h5 class="flex-1 font-bold py-2">Test</h5>
+				{(this.props.describe).map((data) => (
+					<div class="pb-2">
+						<h6>{data.description}</h6>
+						<div>
+							{data.it.map((it) => (
+								<div>
+									<div class="flex items-center ml-4">
+										<span class="rounded-full w-3 h-3 bg-white" style="margin-left: 5.5px;margin-right: 6.2px;"></span>
+										<h6>{it.description}</h6>
+									</div>
+									{it.success.map((success) => (
+										<div class="ml-4 text-green-400 flex">
+											<span class="material-symbols-outlined">check</span>
+											<p>{success}</p>
+										</div>
+									))}
+									{it.error.map((error) => (
+										<div class="ml-4 text-red-400 flex">
+											<span class="material-symbols-outlined">close</span>
+											<p>{error}</p>
+										</div>
+									))}
+								</div>
+							))}
+						</div>
+					</div>
+				))}
+			</div>
+			: false
+		}
+	</>)
+}
+
 function ListExtension() {
 	init(this);
 	this.disableExtension = true;
@@ -420,6 +493,8 @@ function ListExtension() {
 					<button
 						onClick={() => this.props.setSelectComponent(this.props.item)}
 						class="bg-gray-800 p-2 w-full rounded-md mb-1 text-sm text-left"
+						data-search={this.props.item.constructor.name.toLowerCase()}
+						data-i={this.props.item.props.key || 0}
 					>
 						{"<"}{this.props.item.constructor.name}{this.props.item.props.key ? ` key="${this.props.item.props.key}"` : ""}{"/>"}
 					</button>

@@ -1,3 +1,4 @@
+import _ from "lodash";
 import { log } from "./utils";
 import { Component } from "./blaze.d"
 
@@ -86,6 +87,57 @@ export const diffChildren = (oldest: any, newest: any,  component: Component, fi
 	if (!newest) {
 		return;
 	}
+	else if(oldest.for){
+		const getValueState = () => {
+			let value
+			oldest.for.split('.').forEach((name: string, i: number) => {
+				if (!i) {
+					value = component[name];
+				} else {
+					value = value[name];
+				}
+			});
+			return value
+		}
+		if ((!oldest.$children) || (oldest.$children.children.length !== newest.$children.children.length)) {
+			oldest.replaceChildren(...newest.children);
+			oldest.$children = newest.$children
+			let value
+			oldest.for.split('.').forEach((name: string, i: number) => {
+				if (!i) {
+					value = component[name];
+				} else {
+					value = value[name];
+				}
+			});
+
+			oldest.$state = getValueState()
+			return;
+		} else {
+			let value = getValueState();
+			if(!oldest.$has) {
+				oldest.replaceChildren(...newest.$children.children)
+				oldest.$has = true
+				return
+			} else {
+				let difference = _.differenceWith(value, oldest.$state, _.isEqual)
+				difference.forEach((item: any) => {
+					let old = oldest.querySelector(`[data-key="${item[oldest.key]}"]`)
+					let now = newest.querySelector(`[data-key="${item[oldest.key]}"]`)
+					if(old && now) {
+						oldest.replaceChild(now, old)
+					} else {
+						// insert
+						let find = oldest.$state.findIndex((items: any) => items[oldest.key] === item[oldest.key])
+						oldest.insertBefore(now, oldest.children[find]);
+					}
+				})
+				oldest.$children = oldest.cloneNode(true)
+				oldest.$state = value
+			}
+			return;
+		}
+	}
 	else if((oldest.$name || newest.$name) !== component.constructor.name) {
 		return;
 	}
@@ -96,11 +148,11 @@ export const diffChildren = (oldest: any, newest: any,  component: Component, fi
 		let children = Array.from(oldest.children);
 		if (first) {
 			let difference = diff(oldest, newest, component);
-			difference.forEach((rechange) => rechange());
+			difference.forEach((rechange: Function) => rechange());
 		}
 		children.forEach((item: HTMLElement, i: number) => {
 			let difference = diff(item, newest.children[i], component);
-			difference.forEach((rechange) => rechange());
+			difference.forEach((rechange: Function) => rechange());
 			diffChildren(item, newest.children[i], component, false);
 		});
 	}

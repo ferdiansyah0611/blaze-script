@@ -186,6 +186,9 @@ export const e = function (
 		 * @updateRender
 		 * update element on props/state change and call lifecycle function
 		 */
+		if (el.for && component.$deep.update) {
+			el.$children = el.cloneNode(true)
+		}
 		if (first && current) {
 			layoutCall($deep);
 

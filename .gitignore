@@ -24,4 +24,4 @@ dist-ssr
 *.sw?
 *.txt
 public/*.offline.*
-development
+*.dev

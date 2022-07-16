@@ -1,4 +1,5 @@
 import { mountCall } from "./core";
+import { getBlaze } from "./utils";
 import { mount, batch } from "@blaze";
 import { Component } from "./blaze.d";
 import { addLog, addComponent } from "@root/plugin/extension";
@@ -10,11 +11,13 @@ import { addLog, addComponent } from "@root/plugin/extension";
 export const makeRouter = (entry: string, config: any) => {
 	let tool;
 	let popstate = false;
-	config.url.map((item) => {
-		if (item.path) {
-			item.path = config.resolve + (item.path === "/" ? "" : item.path);
-		}
-	});
+	if(config.resolve) {
+		config.url.map((item) => {
+			if (item.path) {
+				item.path = config.resolve + (item.path === "/" ? "" : item.path);
+			}
+		});
+	}
 
 	/**
 	 * @goto
@@ -45,6 +48,7 @@ export const makeRouter = (entry: string, config: any) => {
 		// inject router
 		current.$router = tool;
 
+		getBlaze().runEveryMakeComponent(current);
 		mountCall(current.$deep, {}, true);
 		let query = document.querySelector(entry);
 		Array.from(query.children).forEach(item => item.remove());
