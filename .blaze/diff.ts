@@ -1,6 +1,6 @@
 import _ from "lodash";
 import { log } from "./utils";
-import { Component } from "./blaze.d"
+import { Component } from "./blaze.d";
 
 /**
  * @diff
@@ -9,11 +9,11 @@ import { Component } from "./blaze.d"
  */
 const diff = function (prev: HTMLElement, el: HTMLElement, component: Component) {
 	let batch = [];
-	if(!prev || !el) {
+	if (!prev || !el) {
 		return batch;
 	}
-	if(prev.nodeName !== el.nodeName) {
-		batch.push(() => prev.replaceWith(el))
+	if (prev.nodeName !== el.nodeName) {
+		batch.push(() => prev.replaceWith(el));
 		return batch;
 	}
 	if (!prev || ((prev.d || el.d) && !(el instanceof SVGElement))) {
@@ -40,11 +40,6 @@ const diff = function (prev: HTMLElement, el: HTMLElement, component: Component)
 	}
 	// attribute
 	if (prev.attributes.length) {
-		if (typeof prev.if === "boolean") {
-			if (prev.if) {
-				batch.push(() => prev.removeAttribute("style"));
-			}
-		}
 		batch.push(() => {
 			for (var i = 0; i < prev.attributes.length; i++) {
 				if (prev.attributes[i] && el.attributes[i] && prev.attributes[i].name === el.attributes[i].name) {
@@ -57,10 +52,10 @@ const diff = function (prev: HTMLElement, el: HTMLElement, component: Component)
 		});
 	}
 	// update refs if updated
-	if(prev.refs) {
-		let isConnected = prev.isConnected ? prev: el
+	if (prev.refs) {
+		let isConnected = prev.isConnected ? prev : el;
 		if (typeof prev.i === "number") {
-			if(!component[prev.refs[prev.i]]) {
+			if (!component[prev.refs[prev.i]]) {
 				component[prev.refs[prev.i]] = [];
 			}
 			component[prev.refs][prev.i] = isConnected;
@@ -83,68 +78,56 @@ const diff = function (prev: HTMLElement, el: HTMLElement, component: Component)
  * skip diff if el not different with current component
  * and diff element
  */
-export const diffChildren = (oldest: any, newest: any,  component: Component, first: boolean = true) => {
+export const diffChildren = (oldest: any, newest: any, component: Component, first: boolean = true) => {
 	if (!newest) {
 		return;
-	}
-	else if(oldest.for){
+	} else if (oldest.for) {
 		const getValueState = () => {
-			let value
-			oldest.for.split('.').forEach((name: string, i: number) => {
+			let value;
+			oldest.for.split(".").forEach((name: string, i: number) => {
 				if (!i) {
 					value = component[name];
 				} else {
 					value = value[name];
 				}
 			});
-			return value
-		}
-		if ((!oldest.$children) || (oldest.$children.children.length !== newest.$children.children.length)) {
+			return value;
+		};
+		if (!oldest.$children || oldest.$children.children.length !== newest.$children.children.length) {
 			oldest.replaceChildren(...newest.children);
-			oldest.$children = newest.$children
-			let value
-			oldest.for.split('.').forEach((name: string, i: number) => {
-				if (!i) {
-					value = component[name];
-				} else {
-					value = value[name];
-				}
-			});
+			oldest.$children = newest.$children;
 
-			oldest.$state = getValueState()
+			oldest.$state = getValueState();
 			return;
 		} else {
 			let value = getValueState();
-			if(!oldest.$has) {
-				oldest.replaceChildren(...newest.$children.children)
-				oldest.$has = true
-				return
+			if (!oldest.$has) {
+				oldest.replaceChildren(...newest.$children.children);
+				oldest.$has = true;
+				return;
 			} else {
-				let difference = _.differenceWith(value, oldest.$state, _.isEqual)
+				let difference = _.differenceWith(value, oldest.$state, _.isEqual);
 				difference.forEach((item: any) => {
-					let old = oldest.querySelector(`[data-key="${item[oldest.key]}"]`)
-					let now = newest.querySelector(`[data-key="${item[oldest.key]}"]`)
-					if(old && now) {
-						oldest.replaceChild(now, old)
+					let old = oldest.querySelector(`[data-key="${item[oldest.key]}"]`);
+					let now = newest.querySelector(`[data-key="${item[oldest.key]}"]`);
+					if (old && now) {
+						oldest.replaceChild(now, old);
 					} else {
 						// insert
-						let find = oldest.$state.findIndex((items: any) => items[oldest.key] === item[oldest.key])
+						let find = oldest.$state.findIndex((items: any) => items[oldest.key] === item[oldest.key]);
 						oldest.insertBefore(now, oldest.children[find]);
 					}
-				})
-				oldest.$children = oldest.cloneNode(true)
-				oldest.$state = value
+				});
+				oldest.$children = oldest.cloneNode(true);
+				oldest.$state = value;
 			}
 			return;
 		}
-	}
-	else if((oldest.$name || newest.$name) !== component.constructor.name) {
+	} else if ((oldest.$name || newest.$name) !== component.constructor.name) {
 		return;
-	}
-	else if (oldest.children.length !== newest.children.length) {
+	} else if (oldest.children.length !== newest.children.length) {
 		return oldest.replaceChildren(...newest.children);
-	}
-	else {
+	} else {
 		let children = Array.from(oldest.children);
 		if (first) {
 			let difference = diff(oldest, newest, component);

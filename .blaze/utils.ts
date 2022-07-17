@@ -56,6 +56,7 @@ export class App implements InterfaceApp {
 		}
 
 		if(window.$app) {
+			window.$app.$deep.remove();
 			reload();
 			batch(() => {
 				addLog(

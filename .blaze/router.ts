@@ -76,6 +76,10 @@ export const makeRouter = (entry: string, config: any) => {
 	const ready = (app: any, first: boolean = false, url: string = new URL(location.href).pathname) => {
 		// call always change router
 		if (!first) window.$app.$router.$change.forEach((item) => item());
+		// remove previous router
+		if(app.$router.history.length) {
+			removeCurrentRouter(app)
+		}
 
 		let routes = config.url.find((v: any) => v.path === url),
 			component: string = "",
@@ -156,7 +160,12 @@ export const makeRouter = (entry: string, config: any) => {
 				this.$change.push(data);
 			},
 		};
+		// remove previous router
+		if(window.$router && window.$router.history.length) {
+			removeCurrentRouter(window)
+		}
 		app.$router = tool;
+		window.$router = tool;
 
 		/**
 		 * @onMakeElement
@@ -207,3 +216,8 @@ export const page = (path: string, component: any, config: any = {}) => ({
 	component,
 	config,
 });
+
+const removeCurrentRouter = (app) => {
+	app.$router.history.at(0).current.$deep.remove()
+	app.$router.history = app.$router.history.filter((data, i) => i !== 0)
+}
