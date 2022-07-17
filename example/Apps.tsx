@@ -1,6 +1,5 @@
 import App, { render, state, init, mount, batch, dispatch } from "@blaze";
 import { makeRouter, page } from "@blaze.router";
-import { withExtension } from "@root/plugin/extension";
 // route
 import About from "./route/About";
 import Index from "./route/Index";
@@ -9,8 +8,6 @@ import NotFound from "./route/404";
 // component
 import Navbar from "./component/Navbar";
 import Footer from "./component/Footer";
-// plugin
-import Tester, { withTest } from '@root/plugin/tester';
 
 const TestApp = function () {
 	init(this);
