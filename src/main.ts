@@ -5,6 +5,7 @@ declare global{
         $blaze: any,
         $extension: any,
         $test: any,
+        $router: any,
     }
     interface HTMLElement{
     	if: boolean,
@@ -17,6 +18,7 @@ declare global{
         d: any,
         refs?: number,
         i?: number,
+        key?: number,
     }
     interface ChildNode{
     	data: any,

@@ -8,7 +8,18 @@ import { makeRouter, page } from "@blaze.router";
 
 app.use(
     makeRouter("#route", {
-        url: [page("/", Index), page("/test", Test), page("/test/:id", TestParam), page("", NotFound)],
+        url: [page("/", Index), page("/test", Test, {
+            // if false, component not run and not push/replace url
+            beforeEach(router){
+                // router.go(-1)
+                // etc...
+                return true
+            },
+            // if false, auto redirect back
+            afterEach(router){
+                return true
+            }
+        }), page("/test/:id", TestParam), page("", NotFound)],
         // option for resolve url
         resolve: "/test/index.html",
     })

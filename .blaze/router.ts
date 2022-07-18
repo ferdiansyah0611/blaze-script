@@ -23,18 +23,23 @@ export const makeRouter = (entry: string, config: any) => {
 	 * @goto
 	 * run component and append to entry query
 	 */
-	const goto = (app: any, url: string, component: any, params?: any) => {
+	const goto = (app: any, url: string, component: any, config: any, params?: any) => {
 		if (!document.querySelector(entry)) {
 			let msg = "[Router] entry not found, query is correct?";
 			addLog({ msg });
 			return console.error(msg);
 		}
-		if (popstate) {
-			history.replaceState(null, "", url);
-		} else {
-			history.pushState(null, "", url);
+
+		const replaceOrPush = () => {
+			if (popstate) {
+				history.replaceState(null, "", url);
+			} else {
+				history.pushState(null, "", url);
+			}
+			popstate = false;
 		}
-		popstate = false;
+
+		replaceOrPush()
 
 		let old = performance.now(),
 			now,
@@ -67,6 +72,13 @@ export const makeRouter = (entry: string, config: any) => {
 			addLog({ msg }, false);
 			addComponent(current, false);
 		}, window.$extension);
+
+		// afterEach
+		if(config && config.afterEach) {
+			if(!config.afterEach(app.$router)) {
+				return app.$router.back();
+			}
+		}
 	};
 
 	/**
@@ -74,12 +86,6 @@ export const makeRouter = (entry: string, config: any) => {
 	 * utils for check url is exists or not
 	 */
 	const ready = (app: any, first: boolean = false, url: string = new URL(location.href).pathname) => {
-		// call always change router
-		if (!first) window.$app.$router.$change.forEach((item) => item());
-		// remove previous router
-		if(app.$router.history.length) {
-			removeCurrentRouter(app)
-		}
 
 		let routes = config.url.find((v: any) => v.path === url),
 			component: string = "",
@@ -113,7 +119,7 @@ export const makeRouter = (entry: string, config: any) => {
 						found = current;
 						let msg = `[Router] Not Found 404 ${url}`;
 						addLog({ msg });
-						goto(app, url, component);
+						goto(app, url, component, {});
 						return false;
 					}
 				}
@@ -133,9 +139,23 @@ export const makeRouter = (entry: string, config: any) => {
 		};
 
 		if (validation()) {
+			// beforeEach
+			if(found && found.config.beforeEach) {
+				if(!found.config.beforeEach(app.$router)) {
+					return false
+				}
+			}
+
+			// call always change router
+			if (!first) window.$app.$router.$change.forEach((item) => item());
+			// remove previous router
+			if(app.$router.history.length) {
+				removeCurrentRouter(app)
+			}
+
 			let msg = `[Router] GET 200 ${url}`;
 			addLog({ msg });
-			return goto(app, url, found.component, params);
+			return goto(app, url, found.component, found.config, params);
 		}
 	};
 	return (app: Component, blaze, hmr) => {
@@ -219,5 +239,8 @@ export const page = (path: string, component: any, config: any = {}) => ({
 
 const removeCurrentRouter = (app) => {
 	app.$router.history.at(0).current.$deep.remove()
-	app.$router.history = app.$router.history.filter((data, i) => i !== 0)
+	app.$router.history = app.$router.history.filter((data, i) => {
+		data
+		i !== 0
+	})
 }

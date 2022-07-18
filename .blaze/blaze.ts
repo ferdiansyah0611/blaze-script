@@ -9,6 +9,7 @@ import {
 	init,
 } from "./core";
 import { Component, RegisteryComponent } from "./blaze.d";
+import { diffChildren } from "./diff";
 // extension
 import { addLog } from "@root/plugin/extension";
 // export
@@ -122,11 +123,20 @@ export const e = function (
 			}
 		});
 
-		if (!equal) {
+		if (equal === false) {
 			state("props", data ? { ...data } : {}, check.component);
-			check.component.$deep.trigger();
+			check.component.$deep.childrenDiffStatus = true;
+			check.component.$deep.update++;
 		}
-		return check.component.$node;
+		// rerendering component
+		let render = check.component.render()
+		render.dataset.key = key;
+		render.dataset.key = key;
+		render.childrenComponent = component;
+		// diff in here
+		diffChildren(check.component.$node, render, check.component);
+
+		return render;
 	}
 
 	/**
@@ -191,7 +201,6 @@ export const e = function (
 		}
 		if (first && current) {
 			layoutCall($deep);
-
 			if (current.dataset && current.childrenComponent) {
 				let dataset = current.dataset;
 				let check = current.childrenComponent.$deep.registry.find(
