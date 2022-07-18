@@ -33,8 +33,8 @@ export interface Component{
 	ctx: Object,
 	props: Object,
 	render: Function,
+	children: HTMLElement | boolean,
 	$deep: {
-		$id: number,
 		batch: boolean,
 		disableTrigger: boolean,
 		hasMount: boolean,

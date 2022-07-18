@@ -10,7 +10,7 @@ declare global{
     interface HTMLElement{
         if: boolean,
         childrenComponent: any,
-        childrenCommit: any[],
+        $commit: any[],
         render: boolean,
         value: any,
         hasAppend: boolean,

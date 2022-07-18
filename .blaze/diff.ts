@@ -159,7 +159,13 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 			nextDiffChildren(Array.from(oldest.children), newest, component);
 			return;
 		}
-	} else if ((oldest.$name || newest.$name) !== component.constructor.name) {
+	}
+	else if(_.isBoolean(oldest.show)) {
+		if(!newest.show) {
+			oldest.remove()
+		}
+	}
+	else if ((oldest.$name || newest.$name) !== component.constructor.name) {
 		return;
 	} else if (oldest.children.length !== newest.children.length) {
 		return oldest.replaceChildren(...newest.children);

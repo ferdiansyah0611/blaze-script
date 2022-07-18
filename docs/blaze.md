@@ -5,7 +5,7 @@
 ```tsx
 import App, { init, render } from "@blaze";
 
-const Hello = function () {
+const Hello = function (prevComponent, rootApp) {
     init(this);
     render(
         () => (
@@ -97,24 +97,6 @@ import { watch } from "@blaze";
 
 watch(["state.tatus"], (a, b) => console.log(a, b), this);
 watch(["props.status"], (a, b) => console.log(a, b), this);
-```
-
-## Logical (Optional)
-
-You can use logical in jsx or this logical.
-
-```tsx
-<>
-    <div if={this.state.now > 2}>
-        <Example status={this.state.now} key={1} />
-    </div>
-    <div data-name={this.state.name} if={this.state.now === 5}>
-        <p>Done</p>
-    </div>
-    <div else>
-        <p>Please Wait...</p>
-    </div>
-</>
 ```
 
 ## Context
@@ -338,4 +320,32 @@ const app = new App("#app", Hello, {
     dev: import.meta.env.DEV,
 });
 app.mount();
+```
+
+## Access Children
+
+```tsx
+<>
+    <div>
+        {this.children}
+    </div>
+</>
+```
+
+## About Attributes
+
+```tsx
+<>
+    <div style="display: none;"></div>
+    <div style={{display: 'none'}}></div>
+    <div class="flex"></div>
+    <div className="flex"></div>
+    {/*auto join*/}
+    <div className={["flex", "justify-center"]}></div>
+
+    <div show={true}>
+        <p>I'm show element</p>
+    </div>
+    <button toggle="state.open">toggle</button>
+</>
 ```

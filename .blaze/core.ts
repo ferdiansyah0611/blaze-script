@@ -1,16 +1,8 @@
 import { log } from "./utils";
-import {
-	e,
-	mount,
-	layout,
-	dispatch,
-	render,
-	batch,
-	state,
-	watch
-} from "./blaze";
+import { e, mount, layout, dispatch, render, batch, state, watch } from "./blaze";
 import { Component, Mount } from "./blaze.d";
 import { diffChildren } from "./diff";
+import _ from "lodash";
 
 /**
  * @init
@@ -19,7 +11,6 @@ import { diffChildren } from "./diff";
 export const init = (component: Component) => {
 	if (!component.$deep) {
 		component.$deep = {
-			$id: 1,
 			update: 0,
 			batch: false,
 			disableTrigger: false,
@@ -57,7 +48,7 @@ export const init = (component: Component) => {
 		component.$h = jsx(component);
 	}
 
-	return{
+	return {
 		mount: (callback: Function) => mount(callback, component),
 		layout: (callback: Function) => layout(callback, component),
 		dispatch: (name: string, data: any) => dispatch(name, component, data),
@@ -65,7 +56,7 @@ export const init = (component: Component) => {
 		batch: (callback: Function) => batch(callback, component),
 		state: (...argv: any[]) => state.apply(null, [...argv, component]),
 		watch: (...argv: any[]) => watch.apply(null, [...argv, component]),
-	}
+	};
 };
 
 /**
@@ -123,57 +114,17 @@ export const attributeObserve = (data: any, el: HTMLElement, component: Componen
 	Object.keys(data).forEach((item: any) => {
 		if (item === "model") {
 			let path = data[item];
-			let value;
-			let split = path.split(".");
-
-			let deepObjectState = (isValue?: any) => {
-				if (!(typeof isValue === "string")) {
-					if (split.length <= 5 && split.length > 0) {
-						split.forEach((name: string, i: number) => {
-							if (!i) {
-								value = component[name];
-							} else {
-								value = value[name];
-							}
-						});
-					}
-				} else {
-					if(data.trigger === 0 && data.trigger !== undefined) {
-						component.$deep.disableTrigger = true;
-					}
-
-					if (split.length === 1) {
-						component[split[0]] = isValue;
-					}
-					if (split.length === 2) {
-						component[split[0]][split[1]] = isValue;
-					}
-					if (split.length === 3) {
-						component[split[0]][split[1]][split[2]] = isValue;
-					}
-					if (split.length === 4) {
-						component[split[0]][split[1]][split[2]][split[3]] = isValue;
-					}
-					if (split.length === 5) {
-						component[split[0]][split[1]][split[2]][split[3]][split[4]] = isValue;
-					}
-
-					if(data.trigger === 0 && data.trigger !== undefined) {
-						component.$deep.disableTrigger = false;
-					}
-					if(data.trigger) {
-						component.$deep.trigger();
-					}
-				}
-				return value;
-			};
 			el.addEventListener("change", (e: any) => {
-				deepObjectState(e.target.value);
+				deepObjectState(path, data, component, e.target.value);
 			});
-			el.value = deepObjectState();
+			el.value = deepObjectState(path, data, component);
 			return;
 		}
 		// class
+		if (item.match(/class|className/g) && Array.isArray(data[item])) {
+			el.className = data[item].join(" ");
+			return;
+		}
 		if (item === "class") {
 			el.className = data[item];
 			return;
@@ -227,63 +178,30 @@ export const attributeObserve = (data: any, el: HTMLElement, component: Componen
 			}
 			return;
 		}
-		// logic
-		if (item === "if") {
-			log("[if]", data[item]);
-			let handle = () => {
-				let currentEl = el;
-				let applyChildren = () => {
-					if (!currentEl.childrenCommit) {
-						currentEl.childrenCommit = Array.from(currentEl.children);
-					}
-				};
-
-				if (currentEl) {
-					if (data[item] === true) {
-						if (!currentEl.hasAppend && currentEl.childrenCommit) {
-							currentEl.childrenCommit.forEach((item: HTMLElement) => currentEl.appendChild(item));
-						}
-						currentEl.if = true;
-						currentEl.hasAppend = true;
-						applyChildren();
-					} else {
-						currentEl.if = false;
-						currentEl.hasAppend = false;
-						applyChildren();
-						Array.from(currentEl.children).forEach((item: HTMLElement) => item.remove());
-					}
+		// magic
+		if (item === "toggle") {
+			el.addEventListener("click", (e: any) => {
+				e.preventDefault();
+				if(data.toggle.indexOf('component.') === -1) {
+					data.toggle = 'component.' + data.toggle
+					data.toggle += ' = !' + data.toggle
 				}
-			};
-			handle();
-			return;
+				eval(data.toggle);
+			});
 		}
-		if (item === "else") {
-			let handle = () => {
-				let currentEl = el;
-				let applyChildren = () => {
-					if (!currentEl.childrenCommit) {
-						currentEl.childrenCommit = Array.from(currentEl.children);
-					}
-				};
-
-				if (currentEl && currentEl.previousSibling) {
-					if (currentEl.previousSibling.if === false) {
-						if (!currentEl.hasAppend && currentEl.childrenCommit) {
-							currentEl.childrenCommit.forEach((item: HTMLElement) => currentEl.appendChild(item));
-						}
-						currentEl.if = true;
-						currentEl.hasAppend = true;
-						applyChildren();
-					} else {
-						currentEl.if = false;
-						currentEl.hasAppend = false;
-						applyChildren();
-						Array.from(currentEl.children).forEach((item: HTMLElement) => item.remove());
-					}
+		if (item === "show") {
+			if (!data[item]) {
+				el.style.display = "none";
+				if (el.children.length) {
+					_.forEach(el.children, (value) => {
+						value.remove();
+					});
+				} else {
+					_.forEach(el.childNodes, (value) => {
+						value.remove();
+					});
 				}
-			};
-			handle();
-			return;
+			}
 		}
 		el[item] = data[item];
 	});
@@ -314,4 +232,54 @@ export const unmountCall = ($deep: Component["$deep"]) => {
  */
 export const layoutCall = ($deep: Component["$deep"]) => {
 	if ($deep.layout) $deep.layout.forEach((item: Function) => item());
+};
+
+/**
+ * @deepObjectState
+ * get value state/context with dot
+ */
+
+const deepObjectState = (path: string, data: any, component: Component, isValue?: any) => {
+	let value;
+	let split = path.split(".");
+
+	if (!(typeof isValue === "string")) {
+		if (split.length <= 5 && split.length > 0) {
+			split.forEach((name: string, i: number) => {
+				if (!i) {
+					value = component[name];
+				} else {
+					value = value[name];
+				}
+			});
+		}
+	} else {
+		if (data.trigger === 0 && data.trigger !== undefined) {
+			component.$deep.disableTrigger = true;
+		}
+
+		if (split.length === 1) {
+			component[split[0]] = isValue;
+		}
+		if (split.length === 2) {
+			component[split[0]][split[1]] = isValue;
+		}
+		if (split.length === 3) {
+			component[split[0]][split[1]][split[2]] = isValue;
+		}
+		if (split.length === 4) {
+			component[split[0]][split[1]][split[2]][split[3]] = isValue;
+		}
+		if (split.length === 5) {
+			component[split[0]][split[1]][split[2]][split[3]][split[4]] = isValue;
+		}
+
+		if (data.trigger === 0 && data.trigger !== undefined) {
+			component.$deep.disableTrigger = false;
+		}
+		if (data.trigger) {
+			component.$deep.trigger();
+		}
+	}
+	return value;
 };

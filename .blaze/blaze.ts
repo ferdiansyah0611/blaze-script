@@ -61,6 +61,7 @@ export const e = function (
 			let newComponent = new nodeName(component, window.$app);
 			// props registery
 			state("props", data ? { ...data } : {}, newComponent);
+			newComponent.children = children[0] || false
 			// rendering
 			newComponent.$node = newComponent.render();
 			newComponent.$node.dataset.key = key;
@@ -127,6 +128,8 @@ export const e = function (
 			state("props", data ? { ...data } : {}, check.component);
 		}
 		// rerendering component
+		check.component.children = children[0] || false
+		
 		let render = check.component.render()
 		render.dataset.key = key;
 		render.dataset.key = key;
