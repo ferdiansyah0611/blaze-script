@@ -228,10 +228,10 @@ Support jsx map array to render.
 </div>
 ```
 
-In the blaze, use attribute "for" at parent and attribute "key" at children to customize map data without replacing children on updating data array. Replace if [current node children 0 && new node children >= 1].
+In the blaze, use attribute "for" at parent and attribute "data-key" / "key" at children to customize map data without replacing children on updating data array. Replace if [current node children 0 && new node children >= 1] or replace if old and new data is different.
 
 ```tsx
-<div for>
+<div for={this.state.user}>
     {this.state.user.map((item: any) => (
         <div key={item.id}>
             <p>{item.username}</p>

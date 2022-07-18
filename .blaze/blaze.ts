@@ -125,8 +125,6 @@ export const e = function (
 
 		if (equal === false) {
 			state("props", data ? { ...data } : {}, check.component);
-			check.component.$deep.childrenDiffStatus = true;
-			check.component.$deep.update++;
 		}
 		// rerendering component
 		let render = check.component.render()

@@ -102,42 +102,34 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 	} else if (oldest.for) {
 		// replacing if oldest.children === 0
 		if (!oldest.children.length && newest.children.length) {
+			oldest.for = newest.for;
 			oldest.replaceChildren(...newest.children);
+			return;
+		} else if (oldest.children.length && newest.children.length === 0) {
+			oldest.for = newest.for;
+			Array.from(oldest.children).forEach((item: HTMLElement) => {
+				removeComponentOrEl(item, component);
+			});
 			return;
 		}
 		// not exists, auto delete...
 		else if (newest.children.length < oldest.children.length) {
+			oldest.for = newest.for;
 			Array.from(oldest.children).forEach((item: HTMLElement) => {
-				let latest = newest.querySelector(`[data-key="${item.dataset.key || item.key}"]`);
+				let latest = Array.from(newest.children).find(
+					(el: HTMLElement) => el.key === item.key
+				);
 				if (!latest) {
-					if (item.dataset.component) {
-						let check = component.$deep.registry.find(
-							(registry) =>
-								registry.component.constructor.name === item.dataset.component &&
-								registry.key === parseInt(item.dataset.key)
-						);
-						if (check) {
-							check.component.$deep.remove();
-							component.$deep.registry = component.$deep.registry.filter(
-								(registry) =>
-									!(
-										registry.component.constructor.name === item.dataset.component &&
-										registry.key === parseInt(item.dataset.key)
-									)
-							);
-						} else {
-							item.remove();
-						}
-					} else {
-						item.remove();
-					}
+					removeComponentOrEl(item, component);
 					return;
 				}
 			});
+			nextDiffChildren(Array.from(oldest.children), newest, component);
 			return;
 		}
 		// new children detection
 		else if (newest.children.length > oldest.children.length) {
+			oldest.for = newest.for;
 			Array.from(newest.children).forEach((item: HTMLElement, i: number) => {
 				let latest = Array.from(oldest.children).find((el: HTMLElement) => el.key === item.key);
 				if (!latest) {
@@ -150,7 +142,19 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 					return;
 				}
 			});
-		} else {
+			nextDiffChildren(Array.from(oldest.children), newest, component);
+			return;
+		}
+		// same length children
+		else {
+			// checking data is different
+			let difference = _.differenceWith(oldest.for, newest.for, _.isEqual);
+			// replace if data different length same with newest.for.length
+			if (difference.length === newest.for.length) {
+				oldest.for = newest.for;
+				oldest.replaceChildren(...newest.children);
+				return;
+			}
 			// updating data in children
 			nextDiffChildren(Array.from(oldest.children), newest, component);
 			return;
@@ -176,4 +180,27 @@ function nextDiffChildren(children: HTMLElement[], newest: any, component: Compo
 	});
 }
 
+function removeComponentOrEl(item: HTMLElement, component: Component) {
+	if (item.dataset.component) {
+		let check = component.$deep.registry.find(
+			(registry) =>
+				registry.component.constructor.name === item.dataset.component &&
+				registry.key === parseInt(item.dataset.key)
+		);
+		if (check) {
+			check.component.$deep.remove();
+			component.$deep.registry = component.$deep.registry.filter(
+				(registry) =>
+					!(
+						registry.component.constructor.name === item.dataset.component &&
+						registry.key === parseInt(item.dataset.key)
+					)
+			);
+		} else {
+			item.remove();
+		}
+	} else {
+		item.remove();
+	}
+}
 export default diff;

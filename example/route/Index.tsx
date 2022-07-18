@@ -47,7 +47,7 @@ const Index = function () {
 		() => (
 			<>
 				<div refs="hi" className="p-4 min-h-screen">
-					<div for="ctx.blog.data" key="id" id="blog" className="grid gap-2 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
+					<div for={this.ctx.blog.data} id="blog" className="grid gap-2 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
 						{this.ctx.blog.data.map((item, i) => (
 							<Card item={item} key={item.id}/>
 						))}
