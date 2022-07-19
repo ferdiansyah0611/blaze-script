@@ -1,4 +1,5 @@
 import _ from "lodash";
+import { unmountCall } from "./core";
 import { log } from "./utils";
 import { Component } from "./blaze.d";
 
@@ -116,9 +117,7 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 		else if (newest.children.length < oldest.children.length) {
 			oldest.for = newest.for;
 			Array.from(oldest.children).forEach((item: HTMLElement) => {
-				let latest = Array.from(newest.children).find(
-					(el: HTMLElement) => el.key === item.key
-				);
+				let latest = Array.from(newest.children).find((el: HTMLElement) => el.key === item.key);
 				if (!latest) {
 					removeComponentOrEl(item, component);
 					return;
@@ -151,6 +150,12 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 			let difference = _.differenceWith(oldest.for, newest.for, _.isEqual);
 			// replace if data different length same with newest.for.length
 			if (difference.length === newest.for.length) {
+				// unmount component children
+				component.$deep.registry = component.$deep.registry.filter((registry) => {
+					if (registry.component.$node.isConnected === false) {
+						unmountCall(registry.component.$deep);
+					}
+				});
 				oldest.for = newest.for;
 				oldest.replaceChildren(...newest.children);
 				return;
@@ -159,13 +164,11 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 			nextDiffChildren(Array.from(oldest.children), newest, component);
 			return;
 		}
-	}
-	else if(_.isBoolean(oldest.show)) {
-		if(!newest.show) {
-			oldest.remove()
+	} else if (_.isBoolean(oldest.show)) {
+		if (!newest.show) {
+			oldest.remove();
 		}
-	}
-	else if ((oldest.$name || newest.$name) !== component.constructor.name) {
+	} else if ((oldest.$name || newest.$name) !== component.constructor.name) {
 		return;
 	} else if (oldest.children.length !== newest.children.length) {
 		return oldest.replaceChildren(...newest.children);

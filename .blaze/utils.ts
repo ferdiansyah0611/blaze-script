@@ -1,4 +1,4 @@
-import { mountCall } from "./core";
+import { mountCall, beforeUpdateCall, updatedCall } from "./core";
 import { Component, Watch, Mount, InterfaceApp, InterfaceBlaze } from "./blaze.d";
 import { addLog, addComponent, reload } from "@root/plugin/extension";
 
@@ -169,8 +169,15 @@ export const state = function (name: string, initial: any, component: Component 
 			{ ...initial, _isProxy: true },
 			{
 				set(a, b, c) {
+					let allowed = !component.$deep.batch && !component.$deep.disableTrigger;
+					if(allowed) {
+						beforeUpdateCall(component.$deep)
+					}
+
 					a[b] = c;
-					if (!component.$deep.batch && !component.$deep.disableTrigger) {
+
+					if (allowed) {
+						updatedCall(component.$deep);
 						component.$deep.trigger();
 					}
 					if (!component.$deep.disableTrigger) {
@@ -287,14 +294,52 @@ export const layout = (callback: Function, component: Component) => {
 };
 
 /**
+ * @created
+ * lifecycle methods on created component
+ */
+export const created = (callback: Function, component: Component) => {
+	if (!component.$deep.created) {
+		component.$deep.created = [];
+	}
+	component.$deep.created.push(callback);
+	return true;
+};
+
+/**
+ * @beforeUpdate
+ * lifecycle methods on before updated component
+ */
+export const beforeUpdate = (callback: Function, component: Component) => {
+	if (!component.$deep.beforeUpdate) {
+		component.$deep.beforeUpdate = [];
+	}
+	component.$deep.beforeUpdate.push(callback);
+	return true;
+};
+
+/**
+ * @updated
+ * lifecycle methods on before updated component
+ */
+export const updated = (callback: Function, component: Component) => {
+	if (!component.$deep.updated) {
+		component.$deep.updated = [];
+	}
+	component.$deep.updated.push(callback);
+	return true;
+};
+
+/**
  * @batch
  * utils for re-rendering
  */
 export const batch = async (callback: Function, component: Component) => {
 	if(component) {
+		beforeUpdateCall(component.$deep);
 		component.$deep.batch = true;
 		await callback();
 		component.$deep.batch = false;
+		updatedCall(component.$deep);
 		component.$deep.trigger();
 	}
 };

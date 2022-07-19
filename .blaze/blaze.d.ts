@@ -42,14 +42,18 @@ export interface Component{
 		node: NodeDeep[],
 		registry: RegisteryComponent[],
 		watch: Watch[],
-		mount: Mount[],
-		unmount: Function[],
 		trigger: Function,
 		remove: Function
 		childrenDiffStatus?: boolean,
 		dispatch?: any,
 		time?: string,
+		// lifecycle
+		mount: Mount[],
+		unmount: Function[],
 		layout?: Function[],
+		created?: Function[],
+		beforeUpdate?: Function[],
+		updated?: Function[]
 	},
 	$config?: {
 		dev: boolean

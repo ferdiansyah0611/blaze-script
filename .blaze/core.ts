@@ -1,7 +1,8 @@
-import { log } from "./utils";
-import { e, mount, layout, dispatch, render, batch, state, watch } from "./blaze";
+import { log, getBlaze } from "./utils";
+import { e, mount, layout, dispatch, render, batch, state, watch, created, beforeUpdate, updated } from "./blaze";
 import { Component, Mount } from "./blaze.d";
 import { diffChildren } from "./diff";
+import { addLog } from "@root/plugin/extension";
 import _ from "lodash";
 
 /**
@@ -56,6 +57,9 @@ export const init = (component: Component) => {
 		batch: (callback: Function) => batch(callback, component),
 		state: (...argv: any[]) => state.apply(null, [...argv, component]),
 		watch: (...argv: any[]) => watch.apply(null, [...argv, component]),
+		created: (callback) => created(callback, component),
+		beforeUpdate: (callback) => beforeUpdate(callback, component),
+		updated: (callback) => updated(callback, component),
 	};
 };
 
@@ -182,9 +186,9 @@ export const attributeObserve = (data: any, el: HTMLElement, component: Componen
 		if (item === "toggle") {
 			el.addEventListener("click", (e: any) => {
 				e.preventDefault();
-				if(data.toggle.indexOf('component.') === -1) {
-					data.toggle = 'component.' + data.toggle
-					data.toggle += ' = !' + data.toggle
+				if (data.toggle.indexOf("component.") === -1) {
+					data.toggle = "component." + data.toggle;
+					data.toggle += " = !" + data.toggle;
 				}
 				eval(data.toggle);
 			});
@@ -235,10 +239,33 @@ export const layoutCall = ($deep: Component["$deep"]) => {
 };
 
 /**
+ * @createdCall
+ * for run created lifecycle
+ */
+export const createdCall = ($deep: Component["$deep"]) => {
+	if ($deep.created) $deep.created.forEach((item: Function) => item());
+};
+
+/**
+ * @beforeUpdateCall
+ * for run before update data lifecycle
+ */
+export const beforeUpdateCall = ($deep: Component["$deep"]) => {
+	if ($deep.beforeUpdate) $deep.beforeUpdate.forEach((item: Function) => item());
+};
+
+/**
+ * @updatedCall
+ * for run before update data lifecycle
+ */
+export const updatedCall = ($deep: Component["$deep"]) => {
+	if ($deep.updated) $deep.updated.forEach((item: Function) => item());
+};
+
+/**
  * @deepObjectState
  * get value state/context with dot
  */
-
 const deepObjectState = (path: string, data: any, component: Component, isValue?: any) => {
 	let value;
 	let split = path.split(".");
@@ -282,4 +309,83 @@ const deepObjectState = (path: string, data: any, component: Component, isValue?
 		}
 	}
 	return value;
+};
+
+/**
+ * @rendering
+ * Uitilites for rendering component
+ */
+export const rendering = (
+	component: Component,
+	$deep: Component["$deep"],
+	first: boolean,
+	withWarn: boolean,
+	data: any,
+	key: number,
+	nodeName: string | any,
+	children: HTMLElement[]
+) => {
+	component.children = children[0] || false;
+	let old,
+		now,
+		duration,
+		msg,
+		warn;
+
+	if(first) {
+		old = performance.now()
+		createdCall(component.$deep);
+	}
+
+	let render = component.render();
+	render.dataset.key = key;
+	render.$children = component;
+
+	if(first) {
+		component.children = children[0] || false
+		component.$node = render;
+		// component.$node.render = false;
+		if($deep) {
+			$deep.registry.push({
+				key,
+				component: component,
+			});
+		}
+		// mount
+		getBlaze().runEveryMakeComponent(component);
+		mountCall(component.$deep, {}, true);
+		// warning
+		if (!data.key && withWarn) {
+			warn = `[${nodeName.name}] key is 0. it's work, but add key property if have more on this component.`;
+			console.warn(warn);
+		}
+		// timer
+		now = performance.now();
+		duration = (now - old).toFixed(1);
+		msg = `[${nodeName.name}] ${duration}ms`;
+		component.$deep.time = duration;
+		// extension
+		if (window.$extension) {
+			batch(() => {
+				addLog(
+					{
+						msg,
+					},
+					false
+				);
+				if (warn) {
+					addLog(
+						{
+							msg: warn,
+							type: "warn",
+						},
+						false
+					);
+				}
+			}, window.$extension);
+		}
+	}
+
+	if (first) return component.$node;
+	else return render;
 };

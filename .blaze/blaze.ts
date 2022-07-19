@@ -1,19 +1,18 @@
 import _ from "lodash";
-import { log, render, state, watch, batch, mount, layout, context, dispatch, App, getBlaze } from "./utils";
+import { log, render, state, watch, batch, mount, layout, created, beforeUpdate, updated, context, dispatch, App, getBlaze } from "./utils";
 import {
 	childrenObserve,
 	attributeObserve,
 	mountCall,
 	unmountCall,
 	layoutCall,
+	rendering,
 	init,
 } from "./core";
 import { Component, RegisteryComponent } from "./blaze.d";
 import { diffChildren } from "./diff";
-// extension
-import { addLog } from "@root/plugin/extension";
 // export
-export { log, render, state, watch, mount, layout, batch, dispatch, init, context };
+export { log, render, state, watch, mount, layout, created, beforeUpdate, updated, batch, dispatch, init, context };
 export default App;
 
 /**
@@ -53,68 +52,21 @@ export const e = function (
 		 * @registry
 		 */
 		if (!check) {
-			let old = performance.now(),
-				now,
-				duration,
-				msg,
-				warn;
 			let newComponent = new nodeName(component, window.$app);
 			// props registery
 			state("props", data ? { ...data } : {}, newComponent);
-			newComponent.children = children[0] || false
-			// rendering
-			newComponent.$node = newComponent.render();
-			newComponent.$node.dataset.key = key;
-			newComponent.$node.childrenComponent = component;
-			$deep.registry.push({
-				key,
-				component: newComponent,
-			});
-			newComponent.$node.render = false;
-			// mount
-			getBlaze().runEveryMakeComponent(newComponent);
-			mountCall(newComponent.$deep, true);
-			// warning
-			if (!data.key) {
-				warn = `[${nodeName.name}] key is 0. it's work, but add key property if have more on this component.`;
-				console.warn(warn);
-			}
-			// timer
-			now = performance.now();
-			duration = (now - old).toFixed(1);
-			msg = `[${nodeName.name}] ${duration}ms`;
-			newComponent.$deep.time = duration;
-			// extension
-			if (window.$extension) {
-				batch(() => {
-					addLog(
-						{
-							msg,
-						},
-						false
-					);
-					if (warn) {
-						addLog(
-							{
-								msg: warn,
-								type: "warn",
-							},
-							false
-						);
-					}
-				}, window.$extension);
-			}
-			return newComponent.$node;
+			const result = rendering(newComponent, $deep, true, true, data, key, nodeName, children);
+			return result;
 		}
 		/**
 		 * @lifecycle
 		 * call lifecycle component
-		 * check equal old props with new props, if different then call trigger
+		 * check equal old props with new props, if different then change old props to new props
 		 */
 		mountCall(check.component.$deep, data.props, true);
 		if (!check.component.$node.isConnected && check.component.$node.render) {
 			unmountCall(check.component.$deep);
-			$deep.registry = $deep.registry.filter((item) => item.key !== key);
+			$deep.registry = $deep.registry.filter((item) => (item.component.constructor.name === check.component.constructor.name) && (item.key !== key));
 		}
 
 		let propsObject = { ...check.component.props };
@@ -127,17 +79,10 @@ export const e = function (
 		if (equal === false) {
 			state("props", data ? { ...data } : {}, check.component);
 		}
-		// rerendering component
-		check.component.children = children[0] || false
-		
-		let render = check.component.render()
-		render.dataset.key = key;
-		render.dataset.key = key;
-		render.childrenComponent = component;
-		// diff in here
-		diffChildren(check.component.$node, render, check.component);
 
-		return render;
+		const result = rendering(check.component, $deep, false, false, data, key, nodeName, children);
+		diffChildren(check.component.$node, result, check.component);
+		return result;
 	}
 
 	/**
@@ -197,18 +142,14 @@ export const e = function (
 		 * @updateRender
 		 * update element on props/state change and call lifecycle function
 		 */
-		if (el.for && component.$deep.update) {
-			el.$children = el.cloneNode(true)
-		}
 		if (first && current) {
 			layoutCall($deep);
-			if (current.dataset && current.childrenComponent) {
+			if (current.dataset && current.$children) {
 				let dataset = current.dataset;
-				let check = current.childrenComponent.$deep.registry.find(
+				let check = current.$children.$deep.registry.find(
 					(item) => item.component.constructor.name === dataset.component && item.key === Number(dataset.key)
 				);
 				if (check && check.component.$node.isConnected) {
-					check.component.$node.render = true;
 					mountCall(check.component.$deep, data.props, true);
 				}
 			}

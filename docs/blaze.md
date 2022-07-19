@@ -50,19 +50,33 @@ const Hello = function () {
 ## Lifecycle & Batching
 
 ```tsx
-import { init, state, mount, render } from "@blaze";
+import { init } from "@blaze";
 
 const Hello = function () {
-    init(this);
+    const {
+        state, mount, render, layout, beforeUpdate, updated
+    } = init(this);
     state(
         "state",
         {
             name: "ferdiansyah",
             now: 0,
             data: ["hi", "hi", "hi"],
-        },
-        this
+        }
     );
+    // always call on rendering
+    layout(() => {
+        console.log('layout effect')
+    })
+    // call before state/context change
+    beforeUpdate(() => {
+        console.log('before update')
+    })
+    // call after state/context change
+    updated(() => {
+        console.log('after update')
+    })
+    // DOM is ready
     mount(() => {
         let interval = setInterval(() => {
             batch(() => {
@@ -74,9 +88,10 @@ const Hello = function () {
             }, this);
         }, 2000);
         return () => {
+            // unmount
             clearInterval(interval);
         };
-    }, this);
+    });
     render(
         () => (
             <>
@@ -84,8 +99,7 @@ const Hello = function () {
                     Interval {this.state.now} {this.ctx.user.email}
                 </p>
             </>
-        ),
-        this
+        )
     );
 };
 ```
@@ -347,5 +361,6 @@ app.mount();
         <p>I'm show element</p>
     </div>
     <button toggle="state.open">toggle</button>
+    <section setHTML="<p>Hello World</p>"></section>
 </>
 ```

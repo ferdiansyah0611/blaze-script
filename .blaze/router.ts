@@ -1,8 +1,7 @@
-import { mountCall } from "./core";
-import { getBlaze } from "./utils";
-import { mount, batch } from "@blaze";
+import { rendering } from "./core";
+import { mount } from "@blaze";
 import { Component } from "./blaze.d";
-import { addLog, addComponent } from "@root/plugin/extension";
+import { addLog } from "@root/plugin/extension";
 
 /**
  * @makeRouter
@@ -41,37 +40,19 @@ export const makeRouter = (entry: string, config: any) => {
 
 		replaceOrPush()
 
-		let old = performance.now(),
-			now,
-			duration,
-			msg;
-		let current = new component(Object.assign(app, { params }));
-		// props registery
-		current.$node = current.render();
-		current.$node.render = false;
-
-		// inject router
-		current.$router = tool;
-
-		getBlaze().runEveryMakeComponent(current);
-		mountCall(current.$deep, {}, true);
-		let query = document.querySelector(entry);
+		const current = new component(Object.assign(app, { params }));
+		// render
+		rendering(current, null, true, false, {}, 0, component.name, []);
+		const query = document.querySelector(entry);
 		Array.from(query.children).forEach(item => item.remove());
 		query.append(current.$node);
 		app.$router.history.forEach((data) => {
 			data.current.$deep.remove();
 		});
+		
 		app.$router.history.push({ url, current });
-		// timer
-		now = performance.now();
-		duration = (now - old).toFixed(1);
-		msg = `[${component.name}] ${duration}ms`;
-		current.$deep.time = duration;
-		// extension
-		batch(() => {
-			addLog({ msg }, false);
-			addComponent(current, false);
-		}, window.$extension);
+		// inject router
+		current.$router = tool;
 
 		// afterEach
 		if(config && config.afterEach) {
