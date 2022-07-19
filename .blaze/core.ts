@@ -323,7 +323,8 @@ export const rendering = (
 	data: any,
 	key: number,
 	nodeName: string | any,
-	children: HTMLElement[]
+	children: HTMLElement[],
+	config?: any
 ) => {
 	component.children = children[0] || false;
 	let old,
@@ -344,7 +345,6 @@ export const rendering = (
 	if(first) {
 		component.children = children[0] || false
 		component.$node = render;
-		// component.$node.render = false;
 		if($deep) {
 			$deep.registry.push({
 				key,
@@ -353,7 +353,7 @@ export const rendering = (
 		}
 		// mount
 		getBlaze().runEveryMakeComponent(component);
-		mountCall(component.$deep, {}, true);
+		if(!config || (config && !config.disableMount)) mountCall(component.$deep, {}, true);
 		// warning
 		if (!data.key && withWarn) {
 			warn = `[${nodeName.name}] key is 0. it's work, but add key property if have more on this component.`;

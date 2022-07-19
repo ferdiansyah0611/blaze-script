@@ -1,7 +1,7 @@
 import { rendering } from "./core";
 import { mount } from "@blaze";
 import { Component } from "./blaze.d";
-import { addLog } from "@root/plugin/extension";
+import { addLog, addComponent } from "@root/plugin/extension";
 
 /**
  * @makeRouter
@@ -25,7 +25,7 @@ export const makeRouter = (entry: string, config: any) => {
 	const goto = (app: any, url: string, component: any, config: any, params?: any) => {
 		if (!document.querySelector(entry)) {
 			let msg = "[Router] entry not found, query is correct?";
-			addLog({ msg });
+			addLog({ msg, type: 'error' });
 			return console.error(msg);
 		}
 
@@ -43,6 +43,7 @@ export const makeRouter = (entry: string, config: any) => {
 		const current = new component(Object.assign(app, { params }));
 		// render
 		rendering(current, null, true, false, {}, 0, component.name, []);
+		addComponent(current);
 		const query = document.querySelector(entry);
 		Array.from(query.children).forEach(item => item.remove());
 		query.append(current.$node);

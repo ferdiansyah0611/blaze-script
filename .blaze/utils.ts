@@ -1,4 +1,4 @@
-import { mountCall, beforeUpdateCall, updatedCall } from "./core";
+import { mountCall, beforeUpdateCall, updatedCall, rendering } from "./core";
 import { Component, Watch, Mount, InterfaceApp, InterfaceBlaze } from "./blaze.d";
 import { addLog, addComponent, reload } from "@root/plugin/extension";
 
@@ -32,36 +32,25 @@ export class App implements InterfaceApp {
 			window.$blaze = this.blaze;
 			// run plugin
 			this.plugin.forEach((plugin: any) => plugin(window.$app, window.$blaze, hmr));
+			addComponent(app, false);
 			// render
-			app.$node = app.render();
-			// extension & timer
-			now = performance.now();
-			duration = (now - old).toFixed(1);
-			msg = `[${app.constructor.name}] ${duration}ms`;
-			app.$deep.time = duration;
-			batch(() => {
-				addLog(
-					{
-						msg,
-					},
-					false
-				);
-				addComponent(app, false);
-			}, window.$extension);
+			rendering(app, null, true, false, {}, 0, app.constructor.name, [], {
+				disableMount: true,
+			});
 
 			let query = document.querySelector(this.el);
 			Array.from(query.children).forEach((node: HTMLElement) => node.remove());
 			query.append(window.$app.$node);
 			mountCall(app.$deep, {}, false);
-		}
+		};
 
-		if(window.$app) {
+		if (window.$app) {
 			window.$app.$deep.remove();
 			reload();
 			batch(() => {
 				addLog(
 					{
-						msg: '[HMR] reloading app',
+						msg: "[HMR] reloading app",
 					},
 					false
 				);
@@ -71,7 +60,7 @@ export class App implements InterfaceApp {
 			return;
 		}
 		document.addEventListener("DOMContentLoaded", () => {
-			load()
+			load();
 		});
 	}
 	use(plugin: any) {
@@ -170,8 +159,8 @@ export const state = function (name: string, initial: any, component: Component 
 			{
 				set(a, b, c) {
 					let allowed = !component.$deep.batch && !component.$deep.disableTrigger;
-					if(allowed) {
-						beforeUpdateCall(component.$deep)
+					if (allowed) {
+						beforeUpdateCall(component.$deep);
 					}
 
 					a[b] = c;
@@ -334,7 +323,7 @@ export const updated = (callback: Function, component: Component) => {
  * utils for re-rendering
  */
 export const batch = async (callback: Function, component: Component) => {
-	if(component) {
+	if (component) {
 		beforeUpdateCall(component.$deep);
 		component.$deep.batch = true;
 		await callback();
