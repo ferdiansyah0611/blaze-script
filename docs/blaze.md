@@ -3,20 +3,21 @@
 ## Example Code
 
 ```tsx
-import App, { init, render } from "@blaze";
+import { init, render } from "@blaze";
+import { createApp } from "@root/render";
 
 const Hello = function (prevComponent, rootApp) {
     init(this);
     render(
         () => (
-            <>
+            <div>
                 <p>Hello World</p>
-            </>
+            </div>
         ),
         this
     );
 };
-const app = new App("#app", Hello, {
+const app = new createApp("#app", Hello, {
     dev: import.meta.env.DEV,
 });
 app.mount();
@@ -38,9 +39,9 @@ const Hello = function () {
     );
     render(
         () => (
-            <>
+            <div>
                 <p>{this.state.name}</p>
-            </>
+            </div>
         ),
         this
     );
@@ -53,29 +54,24 @@ const Hello = function () {
 import { init } from "@blaze";
 
 const Hello = function () {
-    const {
-        state, mount, render, layout, beforeUpdate, updated
-    } = init(this);
-    state(
-        "state",
-        {
-            name: "ferdiansyah",
-            now: 0,
-            data: ["hi", "hi", "hi"],
-        }
-    );
+    const { state, mount, render, layout, beforeUpdate, updated } = init(this);
+    state("state", {
+        name: "ferdiansyah",
+        now: 0,
+        data: ["hi", "hi", "hi"],
+    });
     // always call on rendering
     layout(() => {
-        console.log('layout effect')
-    })
+        console.log("layout effect");
+    });
     // call before state/context change
     beforeUpdate(() => {
-        console.log('before update')
-    })
+        console.log("before update");
+    });
     // call after state/context change
     updated(() => {
-        console.log('after update')
-    })
+        console.log("after update");
+    });
     // DOM is ready
     mount(() => {
         let interval = setInterval(() => {
@@ -92,15 +88,13 @@ const Hello = function () {
             clearInterval(interval);
         };
     });
-    render(
-        () => (
-            <>
-                <p>
-                    Interval {this.state.now} {this.ctx.user.email}
-                </p>
-            </>
-        )
-    );
+    render(() => (
+        <>
+            <p>
+                Interval {this.state.now} {this.ctx.user.email}
+            </p>
+        </>
+    ));
 };
 ```
 
@@ -174,6 +168,8 @@ const Hello = function () {
 
 ## Event
 
+By default, event listener is auto batching and async. If you want disable auto batch, try add attribute `batch={false}` on current element where have event listener.
+
 ```tsx
 import { init, render } from "@blaze";
 
@@ -184,13 +180,13 @@ const Hello = function () {
     };
     render(
         () => (
-            <>
+            <div>
                 <button onClick={click}>Click Me</button>
                 <input onChangeValue={(value) => console.log(value)} type="text" />
                 <a href="/" onClickPrevent={click}>
                     Click Me
                 </a>
-            </>
+            </div>
         ),
         this
     );
@@ -224,10 +220,10 @@ Support jsx map array to render.
 </div>
 ```
 
-In the blaze, use attribute "for" at parent and attribute "data-key" / "key" at children to customize map data without replacing children on updating data array. Replace if [current node children 0 && new node children >= 1] or replace if old and new data is different.
+In the blaze, use attribute "for" at parent and attribute "key" at children to customize map data without replacing children on updating data array.
 
 ```tsx
-<div for={this.state.user}>
+<div for>
     {this.state.user.map((item: any) => (
         <div key={item.id}>
             <p>{item.username}</p>
@@ -241,32 +237,9 @@ In the blaze, use attribute "for" at parent and attribute "data-key" / "key" at 
 If node not interaction with state, you can skip diff with property "d".
 
 ```tsx
-<>
-    <div d>
-        <p>{this.state.name}</p>
-    </div>
-</>
-```
-
-## Fragment JSX Only For Use First Element On Component
-
-Work 100%
-
-```tsx
-<>
+<div d>
     <p>{this.state.name}</p>
-<>
-```
-
-Don't work
-
-```tsx
-<>
-    <p>{this.state.name}</p>
-    <>
-        <p>I'm children</p>
-    </>
-<>
+</div>
 ```
 
 ## Shorthand Code
@@ -294,9 +267,9 @@ const Hello = function () {
     mount(() => console.log("mount"));
     layout(() => console.log("layout"));
     render(() => (
-        <>
+        <div>
             <p>Hello World</p>
-        </>
+        </div>
     ));
 };
 const app = new App("#app", Hello, {
@@ -340,18 +313,16 @@ app.mount();
 
 ```tsx
 <>
-    <div>
-        {this.children}
-    </div>
+    <div>{this.children}</div>
 </>
 ```
 
 ## About Attributes
 
 ```tsx
-<>
+<section>
     <div style="display: none;"></div>
-    <div style={{display: 'none'}}></div>
+    <div style={{ display: "none" }}></div>
     <div class="flex"></div>
     <div className="flex"></div>
     {/*auto join*/}
@@ -362,5 +333,78 @@ app.mount();
     </div>
     <button toggle="state.open">toggle</button>
     <section setHTML="<p>Hello World</p>"></section>
-</>
+</section>
+```
+
+## Portal Component
+
+a component but node render appendChild to body element.
+
+```tsx
+import { createPortal } from "@root/render";
+
+const portalApp = function () {
+    const { render } = init(this);
+    createPortal(this);
+    render(() => (
+        <div>
+            <p>
+                Lorem ipsum dolor sit amet, consectetur adipisicing elit. Vitae corrupti, blanditiis explicabo in quis
+                tenetur quas magnam autem fugit corporis atque praesentium deserunt harum minus iste, reprehenderit,
+                dolores commodi! A.
+            </p>
+        </div>
+    ));
+};
+
+const MyApp = function () {
+    const { render } = init(this);
+    render(() => (
+        <div>
+            <p>
+                Lorem ipsum dolor sit amet, consectetur adipisicing elit. Vitae corrupti, blanditiis explicabo in quis
+                tenetur quas magnam autem fugit corporis atque praesentium deserunt harum minus iste, reprehenderit,
+                dolores commodi! A.
+            </p>
+            <portalApp />
+            <portalApp key={2} />
+            <portalApp key={3} show={false} />
+        </div>
+    ));
+}
+```
+
+## Multiple App
+
+```tsx
+import { init, render } from "@blaze";
+import { createApp } from "@root/render";
+
+const Hello = function (prevComponent, rootApp) {
+    init(this);
+    render(
+        () => (
+            <div>
+                <p>Hello World</p>
+            </div>
+        ),
+        this
+    );
+};
+const app = new createApp("#app", Hello, {
+    dev: import.meta.env.DEV,
+    key: 0
+});
+const app2 = new createApp("#app-2", Hello, {
+    dev: import.meta.env.DEV,
+    key: 1
+});
+app.mount();
+app2.mount();
+```
+
+## Remove Component Manual (Optional)
+
+```tsx
+this.$deep.remove();
 ```

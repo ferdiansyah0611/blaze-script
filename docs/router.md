@@ -4,8 +4,17 @@
 
 ```tsx
 // import it
-import { makeRouter, page } from "@blaze.router";
+import { makeRouter, page, startIn } from "@blaze.router";
 
+const App = function () {
+    const { render } = init(this);
+    // add, where #route in component
+    startIn(this);
+    render(() => <div>
+        <div id="route"></div>
+    </div>)
+}
+// ...
 app.use(
     makeRouter("#route", {
         url: [page("/", Index), page("/test", Test, {

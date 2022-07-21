@@ -1,6 +1,6 @@
 # Extension
 
-Extension tools for view component, performance, log, console, etc.
+Extension tools for view component, log, console, etc.
 
 ```tsx
 import { withExtension } from "@root/plugin/extension";
