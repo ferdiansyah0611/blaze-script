@@ -1,5 +1,6 @@
-import App, { render, init } from "@blaze";
-import { makeRouter, page } from "@blaze.router";
+import { render, init } from "@blaze";
+import { createApp } from '@root/render';
+import { makeRouter, page, startIn } from "@blaze.router";
 // route
 import Index from './route/Index'
 import PageExample from './route/Page'
@@ -7,6 +8,7 @@ import NotFound from './route/404'
 
 const MyApp = function () {
 	init(this);
+	startIn(this);
 
 	render(
 		() => (
@@ -20,10 +22,11 @@ const MyApp = function () {
 	);
 };
 
+const app = new createApp("#app", MyApp, {
+	dev: import.meta.env.DEV,
+});
+
 export default function Apps() {
-	const app = new App("#app", MyApp, {
-		dev: import.meta.env.DEV,
-	});
 	app.use(
 		makeRouter("#route", {
 			url: [

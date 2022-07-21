@@ -1,5 +1,6 @@
-import App, { render, state, init, mount, batch, dispatch } from "@blaze";
-import { makeRouter, page } from "@blaze.router";
+import { render, state, init, mount, batch, dispatch } from "@blaze";
+import { createApp } from '@root/render';
+import { makeRouter, page, startIn } from "@blaze.router";
 // route
 import About from "./route/About";
 import Index from "./route/Index";
@@ -11,6 +12,7 @@ import Footer from "./component/Footer";
 
 const TestApp = function () {
 	init(this);
+	startIn(this);
 
 	render(
 		() => (
@@ -26,11 +28,10 @@ const TestApp = function () {
 	);
 };
 
-const Run = () => {
-	const app = new App("#app", TestApp, {
-		// dev: import.meta.env.DEV,
-		dev: false,
-	});
+const app = new createApp("#app", TestApp, {
+	dev: false,
+});
+export default function Run(){
 	app.use(
 		makeRouter("#route", {
 			resolve: "/example/index.html",
@@ -41,5 +42,3 @@ const Run = () => {
 
 	return app;
 };
-
-export default Run;

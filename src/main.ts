@@ -19,6 +19,8 @@ declare global{
         refs?: number,
         i?: number,
         key?: number,
+        $index?: number
+        $root?: any
     }
     interface ChildNode{
     	data: any,
