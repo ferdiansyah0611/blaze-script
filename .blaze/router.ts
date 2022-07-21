@@ -10,7 +10,8 @@ import { addLog, addComponent } from "@root/plugin/extension";
 export const makeRouter = (entry: string, config: any) => {
 	let tool;
 	let popstate = false;
-	if(config.resolve) {
+	let keyApplication = 0;
+	if (config.resolve) {
 		config.url.map((item) => {
 			if (item.path) {
 				item.path = config.resolve + (item.path === "/" ? "" : item.path);
@@ -25,7 +26,7 @@ export const makeRouter = (entry: string, config: any) => {
 	const goto = (app: any, url: string, component: any, config: any, params?: any) => {
 		if (!document.querySelector(entry)) {
 			let msg = "[Router] entry not found, query is correct?";
-			addLog({ msg, type: 'error' });
+			addLog({ msg, type: "error" });
 			return console.error(msg);
 		}
 
@@ -36,28 +37,31 @@ export const makeRouter = (entry: string, config: any) => {
 				history.pushState(null, "", url);
 			}
 			popstate = false;
-		}
+		};
 
-		replaceOrPush()
+		replaceOrPush();
 
 		const current = new component(Object.assign(app, { params }));
+		if(window.$app) {
+			current.$config = window.$app[keyApplication].$config
+		}
 		// render
 		rendering(current, null, true, false, {}, 0, component.name, []);
 		addComponent(current);
 		const query = document.querySelector(entry);
-		Array.from(query.children).forEach(item => item.remove());
+		Array.from(query.children).forEach((item) => item.remove());
 		query.append(current.$node);
 		app.$router.history.forEach((data) => {
 			data.current.$deep.remove();
 		});
-		
+
 		app.$router.history.push({ url, current });
 		// inject router
 		current.$router = tool;
 
 		// afterEach
-		if(config && config.afterEach) {
-			if(!config.afterEach(app.$router)) {
+		if (config && config.afterEach) {
+			if (!config.afterEach(app.$router)) {
 				return app.$router.back();
 			}
 		}
@@ -68,7 +72,6 @@ export const makeRouter = (entry: string, config: any) => {
 	 * utils for check url is exists or not
 	 */
 	const ready = (app: any, first: boolean = false, url: string = new URL(location.href).pathname) => {
-
 		let routes = config.url.find((v: any) => v.path === url),
 			component: string = "",
 			params: any = {},
@@ -122,17 +125,17 @@ export const makeRouter = (entry: string, config: any) => {
 
 		if (validation()) {
 			// beforeEach
-			if(found && found.config.beforeEach) {
-				if(!found.config.beforeEach(app.$router)) {
-					return false
+			if (found && found.config.beforeEach) {
+				if (!found.config.beforeEach(app.$router)) {
+					return false;
 				}
 			}
 
 			// call always change router
-			if (!first) window.$app.$router.$change.forEach((item) => item());
+			if (!first) app.$router.$change.forEach((item) => item());
 			// remove previous router
-			if(app.$router.history.length) {
-				removeCurrentRouter(app)
+			if (app.$router.history.length) {
+				removeCurrentRouter(app.$router);
 			}
 
 			let msg = `[Router] GET 200 ${url}`;
@@ -140,13 +143,16 @@ export const makeRouter = (entry: string, config: any) => {
 			return goto(app, url, found.component, found.config, params);
 		}
 	};
-	return (app: Component, blaze, hmr) => {
+	return (app: Component, blaze, hmr, keyApp) => {
 		/**
 		 * inject router to current component
 		 */
 		tool = {
 			$change: [],
 			history: [],
+			ready,
+			popstate,
+			hmr,
 			go(goNumber: number) {
 				history.go(goNumber);
 			},
@@ -163,17 +169,21 @@ export const makeRouter = (entry: string, config: any) => {
 			},
 		};
 		// remove previous router
-		if(window.$router && window.$router.history.length) {
-			removeCurrentRouter(window)
+		if (window.$router && window.$router[keyApp].history.length) {
+			removeCurrentRouter(window.$router[keyApp]);
 		}
 		app.$router = tool;
-		window.$router = tool;
+		if(!window.$router) {
+			window.$router = [];
+		}
+		window.$router[keyApp] = tool;
+		keyApplication = keyApp;
 
 		/**
-		 * @onMakeElement
+		 * @everyMakeElement
 		 * on a element and dataset link is router link
 		 */
-		blaze.onMakeElement = (el: any) => {
+		blaze.everyMakeElement.push((el: any) => {
 			if (el && el.nodeName === "A" && el.dataset.link && !el.isRouter && el.href !== "#") {
 				if (config.resolve) {
 					let url = new URL(el.href);
@@ -185,44 +195,52 @@ export const makeRouter = (entry: string, config: any) => {
 				});
 				el.isRouter = true;
 			}
-		};
+		});
 
 		/**
-		 * @onMakeComponent
+		 * @everyMakeComponent
 		 * inject router to always component
 		 */
-		blaze.onMakeComponent = (component) => {
+		blaze.everyMakeComponent.push((component) => {
 			component.$router = tool;
-		};
-
-		/**
-		 * @mount
-		 * mount on current component and add event popstate
-		 */
-		mount(() => {
-			if (!hmr) {
-				ready(app, true);
-				window.addEventListener("popstate", () => {
-					popstate = true;
-					ready(app, false, location.pathname);
-				});
-			} else {
-				popstate = true;
-				ready(app, false, location.pathname);
-			}
-		}, app);
+		});
 	};
 };
+
+/**
+ * @mount
+ * mount on current component and add event popstate
+ */
+export const startIn = (component: Component, keyApp?: number) => {
+	if(!(typeof keyApp === 'number')) {
+		keyApp = 0;
+	}
+
+	mount(() => {
+		if (!window.$router[keyApp].hmr) {
+			window.$router[keyApp].ready(component, true);
+			window.addEventListener("popstate", () => {
+				window.$router[keyApp].popstate = true;
+				window.$router[keyApp].ready(component, false, location.pathname);
+			});
+		} else {
+			window.$router[keyApp].popstate = true;
+			window.$router[keyApp].ready(component, false, location.pathname);
+		}
+	}, component);
+};
+
 export const page = (path: string, component: any, config: any = {}) => ({
 	path,
 	component,
 	config,
 });
 
-const removeCurrentRouter = (app) => {
-	app.$router.history.at(0).current.$deep.remove()
-	app.$router.history = app.$router.history.filter((data, i) => {
-		data
-		i !== 0
-	})
-}
+const removeCurrentRouter = ($router) => {
+	console.log($router.history);
+	$router.history.at(0).current.$deep.remove();
+	$router.history = $router.history.filter((data, i) => {
+		data;
+		i !== 0;
+	});
+};

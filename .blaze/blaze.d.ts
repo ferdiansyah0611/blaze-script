@@ -3,9 +3,7 @@ export interface InterfaceApp{
 	use: Function
 }
 export interface InterfaceBlaze{
-	onMakeElement: (value: any) => {},
 	runEveryMakeElement: (el: HTMLElement) => void,
-	onMakeComponent: (value: any) => {},
 	runEveryMakeComponent: (component: Component) => void,
 }
 
@@ -30,23 +28,27 @@ export interface Component{
 	$h: any,
 	$node: HTMLElement,
 	$router: any,
+	$portal?: string,
 	ctx: Object,
-	props: Object,
+	props: Object | any,
 	render: Function,
-	children: HTMLElement | boolean,
+	children: HTMLElement | boolean | any,
 	$deep: {
 		batch: boolean,
 		disableTrigger: boolean,
+		disableExtension?: boolean,
 		hasMount: boolean,
 		update: number,
 		node: NodeDeep[],
 		registry: RegisteryComponent[],
 		watch: Watch[],
 		trigger: Function,
-		remove: Function
-		childrenDiffStatus?: boolean,
+		remove: Function,
 		dispatch?: any,
 		time?: string,
+		checking?: Component[],
+		disableAddUnmount?: boolean,
+		active?: boolean,
 		// lifecycle
 		mount: Mount[],
 		unmount: Function[],
@@ -56,6 +58,7 @@ export interface Component{
 		updated?: Function[]
 	},
 	$config?: {
-		dev: boolean
+		dev: boolean,
+		key?: number
 	}
 }

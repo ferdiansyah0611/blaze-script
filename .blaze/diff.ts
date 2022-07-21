@@ -20,6 +20,36 @@ const diff = function (prev: HTMLElement, el: HTMLElement, component: Component)
 	if (!prev || ((prev.d || el.d) && !(el instanceof SVGElement))) {
 		return batch;
 	}
+	// different component in same node
+	if (
+		prev.dataset.component !== undefined &&
+		el.dataset.component !== undefined &&
+		prev.dataset.component !== el.dataset.component
+	) {
+		let copy: any = el.cloneNode(true);
+		let name = prev.dataset.component;
+		let key = prev.dataset.key;
+
+		prev.$root.$deep.registry.forEach((registry) => {
+			if (registry.component.constructor.name === name && String(registry.key) === String(key)) {
+				unmountCall(registry.component.$deep);
+				registry.component.$deep.mount = registry.component.$deep.mount.map((item) => {
+					item.run = false;
+					return item;
+				});
+				registry.component.$deep.hasMount = false;
+				registry.component.$deep.disableAddUnmount = true;
+				return registry;
+			}
+		});
+
+		batch.push(() => {
+			prev.dataset.component = el.dataset.component;
+			prev.dataset.key = el.dataset.key;
+			prev.replaceChildren(...copy.children);
+		});
+		return batch;
+	}
 	// text/button/link
 	if (["SPAN", "P", "H1", "H2", "H3", "H4", "H5", "H6", "A", "BUTTON"].includes(prev.nodeName)) {
 		let run = false;
@@ -100,14 +130,13 @@ const diff = function (prev: HTMLElement, el: HTMLElement, component: Component)
 export const diffChildren = (oldest: any, newest: any, component: Component, first: boolean = true) => {
 	if (!newest) {
 		return;
-	} else if (oldest.for) {
+	}
+	if (oldest.for) {
 		// replacing if oldest.children === 0
 		if (!oldest.children.length && newest.children.length) {
-			oldest.for = newest.for;
 			oldest.replaceChildren(...newest.children);
 			return;
 		} else if (oldest.children.length && newest.children.length === 0) {
-			oldest.for = newest.for;
 			Array.from(oldest.children).forEach((item: HTMLElement) => {
 				removeComponentOrEl(item, component);
 			});
@@ -115,7 +144,6 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 		}
 		// not exists, auto delete...
 		else if (newest.children.length < oldest.children.length) {
-			oldest.for = newest.for;
 			Array.from(oldest.children).forEach((item: HTMLElement) => {
 				let latest = Array.from(newest.children).find((el: HTMLElement) => el.key === item.key);
 				if (!latest) {
@@ -128,7 +156,7 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 		}
 		// new children detection
 		else if (newest.children.length > oldest.children.length) {
-			oldest.for = newest.for;
+			// oldest.for = newest.for;
 			Array.from(newest.children).forEach((item: HTMLElement, i: number) => {
 				let latest = Array.from(oldest.children).find((el: HTMLElement) => el.key === item.key);
 				if (!latest) {
@@ -146,31 +174,56 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 		}
 		// same length children
 		else {
-			// checking data is different
-			let difference = _.differenceWith(oldest.for, newest.for, _.isEqual);
-			// replace if data different length same with newest.for.length
-			if (difference.length === newest.for.length) {
-				// unmount component children
-				component.$deep.registry = component.$deep.registry.filter((registry) => {
-					if (registry.component.$node.isConnected === false) {
-						unmountCall(registry.component.$deep);
-					}
-				});
-				oldest.for = newest.for;
-				oldest.replaceChildren(...newest.children);
-				return;
-			}
 			// updating data in children
 			nextDiffChildren(Array.from(oldest.children), newest, component);
 			return;
 		}
-	} else if (_.isBoolean(oldest.show)) {
+	}
+	if (_.isBoolean(oldest.show)) {
 		if (!newest.show) {
 			oldest.remove();
+			return;
 		}
-	} else if ((oldest.$name || newest.$name) !== component.constructor.name) {
+	}
+
+	if ((oldest.$name || newest.$name) !== component.constructor.name) {
 		return;
-	} else if (oldest.children.length !== newest.children.length) {
+	}
+	if (oldest.children.length !== newest.children.length) {
+		// checking element is component and exists in node or not
+		// if not exists, call remove component
+		if (component.$deep.checking) {
+			setTimeout(() => {
+				let nonactive = component.$deep.checking.filter((item) => item.$node.isConnected === false);
+				nonactive.forEach((item) => {
+					if (!item.$deep.active) {
+						item.$deep.active = true;
+						item.$deep.remove(true);
+					} else {
+						item.$deep.active = false;
+					}
+				});
+			}, 0);
+		}
+		_.forEach(newest.children, (data, i) => {
+			if (data.$children) {
+				if (data.$children.$deep.hasMount) {
+					data.$children.$deep.hasMount = false;
+					data.$children.$deep.mount = data.$children.$deep.mount.map((item) => {
+						item.run = false;
+						return item;
+					});
+					data.$children.$deep.disableAddUnmount = true;
+					if (!data.parentElement.$checking) {
+						data.parentElement.$checking = [];
+					}
+					data.parentElement.$checking.push(data.$children);
+				}
+			}
+			if (data.parentElement.$checking && i === newest.children.length - 1) {
+				component.$deep.checking = data.parentElement.$checking;
+			}
+		});
 		return oldest.replaceChildren(...newest.children);
 	} else {
 		if (first) {
@@ -190,19 +243,19 @@ function nextDiffChildren(children: HTMLElement[], newest: any, component: Compo
 }
 
 function removeComponentOrEl(item: HTMLElement, component: Component) {
-	if (item.dataset.component) {
+	if (item.$children) {
 		let check = component.$deep.registry.find(
 			(registry) =>
-				registry.component.constructor.name === item.dataset.component &&
-				registry.key === parseInt(item.dataset.key)
+				registry.component.constructor.name === item.$children.constructor.name &&
+				registry.key === item.key
 		);
 		if (check) {
 			check.component.$deep.remove();
 			component.$deep.registry = component.$deep.registry.filter(
 				(registry) =>
 					!(
-						registry.component.constructor.name === item.dataset.component &&
-						registry.key === parseInt(item.dataset.key)
+						registry.component.constructor.name === item.$children.constructor.name &&
+						registry.key === item.key
 					)
 			);
 		} else {

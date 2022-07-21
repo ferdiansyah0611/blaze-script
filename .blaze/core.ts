@@ -16,31 +16,42 @@ export const init = (component: Component) => {
 			batch: false,
 			disableTrigger: false,
 			hasMount: false,
-			childrenDiffStatus: false,
 			node: [],
 			registry: [],
 			watch: [],
 			mount: [],
 			unmount: [],
 			trigger: () => {
-				component.$deep.childrenDiffStatus = true;
 				component.$deep.update++;
 				// diff in here
-				diffChildren(component.$node, component.render(), component);
+				const result = rendering(
+					component,
+					null,
+					false,
+					false,
+					{},
+					component.props.key || 0,
+					component.constructor,
+					component.children
+				);
+				diffChildren(component.$node, result, component);
+				return result;
 			},
-			remove() {
+			remove(notClear = false) {
 				this.registry.forEach((item) => {
 					item.component.$deep.remove();
 				});
 				unmountCall(component.$deep);
 				component.$node.remove();
 
-				this.node = [];
-				this.registry = [];
-				this.watch = [];
-				this.mount = [];
-				this.unmount = [];
-				this.layout = [];
+				if (!notClear) {
+					this.node = [];
+					this.registry = [];
+					this.watch = [];
+					this.mount = [];
+					this.unmount = [];
+					this.layout = [];
+				}
 			},
 		};
 
@@ -70,7 +81,7 @@ export const init = (component: Component) => {
 export const jsx = (component: Component) => {
 	return {
 		h: (nodeName: string | Function | any, data: any, ...children: any[]) => {
-			return e(false, component, nodeName, data, ...children);
+			return e(component, nodeName, data, ...children);
 		},
 		Fragment: "Fragment",
 	};
@@ -80,13 +91,13 @@ export const jsx = (component: Component) => {
  * @childrenObserve
  * manage children element, like appendChild a node/string/number
  */
-export const childrenObserve = (children: HTMLElement[], el: HTMLElement, $deep: Component["$deep"]) => {
+export const childrenObserve = (children: HTMLElement[], el: HTMLElement) => {
 	if (children.length === 1 && typeof children[0] === "string") {
 		el.append(document.createTextNode(children[0]));
 	} else if (children.length) {
 		children.forEach((item) => {
 			// node
-			if (item && item.nodeName && (!$deep.update || $deep.childrenDiffStatus)) {
+			if (item && item.nodeName) {
 				log("[appendChild]", item.tagName);
 				el.appendChild(item);
 				return;
@@ -172,12 +183,22 @@ export const attributeObserve = (data: any, el: HTMLElement, component: Componen
 				let find = item.match(/Prevent|StopPropagation|Value/);
 				if (find) {
 					let isValue = find[0] === "Value";
-					el.addEventListener(item.split(find[0]).join("").toLowerCase().slice(2), (e: any) => {
+					el.addEventListener(item.split(find[0]).join("").toLowerCase().slice(2), async (e: any) => {
 						e.preventDefault();
-						data[item](isValue ? e.target.value : e);
+						if (!data.batch) {
+							await data[item](isValue ? e.target.value : e);
+						} else {
+							batch(async() => await data[item](isValue ? e.target.value : e), component);
+						}
 					});
 				} else {
-					el.addEventListener(item.toLowerCase().slice(2), data[item]);
+					el.addEventListener(item.toLowerCase().slice(2), async (e) => {
+						if (!data.batch) {
+							await data[item](e)
+						} else {
+							batch(async() => await data[item](e), component);
+						}
+					});
 				}
 			}
 			return;
@@ -266,7 +287,7 @@ export const updatedCall = ($deep: Component["$deep"]) => {
  * @deepObjectState
  * get value state/context with dot
  */
-const deepObjectState = (path: string, data: any, component: Component, isValue?: any) => {
+export const deepObjectState = (path: string, data: any, component: Component, isValue?: any) => {
 	let value;
 	let split = path.split(".");
 
@@ -324,48 +345,47 @@ export const rendering = (
 	key: number,
 	nodeName: string | any,
 	children: HTMLElement[],
-	config?: any
+	config?: any,
+	root?: Component
 ) => {
-	component.children = children[0] || false;
-	let old,
-		now,
-		duration,
-		msg,
-		warn;
+	component.children = children ? children[0] : false;
+	let old, now, duration, msg, warn;
 
-	if(first) {
-		old = performance.now()
+	if (first) {
+		old = performance.now();
 		createdCall(component.$deep);
 	}
 
 	let render = component.render();
-	render.dataset.key = key;
+	// render.dataset.key = key;
 	render.$children = component;
+	render.$root = root;
 
-	if(first) {
-		component.children = children[0] || false
+	if (first) {
+		component.children = children ? children[0] : false;
 		component.$node = render;
-		if($deep) {
-			$deep.registry.push({
+		if ($deep) {
+			let index = $deep.registry.push({
 				key,
 				component: component,
 			});
+			component.$node.$index = index;
 		}
 		// mount
-		getBlaze().runEveryMakeComponent(component);
-		if(!config || (config && !config.disableMount)) mountCall(component.$deep, {}, true);
+		getBlaze(component.$config?.key || 0).runEveryMakeComponent(component);
 		// warning
-		if (!data.key && withWarn) {
+		if (!data.key && withWarn && !component.$node.isConnected) {
 			warn = `[${nodeName.name}] key is 0. it's work, but add key property if have more on this component.`;
 			console.warn(warn);
 		}
+		if (!config || (config && !config.disableMount)) mountCall(component.$deep, {}, true);
 		// timer
 		now = performance.now();
 		duration = (now - old).toFixed(1);
 		msg = `[${nodeName.name}] ${duration}ms`;
 		component.$deep.time = duration;
 		// extension
-		if (window.$extension) {
+		if (window.$extension && !component.$deep.disableExtension) {
 			batch(() => {
 				addLog(
 					{
@@ -386,6 +406,64 @@ export const rendering = (
 		}
 	}
 
+	/**
+	 * @render
+	 * first rendering and call lifecycle function in fragment/first element
+	 */
+	if (!component.$deep.update) {
+		if (first) {
+			if (component.$node.isConnected) {
+				mountCall(component.$deep, data, true);
+			}
+			layoutCall(component.$deep);
+		}
+	} else {
+		/**
+		 * @updateRender
+		 * update element on props/state change and call lifecycle function
+		 */
+
+		const current = component.$node;
+		if (current) {
+			layoutCall(component.$deep);
+			if (current.$children) {
+				let dataset = current.dataset;
+				let check = current.$children.$deep.registry.find(
+					(item) => item.component.constructor.name === dataset.component && item.key === Number(dataset.key)
+				);
+				if (check && check.component.$node.isConnected) {
+					mountCall(check.component.component.$deep, data, true);
+				}
+			}
+		}
+	}
+
+	// portal component
+	if(component.$portal) {
+		let query = document.body.querySelector(`[data-portal="${component.$portal}"]`)
+		let handle = () => {
+			if(data && data.hasOwnProperty('show')) {
+				if(!data.show) {
+					component.$node.style.display = 'none'
+				} else {
+					component.$node.style.display = 'unset'
+				}
+			}
+		}
+		if (first) {
+			component.$node.dataset.portal = component.$portal;
+			handle()
+			document.body.appendChild(component.$node)
+		}
+		else {
+			handle();
+			if(query) {
+				render.dataset.portal = component.$portal;
+				diffChildren(component.$node, render, component);
+			}
+		}
+		return false;
+	}
 	if (first) return component.$node;
-	else return render;
+	return render;
 };

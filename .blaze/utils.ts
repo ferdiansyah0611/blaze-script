@@ -1,103 +1,12 @@
-import { mountCall, beforeUpdateCall, updatedCall, rendering } from "./core";
-import { Component, Watch, Mount, InterfaceApp, InterfaceBlaze } from "./blaze.d";
-import { addLog, addComponent, reload } from "@root/plugin/extension";
+import { beforeUpdateCall, updatedCall } from "./core";
+import { Component, Watch, Mount } from "./blaze.d";
 
-/**
- * @App
- * class for new application
- */
-export class App implements InterfaceApp {
-	el: string;
-	component: any;
-	plugin: any[];
-	blaze: any;
-	config?: any;
-	constructor(el: string, component: any, config: any) {
-		this.plugin = [];
-		this.el = el;
-		this.component = component;
-		this.config = config;
-		this.blaze = new Blaze();
-	}
-	mount() {
-		const load = (hmr = false) => {
-			let old = performance.now(),
-				now,
-				duration,
-				msg;
-			let app = new this.component();
-			app.$config = this.config;
-			// inject to window
-			window.$app = app;
-			window.$blaze = this.blaze;
-			// run plugin
-			this.plugin.forEach((plugin: any) => plugin(window.$app, window.$blaze, hmr));
-			addComponent(app, false);
-			// render
-			rendering(app, null, true, false, {}, 0, app.constructor.name, [], {
-				disableMount: true,
-			});
-
-			let query = document.querySelector(this.el);
-			Array.from(query.children).forEach((node: HTMLElement) => node.remove());
-			query.append(window.$app.$node);
-			mountCall(app.$deep, {}, false);
-		};
-
-		if (window.$app) {
-			window.$app.$deep.remove();
-			reload();
-			batch(() => {
-				addLog(
-					{
-						msg: "[HMR] reloading app",
-					},
-					false
-				);
-				addComponent(window.$app, false);
-			}, window.$extension);
-			load(true);
-			return;
-		}
-		document.addEventListener("DOMContentLoaded", () => {
-			load();
-		});
-	}
-	use(plugin: any) {
-		this.plugin.push(plugin);
-	}
-}
-
-/**
- * @Blaze
- * class for event on blaze, like onMakeElement and more
- */
-export class Blaze implements InterfaceBlaze {
-	everyMakeElement: any[];
-	everyMakeComponent: any[];
-	constructor() {
-		this.everyMakeElement = [];
-		this.everyMakeComponent = [];
-	}
-	set onMakeElement(value: any) {
-		this.everyMakeElement.push(value);
-	}
-	runEveryMakeElement(el: HTMLElement) {
-		this.everyMakeElement.forEach((item) => item(el));
-	}
-	set onMakeComponent(value: any) {
-		this.everyMakeComponent.push(value);
-	}
-	runEveryMakeComponent(component: Component) {
-		this.everyMakeComponent.forEach((item) => item(component));
-	}
-}
 /**
  * @config
  * get blaze app or config
  */
-export const getAppConfig = () => window.$app?.$config || {};
-export const getBlaze = () => window.$blaze || {};
+export const getAppConfig = (key) => window.$app[key].$config || {};
+export const getBlaze = (key) => window.$blaze[key] || {};
 
 /*----------UTILITES----------*/
 
@@ -105,7 +14,7 @@ export const getBlaze = () => window.$blaze || {};
  * @logging
  * log for blaze, disable in production
  */
-export const log = (...msg: any[]) => getAppConfig().dev && console.log(">", ...msg);
+export const log = (...msg: any[]) => getAppConfig(0).dev && console.log(">", ...msg);
 
 /**
  * @render
@@ -262,7 +171,9 @@ export const mount = (callback: Function, component: Component) => {
 			if (!this.run) {
 				this.run = true;
 				let unmount = callback();
-				unmount && component.$deep.unmount.push(unmount);
+				if (!component.$deep.disableAddUnmount && unmount) {
+					component.$deep.unmount.push(unmount);
+				}
 			}
 		},
 	};

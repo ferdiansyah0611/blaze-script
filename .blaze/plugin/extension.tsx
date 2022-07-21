@@ -26,11 +26,13 @@ export const addComponent = (data, trigger = true) => {
 };
 
 export const withExtension = (entry: string, enabled: boolean) => {
-	return () => {
+	return (app, blaze, hmr, keyApp) => {
+		app;blaze;hmr;
 		let query = document.querySelector(entry);
 		if (query && enabled && !window.$extension) {
-			let component = new Extension();
+			let component = new Extension(keyApp);
 			component.$node = component.render();
+			component.$node.dataset.key = 0;
 			mountCall(component.$deep, {}, true);
 			query.replaceChildren(component.$node);
 		}
@@ -39,11 +41,11 @@ export const withExtension = (entry: string, enabled: boolean) => {
 
 export const reload = () => {
 	if (window.$extension) {
-		window.$extension.reload();
+		window.$extension.reload()
 	}
 }
 
-function Extension() {
+function Extension(keyApp) {
 	init(this);
 	state(
 		"state",
@@ -70,8 +72,8 @@ function Extension() {
 	mount(() => {
 		// inject to window
 		window.$extension = this;
-		if (window.$app.$router)
-			window.$app.$router.onChange(() => {
+		if (window.$router)
+			window.$router[keyApp].onChange(() => {
 				batch(() => {
 					clearLog();
 					this.state.selectComponent = {
@@ -120,7 +122,7 @@ function Extension() {
 	};
 	const resizeBody = () => {
 		setTimeout(() => {
-			window.$app.$node.style.marginBottom = `${this.$node.offsetHeight}px`;
+			window.$app[keyApp].$node.style.marginBottom = `${this.$node.offsetHeight}px`;
 		}, 1000);
 	};
 	const handleConsole = () => {
@@ -174,7 +176,7 @@ function Extension() {
 	// render
 	const selectComponentState = () =>
 		Object.keys(this.state.selectComponent || {}).filter(
-			(item) => this.state.selectComponent[item]._isProxy === true && item !== "props"
+			(item) => this.state.selectComponent[item]?._isProxy === true && item !== "props"
 		);
 	const selectComponentContext = () => Object.keys(this.state.selectComponent.ctx || {});
 	const props = () => Object.keys(this.state.selectComponent.props || {}).filter((item) => item !== "_isProxy");
@@ -484,8 +486,8 @@ function TestApp() {
 }
 
 function ListExtension() {
-	init(this);
 	this.disableExtension = true;
+	init(this);
 	render(() => {
 		return (
 			<>
@@ -514,8 +516,8 @@ function ListExtension() {
 }
 
 function InputExtension() {
-	init(this);
 	this.disableExtension = true;
+	init(this);
 	render(() => {
 		let { name, value, disableMargin, onChange } = this.props;
 		return (

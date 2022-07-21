@@ -1,19 +1,24 @@
 import _ from "lodash";
-import { log, render, state, watch, batch, mount, layout, created, beforeUpdate, updated, context, dispatch, App, getBlaze } from "./utils";
 import {
-	childrenObserve,
-	attributeObserve,
-	mountCall,
-	unmountCall,
-	layoutCall,
-	rendering,
-	init,
-} from "./core";
+	log,
+	render,
+	state,
+	watch,
+	batch,
+	mount,
+	layout,
+	created,
+	beforeUpdate,
+	updated,
+	context,
+	dispatch,
+	getBlaze,
+} from "./utils";
+import { childrenObserve, attributeObserve, mountCall, unmountCall, rendering, init } from "./core";
 import { Component, RegisteryComponent } from "./blaze.d";
 import { diffChildren } from "./diff";
 // export
 export { log, render, state, watch, mount, layout, created, beforeUpdate, updated, batch, dispatch, init, context };
-export default App;
 
 /**
  * @createElement
@@ -21,7 +26,6 @@ export default App;
  * @return HTMLElement
  */
 export const e = function (
-	first: boolean,
 	component: Component,
 	nodeName: string | Function | any,
 	data: any,
@@ -31,7 +35,7 @@ export const e = function (
 	 * @delcaration
 	 */
 	const $deep = component.$deep;
-	const current = component.$node;
+	let isFragment;
 
 	let el;
 
@@ -52,10 +56,14 @@ export const e = function (
 		 * @registry
 		 */
 		if (!check) {
-			let newComponent = new nodeName(component, window.$app);
+			let newComponent = new nodeName(component, window.$app[component.$config?.key || 0]);
+			// inject config app
+			if(component.$config) {
+				newComponent.$config = component.$config
+			}
 			// props registery
 			state("props", data ? { ...data } : {}, newComponent);
-			const result = rendering(newComponent, $deep, true, true, data, key, nodeName, children);
+			const result = rendering(newComponent, $deep, true, true, data, key, nodeName, children, {}, component);
 			return result;
 		}
 		/**
@@ -66,7 +74,9 @@ export const e = function (
 		mountCall(check.component.$deep, data.props, true);
 		if (!check.component.$node.isConnected && check.component.$node.render) {
 			unmountCall(check.component.$deep);
-			$deep.registry = $deep.registry.filter((item) => (item.component.constructor.name === check.component.constructor.name) && (item.key !== key));
+			$deep.registry = $deep.registry.filter(
+				(item) => item.component.constructor.name === check.component.constructor.name && item.key !== key
+			);
 		}
 
 		let propsObject = { ...check.component.props };
@@ -92,7 +102,7 @@ export const e = function (
 	const fragment = () => {
 		if (nodeName === "Fragment") {
 			nodeName = "div";
-			first = true;
+			isFragment = true
 		}
 	};
 
@@ -112,11 +122,11 @@ export const e = function (
 		} else {
 			el = document.createElement(nodeName);
 		}
-		childrenObserve(children, el, $deep);
+		childrenObserve(children, el);
 		if (!svg) attributeObserve(data, el, component);
-		if (first) el.dataset.component = componentName;
+		if(isFragment) el.$fragment = true
 		el.$name = componentName;
-		getBlaze().runEveryMakeElement(el);
+		getBlaze(component.$config?.key || 0).runEveryMakeElement(el);
 		return el;
 	};
 	/**
@@ -125,35 +135,5 @@ export const e = function (
 	fragment();
 	makeElement();
 
-	/**
-	 * @render
-	 * first rendering and call lifecycle function in fragment/first element
-	 */
-	if (!$deep.update) {
-		if (first) {
-			if (el.isConnected) {
-				mountCall($deep, data.props, true);
-			}
-			layoutCall($deep);
-		}
-		return el;
-	} else {
-		/**
-		 * @updateRender
-		 * update element on props/state change and call lifecycle function
-		 */
-		if (first && current) {
-			layoutCall($deep);
-			if (current.dataset && current.$children) {
-				let dataset = current.dataset;
-				let check = current.$children.$deep.registry.find(
-					(item) => item.component.constructor.name === dataset.component && item.key === Number(dataset.key)
-				);
-				if (check && check.component.$node.isConnected) {
-					mountCall(check.component.$deep, data.props, true);
-				}
-			}
-		}
-		return el;
-	}
+	return el;
 };
