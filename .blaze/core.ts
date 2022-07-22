@@ -1,9 +1,10 @@
+import _ from "lodash";
+import {escape} from 'html-escaper';
 import { log, getBlaze } from "./utils";
 import { e, mount, layout, dispatch, render, batch, state, watch, created, beforeUpdate, updated } from "./blaze";
 import { Component, Mount } from "./blaze.d";
 import { diffChildren } from "./diff";
 import { addLog } from "@root/plugin/extension";
-import _ from "lodash";
 
 /**
  * @init
@@ -95,7 +96,17 @@ export const childrenObserve = (children: HTMLElement[], el: HTMLElement) => {
 	if (children.length === 1 && typeof children[0] === "string") {
 		el.append(document.createTextNode(children[0]));
 	} else if (children.length) {
-		children.forEach((item) => {
+		children.forEach((item, i) => {
+			// logic
+			if(item.hasOwnProperty('if') && !item.if) {
+				return;
+			}
+			if(item.else) {
+				let previous = Array.from(children)[i - 1];
+				if(previous.hasOwnProperty('if') && previous.if) {
+					return;
+				}
+			}
 			// node
 			if (item && item.nodeName) {
 				log("[appendChild]", item.tagName);
@@ -174,7 +185,7 @@ export const attributeObserve = (data: any, el: HTMLElement, component: Componen
 		}
 		// setHTML
 		if (item === "setHTML" && data[item]) {
-			el.innerHTML = data[item];
+			el.innerHTML = escape(data[item]);
 			return;
 		}
 		// event

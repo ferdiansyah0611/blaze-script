@@ -122,8 +122,8 @@ export const e = function (
 		} else {
 			el = document.createElement(nodeName);
 		}
-		childrenObserve(children, el);
 		if (!svg) attributeObserve(data, el, component);
+		childrenObserve(children, el);
 		if(isFragment) el.$fragment = true
 		el.$name = componentName;
 		getBlaze(component.$config?.key || 0).runEveryMakeElement(el);

@@ -206,7 +206,7 @@ Auto handling input with max 5 deep object and can trigger manually.
 </div>
 ```
 
-## Looping Data
+## List Rendering
 
 Support jsx map array to render.
 
@@ -333,6 +333,11 @@ app.mount();
     </div>
     <button toggle="state.open">toggle</button>
     <section setHTML="<p>Hello World</p>"></section>
+
+    <div class="text-white">
+        <p if={true}>true</p>
+        <p else>false</p>
+    </div>
 </section>
 ```
 

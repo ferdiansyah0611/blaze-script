@@ -51,6 +51,8 @@ app.mount();
     
 • [Tester](https://github.com/ferdiansyah0611/blaze-script/blob/main/docs/tester.md)
 
+• [MediaQuery](https://github.com/ferdiansyah0611/blaze-script/blob/main/docs/mediaquery.md)
+
 </div>
 
 ## More Info

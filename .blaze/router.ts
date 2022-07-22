@@ -237,7 +237,6 @@ export const page = (path: string, component: any, config: any = {}) => ({
 });
 
 const removeCurrentRouter = ($router) => {
-	console.log($router.history);
 	$router.history.at(0).current.$deep.remove();
 	$router.history = $router.history.filter((data, i) => {
 		data;
