@@ -99,6 +99,9 @@ export const childrenObserve = (children: HTMLElement[], el: HTMLElement) => {
 	} else if (children.length) {
 		children.forEach((item, i) => {
 			// logic
+			if(!item) {
+				return
+			}
 			if(item.hasOwnProperty('if') && !item.if) {
 				return;
 			}
@@ -364,7 +367,6 @@ export const rendering = (
 	config?: any,
 	root?: Component
 ) => {
-	component.children = children ? children[0] : false;
 	let old, now, duration, msg, warn;
 
 	if (first) {
@@ -378,7 +380,7 @@ export const rendering = (
 	render.$root = root;
 
 	if (first) {
-		component.children = children ? children[0] : false;
+		component.children = children ? children : false;
 		component.$node = render;
 		if ($deep) {
 			let index = $deep.registry.push({
@@ -442,15 +444,6 @@ export const rendering = (
 		const current = component.$node;
 		if (current) {
 			layoutCall(component.$deep);
-			// if (current.$children) {
-			// 	let dataset = current.dataset;
-			// 	// let check = current.$children.$deep.registry.find(
-			// 	// 	(item) => item.component.constructor.name === dataset.component && item.key === Number(dataset.key)
-			// 	// );
-			// 	if (current.$children.$node.isConnected) {
-			// 		mountCall(current.$children.$deep, data, true);
-			// 	}
-			// }
 		}
 	}
 
