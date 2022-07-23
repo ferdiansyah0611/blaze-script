@@ -12,6 +12,7 @@ declare global{
         else: any,
     	$children: any,
     	$commit: any[],
+        $name: string,
     	render: boolean,
     	value: any,
     	hasAppend: boolean,

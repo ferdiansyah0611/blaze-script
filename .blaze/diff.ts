@@ -22,16 +22,13 @@ const diff = function (prev: HTMLElement, el: HTMLElement, component: Component)
 	}
 	// different component in same node
 	if (
-		prev.dataset.component !== undefined &&
-		el.dataset.component !== undefined &&
-		prev.dataset.component !== el.dataset.component
+		prev.$name && el.$name && prev.$name !== el.$name
 	) {
-		let copy: any = el.cloneNode(true);
-		let name = prev.dataset.component;
-		let key = prev.dataset.key;
+		let name = prev.$name;
+		let key = prev.key;
 
 		prev.$root.$deep.registry.forEach((registry) => {
-			if (registry.component.constructor.name === name && String(registry.key) === String(key)) {
+			if (registry.component.constructor.name === name && registry.key === key) {
 				unmountCall(registry.component.$deep);
 				registry.component.$deep.mount = registry.component.$deep.mount.map((item) => {
 					item.run = false;
@@ -42,11 +39,10 @@ const diff = function (prev: HTMLElement, el: HTMLElement, component: Component)
 				return registry;
 			}
 		});
-
 		batch.push(() => {
-			prev.dataset.component = el.dataset.component;
-			prev.dataset.key = el.dataset.key;
-			prev.replaceChildren(...copy.children);
+			prev.$name = el.$name;
+			prev.key = el.key || 0;
+			prev.replaceChildren(...Array.from(el.children));
 		});
 		return batch;
 	}

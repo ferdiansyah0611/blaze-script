@@ -10,6 +10,7 @@ declare global{
     interface HTMLElement{
         if: boolean,
         else: any,
+        $name: string,
         $children: any,
         $commit: any[],
         render: boolean,

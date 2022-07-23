@@ -25,9 +25,7 @@ const Hello = function () {
     const { render } = init(this);
     render(
         () => (
-            <>
-                <p>Hello World</p>
-            </>
+            <p>Hello World</p>
         )
     );
 };
@@ -52,6 +50,8 @@ app.mount();
 • [Tester](https://github.com/ferdiansyah0611/blaze-script/blob/main/docs/tester.md)
 
 • [MediaQuery](https://github.com/ferdiansyah0611/blaze-script/blob/main/docs/mediaquery.md)
+
+• [Query](https://github.com/ferdiansyah0611/blaze-script/blob/main/docs/query.md)
 
 </div>
 

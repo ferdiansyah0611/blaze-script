@@ -43,7 +43,7 @@ export const init = (component: Component) => {
 					item.component.$deep.remove();
 				});
 				unmountCall(component.$deep);
-				component.$node.remove();
+				component.$node?.remove();
 
 				if (!notClear) {
 					this.node = [];
@@ -169,6 +169,10 @@ export const attributeObserve = (data: any, el: HTMLElement, component: Componen
 		// dataset
 		if (item.match(/^data-/)) {
 			let name = item.split("data-")[1];
+			let strip = name.indexOf('-');
+			if(strip !== -1) {
+				name = name.slice(0, strip) + name[strip + 1].toUpperCase() + name.slice(strip + 2)
+			}
 			el.dataset[name] = data[item];
 			return;
 		}
@@ -369,7 +373,7 @@ export const rendering = (
 	}
 
 	let render = component.render();
-	// render.dataset.key = key;
+	render.key = key;
 	render.$children = component;
 	render.$root = root;
 
@@ -438,15 +442,15 @@ export const rendering = (
 		const current = component.$node;
 		if (current) {
 			layoutCall(component.$deep);
-			if (current.$children) {
-				let dataset = current.dataset;
-				let check = current.$children.$deep.registry.find(
-					(item) => item.component.constructor.name === dataset.component && item.key === Number(dataset.key)
-				);
-				if (check && check.component.$node.isConnected) {
-					mountCall(check.component.component.$deep, data, true);
-				}
-			}
+			// if (current.$children) {
+			// 	let dataset = current.dataset;
+			// 	// let check = current.$children.$deep.registry.find(
+			// 	// 	(item) => item.component.constructor.name === dataset.component && item.key === Number(dataset.key)
+			// 	// );
+			// 	if (current.$children.$node.isConnected) {
+			// 		mountCall(current.$children.$deep, data, true);
+			// 	}
+			// }
 		}
 	}
 
