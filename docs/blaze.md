@@ -8,14 +8,7 @@ import { createApp } from "@root/render";
 
 const Hello = function (prevComponent, rootApp) {
     init(this);
-    render(
-        () => (
-            <div>
-                <p>Hello World</p>
-            </div>
-        ),
-        this
-    );
+    render(() => <p>Hello World</p>, this);
 };
 const app = new createApp("#app", Hello, {
     dev: import.meta.env.DEV,
@@ -37,14 +30,7 @@ const Hello = function () {
         },
         this
     );
-    render(
-        () => (
-            <div>
-                <p>{this.state.name}</p>
-            </div>
-        ),
-        this
-    );
+    render(() => <p>{this.state.name}</p>, this);
 };
 ```
 
@@ -89,11 +75,9 @@ const Hello = function () {
         };
     });
     render(() => (
-        <>
-            <p>
-                Interval {this.state.now} {this.ctx.user.email}
-            </p>
-        </>
+        <p>
+            Interval {this.state.now} {this.ctx.user.email}
+        </p>
     ));
 };
 ```
@@ -242,6 +226,22 @@ If node not interaction with state, you can skip diff with property "d".
 </div>
 ```
 
+## Computed
+
+Shorten the data or customize the data to the function instance
+
+```tsx
+const App = function () {
+    const { computed, render } = init(this);
+    computed({
+        set example() {
+            return "example";
+        },
+    });
+    render(() => <p>{this.example}</p>);
+};
+```
+
 ## Shorthand Code
 
 You can use modular function in init.
@@ -255,6 +255,7 @@ Supporting function in init
 -   batch
 -   state
 -   watch
+-   computed
 
 ```tsx
 import App, { init } from "@blaze";
@@ -266,11 +267,7 @@ const Hello = function () {
     });
     mount(() => console.log("mount"));
     layout(() => console.log("layout"));
-    render(() => (
-        <div>
-            <p>Hello World</p>
-        </div>
-    ));
+    render(() => <p>Hello World</p>);
 };
 const app = new App("#app", Hello, {
     dev: import.meta.env.DEV,
@@ -294,14 +291,7 @@ const Hello = function () {
     );
     mount(() => console.log("mount"), this);
     layout(() => console.log("mount"), this);
-    render(
-        () => (
-            <>
-                <p>Hello World</p>
-            </>
-        ),
-        this
-    );
+    render(() => <p>Hello World</p>, this);
 };
 const app = new App("#app", Hello, {
     dev: import.meta.env.DEV,
@@ -312,9 +302,7 @@ app.mount();
 ## Access Children
 
 ```tsx
-<>
-    <div>{this.children}</div>
-</>
+<div>{this.children}</div>
 ```
 
 ## About Attributes
@@ -376,7 +364,7 @@ const MyApp = function () {
             <portalApp key={3} show={false} />
         </div>
     ));
-}
+};
 ```
 
 ## Multiple App
@@ -398,11 +386,11 @@ const Hello = function (prevComponent, rootApp) {
 };
 const app = new createApp("#app", Hello, {
     dev: import.meta.env.DEV,
-    key: 0
+    key: 0,
 });
 const app2 = new createApp("#app-2", Hello, {
     dev: import.meta.env.DEV,
-    key: 1
+    key: 1,
 });
 app.mount();
 app2.mount();
