@@ -1,5 +1,5 @@
 import _ from "lodash";
-import { unmountCall } from "./core";
+import { unmountCall, removeComponentOrEl } from "./core";
 import { log } from "./utils";
 import { Component } from "./blaze.d";
 
@@ -273,27 +273,4 @@ function nextDiffChildren(children: HTMLElement[], newest: any, component: Compo
 	});
 }
 
-function removeComponentOrEl(item: HTMLElement, component: Component) {
-	if (item.$children) {
-		let check = component.$deep.registry.find(
-			(registry) =>
-				registry.component.constructor.name === item.$children.constructor.name &&
-				registry.key === item.key
-		);
-		if (check) {
-			check.component.$deep.remove();
-			component.$deep.registry = component.$deep.registry.filter(
-				(registry) =>
-					!(
-						registry.component.constructor.name === item.$children.constructor.name &&
-						registry.key === item.key
-					)
-			);
-		} else {
-			item.remove();
-		}
-	} else {
-		item.remove();
-	}
-}
 export default diff;

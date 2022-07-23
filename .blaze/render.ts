@@ -36,7 +36,7 @@ export class createApp implements InterfaceApp {
 			window.$blaze[this.config.key] = this.blaze;
 			// run plugin
 			this.plugin.forEach((plugin: any) => plugin(window.$app[this.config.key], window.$blaze[this.config.key], hmr, this.config.key));
-			addComponent(app, false);
+			addComponent(app, true);
 			// render
 			app.$deep.disableEqual = true
 			rendering(app, null, true, false, {}, 0, app.constructor.name, [], {

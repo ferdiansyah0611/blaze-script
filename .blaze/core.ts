@@ -403,7 +403,7 @@ export const rendering = (
 		msg = `[${nodeName.name}] ${duration}ms`;
 		component.$deep.time = duration;
 		// extension
-		if (window.$extension && !component.$deep.disableExtension) {
+		if (window.$extension && !component.disableExtension) {
 			batch(() => {
 				addLog(
 					{
@@ -476,3 +476,31 @@ export const rendering = (
 	if (first) return component.$node;
 	return render;
 };
+
+/**
+ * @removeComponentOrEl
+ * remove a subcomponent or element
+ */
+export const removeComponentOrEl = function(item: HTMLElement, component: Component){
+	if (item.$children) {
+		let check = component.$deep.registry.find(
+			(registry) =>
+				registry.component.constructor.name === item.$children.constructor.name &&
+				registry.key === item.key
+		);
+		if (check) {
+			check.component.$deep.remove();
+			component.$deep.registry = component.$deep.registry.filter(
+				(registry) =>
+					!(
+						registry.component.constructor.name === item.$children.constructor.name &&
+						registry.key === item.key
+					)
+			);
+		} else {
+			item.remove();
+		}
+	} else {
+		item.remove();
+	}
+}

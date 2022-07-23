@@ -6,7 +6,6 @@ Caching request with indexedDb and save expired on localStorage
 
 ```tsx
 import query from "@root/plugin/query";
-
 // ...
 const date = new Date()
 date.setMilliseconds("+2000")
@@ -26,7 +25,6 @@ query('https://newsapi.org/v2/everything?q=tesla&from=2022-06-22&sortBy=publishe
 	// handling the result data
 	handle: (result) => {
 		this.state.list = result
-		console.log(result)
 	}
 });
 ```

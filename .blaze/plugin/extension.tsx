@@ -1,5 +1,5 @@
 import { render, state, init, mount, batch } from "@blaze";
-import { mountCall } from "@root/core";
+import { rendering, mountCall } from "@root/core";
 
 type Log = {
 	msg: string;
@@ -31,10 +31,11 @@ export const withExtension = (entry: string, enabled: boolean) => {
 		let query = document.querySelector(entry);
 		if (query && enabled && !window.$extension) {
 			let component = new Extension(keyApp);
-			component.$node = component.render();
-			component.$node.dataset.key = 0;
-			mountCall(component.$deep, {}, true);
+			rendering(component, null, true, false, {}, 0, component.constructor.name, [], {
+				disableMount: true,
+			});
 			query.replaceChildren(component.$node);
+			mountCall(component.$deep, {}, true);
 		}
 	};
 };
@@ -46,7 +47,7 @@ export const reload = () => {
 }
 
 function Extension(keyApp) {
-	init(this);
+	const { render, state, mount } = init(this);
 	state(
 		"state",
 		{
@@ -66,8 +67,7 @@ function Extension(keyApp) {
 			selectComponent: {
 				$deep: {},
 			},
-		},
-		this
+		}
 	);
 	mount(() => {
 		// inject to window
@@ -103,7 +103,7 @@ function Extension(keyApp) {
 				this.state.runTest = false;
 			}, this);
 		}
-	}, this);
+	});
 	// action
 	const toggleOpen = () => {
 		let openClass = "fixed bottom-0 z-10 bg-gray-900 w-full";
@@ -183,7 +183,7 @@ function Extension(keyApp) {
 
 	render(() => {
 		return (
-			<>
+			<div>
 				<div class={this.state.open ? "block" : "hidden"}>
 					{/*console*/}
 					{this.state.openConsole && (
@@ -254,7 +254,7 @@ function Extension(keyApp) {
 								<h5 class="p-2 flex-1 font-bold">Component</h5>
 							</div>
 							<div class="flex">
-								<div refs="bodyComponent" style={"max-height: 50vh;overflow: auto;max-width: 300px;flex: 1;"}>
+								<div refs="bodyComponent" style={"max-height: 50vh;overflow: auto;flex: 1;"}>
 									<div class="sticky top-0 z-10 pr-2">
 										<input
 											onKeyUpValue={(value) => {
@@ -282,7 +282,7 @@ function Extension(keyApp) {
 										))}
 									</div>
 								</div>
-								<div d class="text-white flex-1" style={"max-height: 50vh;overflow: auto;"}>
+								<div d class="text-white flex-1" style={"max-height: 50vh;overflow: auto;max-width: 450px;"}>
 									<div>
 										{this.state.selectComponent.constructor.name !== "Object" ? (
 											<div d class="flex space-x-2 items-center p-2">
@@ -440,9 +440,9 @@ function Extension(keyApp) {
 						false
 					)}
 				</div>
-			</>
+			</div>
 		);
-	}, this);
+	});
 }
 
 function TestApp() {
@@ -487,66 +487,51 @@ function TestApp() {
 
 function ListExtension() {
 	this.disableExtension = true;
-	init(this);
+	const { render } = init(this);
 	render(() => {
 		return (
-			<>
-				<div style={this.props.style || ""} class="flex-1">
-					<button
-						onClick={() => this.props.setSelectComponent(this.props.item)}
-						class="bg-gray-800 p-2 w-full rounded-md mb-1 text-sm text-left"
-						data-search={this.props.item.constructor.name.toLowerCase()}
-						data-i={this.props.item.props.key || 0}
-					>
-						{"<"}{this.props.item.constructor.name}{this.props.item.props.key ? ` key="${this.props.item.props.key}"` : ""}{"/>"}
-					</button>
-					{this.props.item.$deep.registry.map((item, i) => (
-						<ListExtension
-							current={this.props.current + 1}
-							style={`margin-left: ${(this.props.current + 1) * 20}px;`}
-							key={i + 1}
-							setSelectComponent={this.props.setSelectComponent}
-							item={item.component}
-						/>
-					))}
-				</div>
-			</>
+			<div style={this.props.style || ""} class="flex-1">
+				<button
+					onClick={() => this.props.setSelectComponent(this.props.item)}
+					class="bg-gray-800 p-2 w-full rounded-md mb-1 text-sm text-left"
+					data-search={this.props.item.constructor.name.toLowerCase()}
+					data-i={this.props.item.props.key || 0}
+				>
+					{"<"}{this.props.item.constructor.name}{this.props.item.props.key ? ` key="${this.props.item.props.key}"` : ""}{"/>"}
+				</button>
+				{this.props.item.$deep.registry.map((item, i) => (
+					<ListExtension
+						current={this.props.current + 1}
+						style={`margin-left: ${(this.props.current + 1) * 20}px;`}
+						key={i + 1}
+						setSelectComponent={this.props.setSelectComponent}
+						item={item.component}
+					/>
+				))}
+			</div>
 		);
-	}, this);
+	});
 }
 
 function InputExtension() {
 	this.disableExtension = true;
-	init(this);
+	const { render } = init(this);
 	render(() => {
 		let { name, value, disableMargin, onChange } = this.props;
 		return (
-			<>
-				<div class={"flex space-x-2 items-center mt-1 text-sm p-2" + (disableMargin ? "" : " ml-2")}>
-					<p class="p-2 flex-1">{name}</p>
-					{(Array.isArray(value) || typeof value === "object") && !(typeof value === "function") ? (
-						<textarea
-							class="bg-black text-white p-2 flex-1 focus:outline-none"
-							onChangeValue={(val) => (onChange ? onChange(JSON.parse(val)) : (value = JSON.parse(val)))}
-							rows="5"
-							disabled={name === "key"}
-						>
-							{JSON.stringify(value)}
-						</textarea>
-					) : (
-						<input
-							class="bg-black text-white p-2 flex-1 focus:outline-none"
-							value={value}
-							onChangeValue={(val) => (onChange ? onChange(val) : (value = val))}
-							type={typeof value === "number" ? "number" : "text"}
-							disabled={name === "key" || typeof value === "function"}
-						/>
-					)}
-					<p class="p-2 italic flex-1 text-green-400">
-						{Array.isArray(value) ? `Array[${value.length}]` : typeof value}
-					</p>
-				</div>
-			</>
+			<div class={"flex space-x-2 items-center mt-1 text-sm p-2" + (disableMargin ? "" : " ml-2")}>
+				<p class="p-2 flex-1">{name}</p>
+				<input
+					class="bg-black text-white p-2 flex-1 focus:outline-none"
+					value={value}
+					onChangeValue={(val) => (onChange ? onChange(val) : (value = val))}
+					type={typeof value === "number" ? "number" : "text"}
+					disabled={name === "key" || ["function", "object"].includes(typeof value)}
+				/>
+				<p class="p-2 italic flex-1 text-green-400">
+					{Array.isArray(value) ? `Array[${value.length}]` : typeof value}
+				</p>
+			</div>
 		);
-	}, this);
+	});
 }
