@@ -12,13 +12,29 @@ import {
 	updated,
 	context,
 	dispatch,
+	computed,
 	getBlaze,
 } from "./utils";
 import { childrenObserve, attributeObserve, mountCall, unmountCall, rendering, init } from "./core";
 import { Component, RegisteryComponent } from "./blaze.d";
 import { diffChildren } from "./diff";
 // export
-export { log, render, state, watch, mount, layout, created, beforeUpdate, updated, batch, dispatch, init, context };
+export {
+	log,
+	render,
+	state,
+	watch,
+	mount,
+	layout,
+	created,
+	beforeUpdate,
+	updated,
+	batch,
+	dispatch,
+	computed,
+	init,
+	context,
+};
 
 /**
  * @createElement
@@ -35,7 +51,6 @@ export const e = function (
 	 * @delcaration
 	 */
 	const $deep = component.$deep;
-	let isFragment;
 
 	let el;
 
@@ -58,8 +73,8 @@ export const e = function (
 		if (!check) {
 			let newComponent = new nodeName(component, window.$app[component.$config?.key || 0]);
 			// inject config app
-			if(component.$config) {
-				newComponent.$config = component.$config
+			if (component.$config) {
+				newComponent.$config = component.$config;
 			}
 			// props registery
 			state("props", data ? { ...data } : {}, newComponent);
@@ -102,7 +117,7 @@ export const e = function (
 	const fragment = () => {
 		if (nodeName === "Fragment") {
 			nodeName = "div";
-			isFragment = true
+			el = document.createDocumentFragment();
 		}
 	};
 
@@ -113,6 +128,9 @@ export const e = function (
 	const makeElement = () => {
 		let svg;
 		let componentName = component.constructor.name;
+		if (el) {
+			return;
+		}
 		if (["svg", "path", "g", "circle", "ellipse", "line"].includes(nodeName) || data.svg) {
 			svg = true;
 			el = document.createElementNS("http://www.w3.org/2000/svg", nodeName);
@@ -124,10 +142,9 @@ export const e = function (
 		}
 		if (!svg) attributeObserve(data, el, component);
 		childrenObserve(children, el);
-		if(isFragment) el.$fragment = true
 		el.$name = componentName;
 		getBlaze(component.$config?.key || 0).runEveryMakeElement(el);
-		return el;
+		return;
 	};
 	/**
 	 * @call fragment, makeElement

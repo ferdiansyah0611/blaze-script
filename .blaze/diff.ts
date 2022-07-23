@@ -17,7 +17,7 @@ const diff = function (prev: HTMLElement, el: HTMLElement, component: Component)
 		batch.push(() => prev.replaceWith(el));
 		return batch;
 	}
-	if (!prev || ((prev.d || el.d) && !(el instanceof SVGElement))) {
+	if (!prev || ((prev.d || el.d) && !(el instanceof SVGElement)) || prev.nodeName === '#document-fragment') {
 		return batch;
 	}
 	// different component in same node
@@ -74,6 +74,41 @@ const diff = function (prev: HTMLElement, el: HTMLElement, component: Component)
 		}
 
 		if (!run) {
+			// prev < el
+			if (prev.childNodes.length < el.childNodes.length) {
+				prev.childNodes.forEach((node: any, i: number) => {
+					if (node.data !== prev.childNodes[i].data) {
+						run = true;
+						node.data = el.childNodes[i].data;
+					}
+					if(i === prev.childNodes.length - 1) {
+						run = true;
+						batch.push(() => {
+							el.childNodes.forEach((nodes: HTMLElement, key: number) => {
+								if(key > i) {
+									prev.appendChild(nodes);
+								}
+							});
+						});
+					}
+				});
+			}
+
+			// prev > el
+			if (prev.childNodes.length > el.childNodes.length) {
+				prev.childNodes.forEach((node: any, i: number) => {
+					if(!el.childNodes[i]) {
+						run = true;
+						return node.remove()
+					}
+					if (node.data !== el.childNodes[i].data) {
+						run = true;
+						node.data = el.childNodes[i].data;
+					}
+				});
+			}
+
+			// 0 && >= 1
 			if (!prev.childNodes.length && el.childNodes.length) {
 				batch.push(() => {
 					el.childNodes.forEach((node: HTMLElement) => {

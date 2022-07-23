@@ -1,7 +1,7 @@
 import _ from "lodash";
 import {escape} from 'html-escaper';
 import { log, getBlaze } from "./utils";
-import { e, mount, layout, dispatch, render, batch, state, watch, created, beforeUpdate, updated } from "./blaze";
+import { e, mount, layout, dispatch, render, batch, state, watch, created, beforeUpdate, updated, computed } from "./blaze";
 import { Component, Mount } from "./blaze.d";
 import { diffChildren } from "./diff";
 import { addLog } from "@root/plugin/extension";
@@ -72,6 +72,7 @@ export const init = (component: Component) => {
 		created: (callback) => created(callback, component),
 		beforeUpdate: (callback) => beforeUpdate(callback, component),
 		updated: (callback) => updated(callback, component),
+		computed: (data) => computed(data, component),
 	};
 };
 

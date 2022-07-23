@@ -264,3 +264,7 @@ export const dispatch = (name: string, component: Component, data: any, autoBatc
 		}
 	}
 };
+
+export const computed = (data: any, component: Component) => {
+	Object.assign(component, data)
+}
