@@ -159,7 +159,7 @@ const diff = function (prev: HTMLElement, el: HTMLElement, component: Component)
  * and diff element
  */
 export const diffChildren = (oldest: any, newest: any, component: Component, first: boolean = true) => {
-	if (!newest) {
+	if (!newest || !oldest) {
 		return;
 	}
 	if (oldest.for) {

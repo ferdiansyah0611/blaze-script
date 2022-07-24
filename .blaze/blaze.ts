@@ -52,7 +52,7 @@ export const e = function (
 	 */
 	const $deep = component.$deep;
 
-	let el;
+	let el, isFragment;
 
 	if (!data) {
 		data = {};
@@ -116,8 +116,8 @@ export const e = function (
 	 */
 	const fragment = () => {
 		if (nodeName === "Fragment") {
-			nodeName = "div";
 			el = document.createDocumentFragment();
+			isFragment = true;
 		}
 	};
 
@@ -128,19 +128,20 @@ export const e = function (
 	const makeElement = () => {
 		let svg;
 		let componentName = component.constructor.name;
-		if (el) {
-			return;
-		}
-		if (["svg", "path", "g", "circle", "ellipse", "line"].includes(nodeName) || data.svg) {
-			svg = true;
-			el = document.createElementNS("http://www.w3.org/2000/svg", nodeName);
-			for (const [k, v] of Object.entries(data)) {
-				el.setAttribute(k, v);
+		if(!isFragment) {
+			if (["svg", "path", "g", "circle", "ellipse", "line"].includes(nodeName) || data.svg) {
+				svg = true;
+				el = document.createElementNS("http://www.w3.org/2000/svg", nodeName);
+				for (const [k, v] of Object.entries(data)) {
+					el.setAttribute(k, v);
+				}
+			} else {
+				el = document.createElement(nodeName);
 			}
-		} else {
-			el = document.createElement(nodeName);
+
+			if (!svg) attributeObserve(data, el, component);
 		}
-		if (!svg) attributeObserve(data, el, component);
+
 		childrenObserve(children, el);
 		el.$name = componentName;
 		getBlaze(component.$config?.key || 0).runEveryMakeElement(el);

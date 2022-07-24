@@ -35,7 +35,7 @@ export const state = function (name: string, initial: any, component: Component 
 				set(a: any, b: string, c: any) {
 					a[b] = c;
 					registry.forEach((register: Component) => {
-						if (!register.$deep.batch) {
+						if (!register.$deep.batch && register.$deep.hasMount) {
 							register.$deep.trigger();
 						}
 						// watching
@@ -74,7 +74,7 @@ export const state = function (name: string, initial: any, component: Component 
 
 					a[b] = c;
 
-					if (allowed) {
+					if (allowed && component.$deep.hasMount) {
 						updatedCall(component.$deep);
 						component.$deep.trigger();
 					}
@@ -265,6 +265,28 @@ export const dispatch = (name: string, component: Component, data: any, autoBatc
 	}
 };
 
-export const computed = (data: any, component: Component) => {
-	Object.assign(component, data)
-}
+/**
+ * @computed
+ * shorted a code, customize data, and action function.
+ */
+export const computed = (callback: any, component: Component) => {
+	let data = callback.bind(component)();
+	let getter = data.get || {};
+	let setter = data.set || {};
+	let method = data.method || {};
+	for (const name of Object.keys(getter)) {
+		Object.defineProperty(component, name, {
+			get: () => {
+				return getter[name]();
+			},
+		});
+	}
+	for (const name of Object.keys(setter)) {
+		Object.defineProperty(component, name, {
+			set: () => {
+				return setter[name]();
+			},
+		});
+	}
+	Object.assign(component, method);
+};
