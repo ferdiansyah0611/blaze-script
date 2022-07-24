@@ -39,7 +39,7 @@ export class createApp implements InterfaceApp {
 			addComponent(app, true);
 			// render
 			app.$deep.disableEqual = true
-			rendering(app, null, true, false, {}, 0, app.constructor.name, [], {
+			rendering(app, null, true, false, {}, 0, app.constructor, [], {
 				disableMount: true,
 			});
 

@@ -254,7 +254,7 @@ const App = function () {
 };
 ```
 
-Access Computed In Out Of Function Component
+Access Computed Out Of Function Component
 
 ```tsx
 const AppComputed = (computed) => computed(function(){

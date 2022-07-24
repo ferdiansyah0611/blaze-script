@@ -38,25 +38,6 @@ export default function Extension(keyApp) {
 			});
 		// more
 		this.toggleOpen();
-		// prototype
-		this.addLog = (data: Log, trigger) => {
-			this.state.log.push(data);
-			if (trigger) this.$deep.trigger();
-		};
-		this.addComponent = (data, trigger) => {
-			this.state.component.push(data);
-			if (trigger) this.$deep.trigger();
-		};
-		this.reload = () => {
-			batch(() => {
-				clearLog();
-				this.state.selectComponent = {
-					$deep: {},
-				};
-				this.state.component = [];
-				this.state.runTest = false;
-			}, this);
-		};
 	});
 	computedExtension(computed, keyApp);
 
@@ -334,6 +315,26 @@ const computedExtension = (computed, keyApp) => {
 	computed(function () {
 		return {
 			method: {
+				// prototype
+				addLog: (data: Log, trigger) => {
+					this.state.log.push(data);
+					if (trigger) this.$deep.trigger();
+				},
+				addComponent: (data, trigger) => {
+					this.state.component.push(data);
+					if (trigger) this.$deep.trigger();
+				},
+				reload: () => {
+					batch(() => {
+						clearLog();
+						this.state.selectComponent = {
+							$deep: {},
+						};
+						this.state.component = [];
+						this.state.runTest = false;
+					}, this);
+				},
+				// more
 				toggleOpen: () => {
 					let openClass = "fixed bottom-0 z-10 bg-gray-900 w-full";
 					let closeClass = "fixed bottom-0 right-0 z-10 bg-gray-900";

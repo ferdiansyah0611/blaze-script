@@ -46,7 +46,7 @@ export const makeRouter = (entry: string, config: any) => {
 			current.$config = window.$app[keyApplication].$config
 		}
 		// render
-		rendering(current, null, true, false, {}, 0, component.name, []);
+		rendering(current, null, true, false, {}, 0, current.constructor, []);
 		addComponent(current);
 		const query = document.querySelector(entry);
 		Array.from(query.children).forEach((item) => item.remove());

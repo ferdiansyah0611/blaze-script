@@ -448,7 +448,7 @@ export const rendering = (
 	}
 
 	// portal component
-	if(component.$portal) {
+	if(component.$portal && component.$node.dataset) {
 		let query = document.body.querySelector(`[data-portal="${component.$portal}"]`)
 		let handle = () => {
 			if(data && data.hasOwnProperty('show')) {
