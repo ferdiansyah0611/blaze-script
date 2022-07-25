@@ -22,7 +22,8 @@ declare global{
         i?: number,
         key?: number,
         $index?: number
-        $root?: any
+        $root?: any,
+        updating?: boolean
     }
     interface ChildNode{
     	data: any,

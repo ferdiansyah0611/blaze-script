@@ -7,7 +7,7 @@ type Log = {
 	type?: "success" | "warn" | "error";
 };
 
-export const addLog = (data: Log, trigger = true) => {
+export const addLog = (data: Log, trigger: boolean = true) => {
 	if (window.$extension) {
 		window.$extension.addLog(
 			{

@@ -207,14 +207,22 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 		// same length children
 		else {
 			// updating data in children
-			let children = Array.from(oldest.children);
-			if (children[0].dataset.n) {
-				_.forEach(children, (node, i) => {
-					unmountAndRemoveRegistry(node.$children, node.key, node.$root);
-
-					let difference = diff(node, newest.children[i], component);
-					difference.forEach((rechange: Function) => rechange());
-					nextDiffChildren(Array.from(node.children), newest.children[i], node.$children);
+			let children: HTMLElement[] = Array.from(oldest.children);
+			// if component
+			if (children.length && children[0].dataset.n) {
+				_.forEach(children, (node: HTMLElement, i: number) => {
+					if (node.key !== newest.children[i].key) {
+						unmountAndRemoveRegistry(node.$children, node.key, node.$root);
+						node.replaceWith(newest.children[i]);
+					} else {
+						if (node.updating) {
+							node.updating = false;
+							let difference = diff(node, newest.children[i], node.$children);
+							let childrenCurrent: any = Array.from(node.children);
+							difference.forEach((rechange: Function) => rechange());
+							nextDiffChildren(childrenCurrent, newest.children[i], node.$children);
+						}
+					}
 				});
 			} else {
 				nextDiffChildren(children, newest, component);

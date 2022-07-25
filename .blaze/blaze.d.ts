@@ -33,6 +33,7 @@ export interface Component{
 	props: Object | any,
 	render: Function,
 	children: HTMLElement | boolean | any,
+	disableExtension?: boolean,
 	$deep: {
 		batch: boolean,
 		disableTrigger: boolean,
@@ -50,10 +51,11 @@ export interface Component{
 		disableAddUnmount?: boolean,
 		active?: boolean,
 		// lifecycle
+		beforeCreate?: Function[],
+		created?: Function[],
 		mount: Mount[],
 		unmount: Function[],
 		layout?: Function[],
-		created?: Function[],
 		beforeUpdate?: Function[],
 		updated?: Function[]
 	},

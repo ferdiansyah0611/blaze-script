@@ -1,7 +1,21 @@
 import _ from "lodash";
-import {escape} from 'html-escaper';
+import { escape } from "html-escaper";
 import { log, getBlaze } from "./utils";
-import { e, mount, layout, dispatch, render, batch, state, watch, beforeCreate, created, beforeUpdate, updated, computed } from "./blaze";
+import {
+	e,
+	mount,
+	layout,
+	dispatch,
+	render,
+	batch,
+	state,
+	watch,
+	beforeCreate,
+	created,
+	beforeUpdate,
+	updated,
+	computed,
+} from "./blaze";
 import { Component, Mount } from "./blaze.d";
 import { diffChildren } from "./diff";
 import { addLog } from "@root/plugin/extension";
@@ -44,7 +58,7 @@ export const init = (component: Component) => {
 				});
 				unmountCall(component.$deep);
 
-				if(component.$node) {
+				if (component.$node) {
 					component.$node.remove && component.$node.remove();
 				}
 
@@ -107,15 +121,15 @@ export const childrenObserve = (children: HTMLElement[], el: HTMLElement) => {
 	} else if (children.length) {
 		children.forEach((item, i) => {
 			// logic
-			if(!item) {
-				return
-			}
-			if(item.hasOwnProperty('if') && !item.if) {
+			if (!item) {
 				return;
 			}
-			if(item.else) {
+			if (item.hasOwnProperty("if") && !item.if) {
+				return;
+			}
+			if (item.else) {
 				let previous = Array.from(children)[i - 1];
-				if(previous.hasOwnProperty('if') && previous.if) {
+				if (previous.hasOwnProperty("if") && previous.if) {
 					return;
 				}
 			}
@@ -177,9 +191,9 @@ export const attributeObserve = (data: any, el: HTMLElement, component: Componen
 		// dataset
 		if (item.match(/^data-/)) {
 			let name = item.split("data-")[1];
-			let strip = name.indexOf('-');
-			if(strip !== -1) {
-				name = name.slice(0, strip) + name[strip + 1].toUpperCase() + name.slice(strip + 2)
+			let strip = name.indexOf("-");
+			if (strip !== -1) {
+				name = name.slice(0, strip) + name[strip + 1].toUpperCase() + name.slice(strip + 2);
 			}
 			el.dataset[name] = data[item];
 			return;
@@ -212,15 +226,15 @@ export const attributeObserve = (data: any, el: HTMLElement, component: Componen
 						if (!data.batch) {
 							await data[item](isValue ? e.target.value : e);
 						} else {
-							batch(async() => await data[item](isValue ? e.target.value : e), component);
+							batch(async () => await data[item](isValue ? e.target.value : e), component);
 						}
 					});
 				} else {
 					el.addEventListener(item.toLowerCase().slice(2), async (e) => {
 						if (!data.batch) {
-							await data[item](e)
+							await data[item](e);
 						} else {
-							batch(async() => await data[item](e), component);
+							batch(async () => await data[item](e), component);
 						}
 					});
 				}
@@ -387,7 +401,7 @@ export const rendering = (
 		render.key = data.key || key;
 		render.$children = component;
 		render.$root = root;
-	}
+	};
 
 	// beforeCreate effect
 	if (first) {
@@ -407,9 +421,6 @@ export const rendering = (
 				component: component,
 			});
 			component.$node.$index = index;
-		}
-		if(component.$node.dataset) {
-			component.$node.dataset.n = nodeName.name
 		}
 		// mount
 		getBlaze(component.$config?.key || 0).runEveryMakeComponent(component);
@@ -470,31 +481,35 @@ export const rendering = (
 	}
 
 	// portal component
-	if(component.$portal && component.$node.dataset) {
-		let query = document.body.querySelector(`[data-portal="${component.$portal}"]`)
+	if (component.$portal && component.$node.dataset) {
+		let query = document.body.querySelector(`[data-portal="${component.$portal}"]`);
 		let handle = () => {
-			if(data && data.hasOwnProperty('show')) {
-				if(!data.show) {
-					component.$node.style.display = 'none'
+			if (data && data.hasOwnProperty("show")) {
+				if (!data.show) {
+					component.$node.style.display = "none";
 				} else {
-					component.$node.style.display = 'unset'
+					component.$node.style.display = "unset";
 				}
 			}
-		}
+		};
 		if (first) {
 			component.$node.dataset.portal = component.$portal;
-			handle()
-			document.body.appendChild(component.$node)
-		}
-		else {
 			handle();
-			if(query) {
+			document.body.appendChild(component.$node);
+		} else {
+			handle();
+			if (query) {
 				render.dataset.portal = component.$portal;
 				diffChildren(component.$node, render, component);
 			}
 		}
 		return false;
 	}
+
+	if (component.$node.dataset) {
+		component.$node.dataset.n = nodeName.name;
+	}
+
 	if (first) return component.$node;
 	return render;
 };
@@ -503,13 +518,9 @@ export const rendering = (
  * @removeComponentOrEl
  * remove a subcomponent or element
  */
-export const removeComponentOrEl = function(item: HTMLElement, component: Component){
+export const removeComponentOrEl = function (item: HTMLElement, component: Component) {
 	if (item.$children) {
-		let check = component.$deep.registry.find(
-			(registry) =>
-				registry.component.constructor.name === item.$children.constructor.name &&
-				registry.key === item.key
-		);
+		let check = component.$deep.registry[item.$index - 1];
 		if (check) {
 			check.component.$deep.remove();
 			component.$deep.registry = component.$deep.registry.filter(
@@ -525,19 +536,15 @@ export const removeComponentOrEl = function(item: HTMLElement, component: Compon
 	} else {
 		item.remove();
 	}
-}
+};
 
 export const unmountAndRemoveRegistry = (current: Component, key: number, component: Component) => {
-	component.$deep.registry = component.$deep.registry.filter(
-		(registry) => {
-			if(!(
-				registry.component.constructor.name === current.constructor.name &&
-				registry.key === key
-			)){
-				return registry
-			} else {
-				unmountCall(registry.component.$deep)
-			}
+	component.$deep.registry = component.$deep.registry.filter((registry) => {
+		if (!(registry.component.constructor.name === current.constructor.name && registry.key === key)) {
+			return registry;
+		} else {
+			unmountCall(registry.component.$deep);
+			return false;
 		}
-	);
-}
+	});
+};

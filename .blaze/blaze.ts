@@ -104,7 +104,15 @@ export const e = function (
 		});
 
 		if (equal === false) {
-			state("props", data ? { ...data } : {}, check.component);
+			// disable trigger on update props
+			let newProps = data ? { ...data } : {};
+			check.component.$deep.disableTrigger = true;
+			for(const [keyProps, valueProps] of Object.entries(newProps)) {
+				check.component.props[keyProps] = valueProps
+			}
+			check.component.$deep.disableTrigger = false;
+			// trigger only on node.updating
+			check.component.$node.updating = true
 		}
 
 		const result = rendering(check.component, $deep, false, false, data, key, nodeName, children);

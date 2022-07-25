@@ -1,4 +1,4 @@
-import { render, state, init, mount, batch } from "@blaze";
+import { init, batch } from "@blaze";
 import InputExtension from "./InputExtension";
 import ListExtension from "./ListExtension";
 import Testing from "./Testing";
@@ -316,7 +316,7 @@ const computedExtension = (computed, keyApp) => {
 		return {
 			method: {
 				// prototype
-				addLog: (data: Log, trigger) => {
+				addLog: (data, trigger) => {
 					this.state.log.push(data);
 					if (trigger) this.$deep.trigger();
 				},
