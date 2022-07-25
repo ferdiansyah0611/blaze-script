@@ -53,50 +53,52 @@ export const state = function (name: string, initial: any, component: Component 
 	}
 	// for state
 	else {
-		let handle = (b, c) => {
-			// watching
-			component.$deep.watch.forEach((watch: Watch) => {
-				let find = watch.dependencies.find((item: string) => item === `${name}.${b}`);
-				if (find) {
-					watch.handle(b, c);
+		created(() => {
+			let handle = (b, c) => {
+				// watching
+				component.$deep.watch.forEach((watch: Watch) => {
+					let find = watch.dependencies.find((item: string) => item === `${name}.${b}`);
+					if (find) {
+						watch.handle(b, c);
+					}
+				});
+			};
+			// for update
+			component[name] = new Proxy(
+				{ ...initial, _isProxy: true },
+				{
+					set(a, b, c) {
+						let allowed = !component.$deep.batch && !component.$deep.disableTrigger;
+						if (allowed) {
+							beforeUpdateCall(component.$deep);
+						}
+
+						a[b] = c;
+
+						if (allowed && component.$deep.hasMount) {
+							updatedCall(component.$deep);
+							component.$deep.trigger();
+						}
+						if (!component.$deep.disableTrigger) {
+							handle(b, c);
+						}
+						return true;
+					},
 				}
-			});
-		};
-		// for update
-		component[name] = new Proxy(
-			{ ...initial, _isProxy: true },
-			{
-				set(a, b, c) {
-					let allowed = !component.$deep.batch && !component.$deep.disableTrigger;
-					if (allowed) {
-						beforeUpdateCall(component.$deep);
-					}
-
-					a[b] = c;
-
-					if (allowed && component.$deep.hasMount) {
-						updatedCall(component.$deep);
-						component.$deep.trigger();
-					}
-					if (!component.$deep.disableTrigger) {
-						handle(b, c);
-					}
-					return true;
-				},
+			);
+			// trigger for first render
+			if (name === "props" && !component.$deep.update) {
+				component.$deep.disableTrigger = true;
+				for (const props of Object.entries(component.props)) {
+					handle(props[0], props[1]);
+				}
+				component.$deep.disableTrigger = false;
+				mount(() => {
+					component.$deep.trigger();
+				}, component);
 			}
-		);
-		// trigger for first render
-		if (name === "props" && !component.$deep.update) {
-			component.$deep.disableTrigger = true;
-			for (const props of Object.entries(component.props)) {
-				handle(props[0], props[1]);
-			}
-			component.$deep.disableTrigger = false;
-			mount(() => {
-				component.$deep.trigger();
-			}, component);
-		}
-		return component[name];
+			
+		}, component)
 	}
 };
 
@@ -195,7 +197,7 @@ export const layout = (callback: Function, component: Component) => {
 
 /**
  * @beforeCreate
- * lifecycle methods on before updated component
+ * lifecycle methods on before before create component
  */
 export const beforeCreate = (callback: Function, component: Component) => {
 	if (!component.$deep.beforeCreate) {

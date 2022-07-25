@@ -10,7 +10,7 @@ const App = function () {
 
 ## beforeCreate
 
-Before render called
+before state or context created
 
 ```tsx
 beforeCreate(() => {

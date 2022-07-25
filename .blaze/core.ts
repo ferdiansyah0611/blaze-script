@@ -30,7 +30,7 @@ export const init = (component: Component) => {
 					null,
 					false,
 					false,
-					{},
+					component.props,
 					component.props.key || 0,
 					component.constructor,
 					component.children
@@ -43,7 +43,10 @@ export const init = (component: Component) => {
 					item.component.$deep.remove();
 				});
 				unmountCall(component.$deep);
-				component.$node?.remove();
+
+				if(component.$node) {
+					component.$node.remove && component.$node.remove();
+				}
 
 				if (!notClear) {
 					this.node = [];
@@ -52,6 +55,10 @@ export const init = (component: Component) => {
 					this.mount = [];
 					this.unmount = [];
 					this.layout = [];
+					this.created = [];
+					this.beforeCreate = [];
+					this.updated = [];
+					this.beforeUpdate = [];
 				}
 			},
 		};
@@ -124,11 +131,8 @@ export const childrenObserve = (children: HTMLElement[], el: HTMLElement) => {
 				return;
 			}
 			if (Array.isArray(item)) {
-				let key = 0;
 				for (const subchildren of item) {
 					if (subchildren) {
-						subchildren.key = key;
-						key++;
 						el.appendChild(subchildren);
 					}
 				}
@@ -380,7 +384,7 @@ export const rendering = (
 
 	const renderComponent = () => {
 		render = component.render();
-		render.key = key;
+		render.key = data.key || key;
 		render.$children = component;
 		render.$root = root;
 	}
@@ -389,13 +393,10 @@ export const rendering = (
 	if (first) {
 		old = performance.now();
 		beforeCreateCall(component.$deep);
+		createdCall(component.$deep);
 	}
 	// call render component
 	renderComponent();
-	// created effect
-	if(first) {
-		createdCall(component.$deep);
-	}
 
 	if (first) {
 		component.children = children ? children : false;
@@ -406,6 +407,9 @@ export const rendering = (
 				component: component,
 			});
 			component.$node.$index = index;
+		}
+		if(component.$node.dataset) {
+			component.$node.dataset.n = nodeName.name
 		}
 		// mount
 		getBlaze(component.$config?.key || 0).runEveryMakeComponent(component);
@@ -521,4 +525,19 @@ export const removeComponentOrEl = function(item: HTMLElement, component: Compon
 	} else {
 		item.remove();
 	}
+}
+
+export const unmountAndRemoveRegistry = (current: Component, key: number, component: Component) => {
+	component.$deep.registry = component.$deep.registry.filter(
+		(registry) => {
+			if(!(
+				registry.component.constructor.name === current.constructor.name &&
+				registry.key === key
+			)){
+				return registry
+			} else {
+				unmountCall(registry.component.$deep)
+			}
+		}
+	);
 }

@@ -326,7 +326,7 @@ const computedExtension = (computed, keyApp) => {
 				},
 				reload: () => {
 					batch(() => {
-						clearLog();
+						this.clearLog();
 						this.state.selectComponent = {
 							$deep: {},
 						};

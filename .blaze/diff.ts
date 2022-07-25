@@ -1,5 +1,5 @@
 import _ from "lodash";
-import { unmountCall, removeComponentOrEl } from "./core";
+import { unmountCall, removeComponentOrEl, unmountAndRemoveRegistry } from "./core";
 import { log } from "./utils";
 import { Component } from "./blaze.d";
 
@@ -17,13 +17,14 @@ const diff = function (prev: HTMLElement, el: HTMLElement, component: Component)
 		batch.push(() => prev.replaceWith(el));
 		return batch;
 	}
-	if (!prev || ((prev.d || el.d) && !(el instanceof SVGElement)) || prev.nodeName === '#document-fragment') {
+	if (prev.key !== el.key) {
+		batch.push(() => (prev.key = el.key));
+	}
+	if (!prev || ((prev.d || el.d) && !(el instanceof SVGElement)) || prev.nodeName === "#document-fragment") {
 		return batch;
 	}
 	// different component in same node
-	if (
-		prev.$name && el.$name && prev.$name !== el.$name
-	) {
+	if (prev.$name && el.$name && prev.$name !== el.$name) {
 		let name = prev.$name;
 		let key = prev.key;
 
@@ -77,11 +78,11 @@ const diff = function (prev: HTMLElement, el: HTMLElement, component: Component)
 						run = true;
 						node.data = el.childNodes[i].data;
 					}
-					if(i === prev.childNodes.length - 1) {
+					if (i === prev.childNodes.length - 1) {
 						run = true;
 						batch.push(() => {
 							el.childNodes.forEach((nodes: HTMLElement, key: number) => {
-								if(key > i) {
+								if (key > i) {
 									prev.appendChild(nodes);
 								}
 							});
@@ -93,9 +94,9 @@ const diff = function (prev: HTMLElement, el: HTMLElement, component: Component)
 			// prev > el
 			if (prev.childNodes.length > el.childNodes.length) {
 				prev.childNodes.forEach((node: any, i: number) => {
-					if(!el.childNodes[i]) {
+					if (!el.childNodes[i]) {
 						run = true;
-						return node.remove()
+						return node.remove();
 					}
 					if (node.data !== el.childNodes[i].data) {
 						run = true;
@@ -206,7 +207,18 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 		// same length children
 		else {
 			// updating data in children
-			nextDiffChildren(Array.from(oldest.children), newest, component);
+			let children = Array.from(oldest.children);
+			if (children[0].dataset.n) {
+				_.forEach(children, (node, i) => {
+					unmountAndRemoveRegistry(node.$children, node.key, node.$root);
+
+					let difference = diff(node, newest.children[i], component);
+					difference.forEach((rechange: Function) => rechange());
+					nextDiffChildren(Array.from(node.children), newest.children[i], node.$children);
+				});
+			} else {
+				nextDiffChildren(children, newest, component);
+			}
 			return;
 		}
 	}
@@ -251,7 +263,7 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 					data.parentElement.$checking.push(data.$children);
 				}
 			}
-			if (data.parentElement.$checking && i === newest.children.length - 1) {
+			if (data.parentElement && data.parentElement.$checking && i === newest.children.length - 1) {
 				component.$deep.checking = data.parentElement.$checking;
 			}
 		});
