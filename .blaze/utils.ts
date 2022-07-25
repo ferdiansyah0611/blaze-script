@@ -194,6 +194,18 @@ export const layout = (callback: Function, component: Component) => {
 };
 
 /**
+ * @beforeCreate
+ * lifecycle methods on before updated component
+ */
+export const beforeCreate = (callback: Function, component: Component) => {
+	if (!component.$deep.beforeCreate) {
+		component.$deep.beforeCreate = [];
+	}
+	component.$deep.beforeCreate.push(callback);
+	return true;
+};
+
+/**
  * @created
  * lifecycle methods on created component
  */

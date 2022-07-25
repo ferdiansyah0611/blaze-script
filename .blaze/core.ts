@@ -1,7 +1,7 @@
 import _ from "lodash";
 import {escape} from 'html-escaper';
 import { log, getBlaze } from "./utils";
-import { e, mount, layout, dispatch, render, batch, state, watch, created, beforeUpdate, updated, computed } from "./blaze";
+import { e, mount, layout, dispatch, render, batch, state, watch, beforeCreate, created, beforeUpdate, updated, computed } from "./blaze";
 import { Component, Mount } from "./blaze.d";
 import { diffChildren } from "./diff";
 import { addLog } from "@root/plugin/extension";
@@ -62,17 +62,18 @@ export const init = (component: Component) => {
 	}
 
 	return {
-		mount: (callback: Function) => mount(callback, component),
-		layout: (callback: Function) => layout(callback, component),
 		dispatch: (name: string, data: any) => dispatch(name, component, data),
 		render: (callback: Function) => render(callback, component),
 		batch: (callback: Function) => batch(callback, component),
 		state: (...argv: any[]) => state.apply(null, [...argv, component]),
 		watch: (...argv: any[]) => watch.apply(null, [...argv, component]),
+		beforeCreate: (callback) => beforeCreate(callback, component),
 		created: (callback) => created(callback, component),
+		mount: (callback: Function) => mount(callback, component),
 		beforeUpdate: (callback) => beforeUpdate(callback, component),
 		updated: (callback) => updated(callback, component),
 		computed: (data) => computed(data, component),
+		layout: (callback: Function) => layout(callback, component),
 	};
 };
 
@@ -279,6 +280,14 @@ export const layoutCall = ($deep: Component["$deep"]) => {
 };
 
 /**
+ * @beforeCreateCall
+ * for run before update data lifecycle
+ */
+export const beforeCreateCall = ($deep: Component["$deep"]) => {
+	if ($deep.beforeCreate) $deep.beforeCreate.forEach((item: Function) => item());
+};
+
+/**
  * @createdCall
  * for run created lifecycle
  */
@@ -367,17 +376,26 @@ export const rendering = (
 	config?: any,
 	root?: Component
 ) => {
-	let old, now, duration, msg, warn;
+	let old, now, duration, msg, warn, render;
 
-	if (first) {
-		old = performance.now();
-		createdCall(component.$deep);
+	const renderComponent = () => {
+		render = component.render();
+		render.key = key;
+		render.$children = component;
+		render.$root = root;
 	}
 
-	let render = component.render();
-	render.key = key;
-	render.$children = component;
-	render.$root = root;
+	// beforeCreate effect
+	if (first) {
+		old = performance.now();
+		beforeCreateCall(component.$deep);
+	}
+	// call render component
+	renderComponent();
+	// created effect
+	if(first) {
+		createdCall(component.$deep);
+	}
 
 	if (first) {
 		component.children = children ? children : false;
