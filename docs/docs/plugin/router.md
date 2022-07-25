@@ -1,6 +1,8 @@
 # Router
 
-## Create
+Plugin for routing a page
+
+## Setup
 
 ```tsx
 // import it
