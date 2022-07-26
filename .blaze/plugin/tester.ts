@@ -1,4 +1,4 @@
-import _ from "lodash";
+import isEqualWith from "lodash/isEqualWith";
 
 export default class Tester {
 	component: any;
@@ -73,8 +73,8 @@ export default class Tester {
 				return this;
 			},
 			toEqual(expect) {
-				let equal = _.isEqualWith(value, expect, function (val1, val2): any {
-					if (_.isFunction(val1) && _.isFunction(val2)) {
+				let equal = isEqualWith(value, expect, function (val1, val2): any {
+					if (typeof val1 === 'function' && typeof val2 === 'function') {
 						return val1.toString() === val2.toString();
 					}
 				});

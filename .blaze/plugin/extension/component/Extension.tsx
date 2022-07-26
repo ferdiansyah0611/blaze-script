@@ -398,7 +398,10 @@ const computedExtension = (computed, keyApp) => {
 						}
 					}
 				},
-				clearLog: () => (this.state.log = []),
+				clearLog: () => {
+					this.state.log = [];
+					console.clear();
+				},
 				setSelectComponent: (data) => (this.state.selectComponent = data),
 			},
 			get: {

@@ -1,4 +1,4 @@
-import _ from "lodash";
+import isEqualWith from "lodash/isEqualWith";
 import {
 	log,
 	render,
@@ -16,7 +16,8 @@ import {
 	computed,
 	getBlaze,
 } from "./utils";
-import { childrenObserve, attributeObserve, rendering, init } from "./core";
+import { rendering, init } from "./core";
+import { childrenObserve, attributeObserve } from "./observe";
 import { Component, RegisteryComponent } from "./blaze.d";
 import { diffChildren } from "./diff";
 // export
@@ -64,7 +65,7 @@ export const e = function (
 	 * @component
 	 * check component if not exist add to registery $deep, rendering, and lifecycle. if exists and props has changed are will trigger
 	 */
-	if (_.isFunction(nodeName)) {
+	if (typeof nodeName === 'function') {
 		let key = data.key ?? 0;
 		let check = $deep.registry.find(
 			(item: RegisteryComponent) => item.component.constructor.name === nodeName.name && item.key === key
@@ -85,8 +86,8 @@ export const e = function (
 		}
 
 		let propsObject = { ...check.component.props };
-		let equal = _.isEqualWith(propsObject, { ...data, _isProxy: true }, function (val1, val2): any {
-			if (_.isFunction(val1) && _.isFunction(val2)) {
+		let equal = isEqualWith(propsObject, { ...data, _isProxy: true }, function (val1, val2): any {
+			if (typeof val1 === 'function' && typeof val2 === 'function') {
 				return val1.toString() === val2.toString();
 			}
 		});
@@ -95,12 +96,12 @@ export const e = function (
 			// disable trigger on update props
 			let newProps = data ? { ...data } : {};
 			check.component.$deep.disableTrigger = true;
-			for(const [keyProps, valueProps] of Object.entries(newProps)) {
-				check.component.props[keyProps] = valueProps
+			for (const [keyProps, valueProps] of Object.entries(newProps)) {
+				check.component.props[keyProps] = valueProps;
 			}
 			check.component.$deep.disableTrigger = false;
 			// trigger only on node.updating
-			check.component.$node.updating = true
+			check.component.$node.updating = true;
 		}
 
 		const result = rendering(check.component, $deep, false, false, data, key, nodeName, children);
@@ -126,7 +127,7 @@ export const e = function (
 	const makeElement = () => {
 		let svg;
 		let componentName = component.constructor.name;
-		if(!isFragment) {
+		if (!isFragment) {
 			if (["svg", "path", "g", "circle", "ellipse", "line"].includes(nodeName) || data.svg) {
 				svg = true;
 				el = document.createElementNS("http://www.w3.org/2000/svg", nodeName);

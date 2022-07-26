@@ -1,4 +1,3 @@
-import _ from "lodash";
 import {
 	unmountCall,
 	removeComponentOrEl,
@@ -172,23 +171,30 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 		return;
 	}
 	if (oldest.for) {
+		let oldestChildren: HTMLElement[] = Array.from(oldest.children),
+			newestChildren: HTMLElement[] = Array.from(newest.children),
+			from = (arr) => Array.from(arr);
+
+		if(!oldest.children.length && !newest.children.length) {
+			return;
+		}
 		// replacing if oldest.children === 0
-		if (!oldest.children.length && newest.children.length) {
+		else if (!oldest.children.length && newest.children.length) {
 			oldest.replaceChildren(...newest.children);
-			_.forEach(oldest.children, (node) => {
+			from(oldest.children).forEach((node: HTMLElement) => {
 				// mount
 				mountComponentFromEl(node);
 			});
 			return;
 		} else if (oldest.children.length && newest.children.length === 0) {
-			Array.from(oldest.children).forEach((item: HTMLElement) => {
+			oldestChildren.forEach((item: HTMLElement) => {
 				removeComponentOrEl(item, component);
 			});
 			return;
 		}
 		// not exists, auto delete...
 		else if (newest.children.length < oldest.children.length) {
-			Array.from(oldest.children).forEach((item: HTMLElement) => {
+			oldestChildren.forEach((item: HTMLElement) => {
 				let latest = findComponentNode(newest, item);
 				if (!latest) {
 					removeComponentOrEl(item, component);
@@ -200,7 +206,7 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 		}
 		// new children detection
 		else if (newest.children.length > oldest.children.length) {
-			Array.from(newest.children).forEach((item: HTMLElement, i: number) => {
+			newestChildren.forEach((item: HTMLElement, i: number) => {
 				let latest = findComponentNode(oldest, item);
 				if (!latest) {
 					let check = oldest.children[i];
@@ -222,43 +228,41 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 		// same length children
 		else {
 			// updating data in children
-			let children: HTMLElement[] = Array.from(oldest.children);
 			// if component
-			if (children.length && children[0].dataset.n) {
-				let latest: HTMLElement[] = Array.from(newest.children);
-				_.forEach(children, (node: HTMLElement, i: number) => {
-					if (latest[i] && node.key !== latest[i].key) {
+			if (oldestChildren.length && oldestChildren[0].dataset.n) {
+				oldestChildren.forEach((node: HTMLElement, i: number) => {
+					if (newestChildren[i] && node.key !== newestChildren[i].key) {
 						// unmount
 						unmountAndRemoveRegistry(node.$children, node.key, node.$root);
-						if (node.$name !== latest[i].$name) {
-							node.replaceWith(latest[i]);
+						if (node.$name !== newestChildren[i].$name) {
+							node.replaceWith(newestChildren[i]);
 						} else {
-							node.dataset.i = latest[i].key;
-							node.key = latest[i].key
-							let difference = diff(node, latest[i], node.$children);
+							node.dataset.i = newestChildren[i].key;
+							node.key = newestChildren[i].key
+							let difference = diff(node, newestChildren[i], node.$children);
 							let childrenCurrent: any = Array.from(node.children);
 							difference.forEach((rechange: Function) => rechange());
-							nextDiffChildren(childrenCurrent, latest[i], node.$children || component);
+							nextDiffChildren(childrenCurrent, newestChildren[i], node.$children || component);
 						}
 						// mount
-						mountComponentFromEl(latest[i]);
+						mountComponentFromEl(newestChildren[i]);
 					} else {
 						if (node.updating) {
 							node.updating = false;
-							let difference = diff(node, latest[i], node.$children);
+							let difference = diff(node, newestChildren[i], node.$children);
 							let childrenCurrent: any = Array.from(node.children);
 							difference.forEach((rechange: Function) => rechange());
-							nextDiffChildren(childrenCurrent, latest[i], node.$children || component);
+							nextDiffChildren(childrenCurrent, newestChildren[i], node.$children || component);
 						}
 					}
 				});
 			} else {
-				nextDiffChildren(children, newest, component);
+				nextDiffChildren(Array.from(oldest.children), newest, component);
 			}
 			return;
 		}
 	}
-	if (_.isBoolean(oldest.show)) {
+	if (typeof oldest.show === 'boolean') {
 		if (!newest.show) {
 			oldest.remove();
 			return;
@@ -269,17 +273,19 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 		return;
 	}
 	if (oldest.children.length !== newest.children.length) {
-		let latestChildren = Array.from(newest.children);
-		let insert;
+		let oldestChildren: HTMLElement[] = Array.from(oldest.children),
+			newestChildren: HTMLElement[] = Array.from(newest.children),
+			insert: boolean = false;
+
 		if (!oldest.children.length && newest.children.length) {
 			oldest.replaceChildren(...newest.children);
-			_.forEach(oldest.children, (node) => {
+			oldestChildren.forEach((node) => {
 				// mount
 				mountComponentFromEl(node);
 			});
 			return;
 		} else if (oldest.children.length && !newest.children.length) {
-			_.forEach(oldest.children, (node) => {
+			oldestChildren.forEach((node) => {
 				// unmount
 				unmountAndRemoveRegistry(node.$children, node.key, node.$root);
 			});
@@ -287,8 +293,8 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 			return;
 		} else if (newest.children.length < oldest.children.length) {
 			log("[different] newest < oldest");
-			_.forEach(Array.from(oldest.children), (node) => {
-				if (_.isNumber(node.key) || _.isString(node.key)) {
+			oldestChildren.forEach((node) => {
+				if (['number', 'string'].includes(typeof node.key)) {
 					let latest = findComponentNode(newest, node);
 					if (!latest) {
 						// unmount
@@ -304,8 +310,8 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 			return;
 		} else if (newest.children.length > oldest.children.length) {
 			log("[different] newest > oldest");
-			latestChildren.forEach((node: HTMLElement, i: number) => {
-				if (_.isNumber(node.key) || _.isString(node.key)) {
+			newestChildren.forEach((node: HTMLElement, i: number) => {
+				if (['number', 'string'].includes(typeof node.key)) {
 					let latest = findComponentNode(oldest, node);
 					if (!latest) {
 						let check = oldest.children[i];
@@ -323,7 +329,7 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 			});
 
 			if (!insert) {
-				oldest.replaceChildren(...latestChildren);
+				oldest.replaceChildren(...newestChildren);
 			}
 			return;
 		}
