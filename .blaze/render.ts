@@ -1,5 +1,5 @@
 import { addLog, addComponent, reload } from "@root/plugin/extension";
-import { mountCall, rendering } from "./core";
+import { rendering } from "./core";
 import { getBlaze, batch } from "./utils";
 import { Component, InterfaceApp, InterfaceBlaze } from "./blaze.d";
 
@@ -39,14 +39,13 @@ export class createApp implements InterfaceApp {
 			addComponent(app, true);
 			// render
 			app.$deep.disableEqual = true
-			rendering(app, null, true, false, {}, 0, app.constructor, [], {
-				disableMount: true,
-			});
+			rendering(app, null, true, false, {}, 0, app.constructor, []);
 
 			let query = document.querySelector(this.el);
 			Array.from(query.children).forEach((node: HTMLElement) => node.remove());
 			query.append(window.$app[this.config.key].$node);
-			mountCall(app.$deep, {}, false);
+			app.$deep.mounted(false)
+			// mountCall(app.$deep, {}, false);
 			// blaze event
 			getBlaze(this.config.key).runAfterAppReady(app);
 		};

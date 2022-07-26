@@ -1,4 +1,4 @@
-import { rendering, mountCall } from "@root/core";
+import { rendering } from "@root/core";
 import Extension from './component/Extension';
 
 type Log = {
@@ -31,11 +31,9 @@ export const withExtension = (entry: string, enabled: boolean) => {
 		let query = document.querySelector(entry);
 		if (query && enabled && !window.$extension) {
 			let component = new Extension(keyApp);
-			rendering(component, null, true, false, {}, 0, component.constructor.name, [], {
-				disableMount: true,
-			});
+			rendering(component, null, true, false, {}, 0, component.constructor.name, []);
 			query.replaceChildren(component.$node);
-			mountCall(component.$deep, {}, true);
+			component.$deep.mounted(false);
 		}
 	};
 };

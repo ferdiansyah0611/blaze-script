@@ -1,6 +1,6 @@
 import _ from "lodash";
 import { escape } from "html-escaper";
-import { log, getBlaze } from "./utils";
+import { getBlaze } from "./utils";
 import {
 	e,
 	mount,
@@ -52,8 +52,14 @@ export const init = (component: Component) => {
 				diffChildren(component.$node, result, component);
 				return result;
 			},
-			remove(notClear = false) {
-				this.registry.forEach((item) => {
+			mounted: (update) => {
+				mountCall(component.$deep, update ? component.props : {}, update);
+				component.$deep.registry.forEach((item) => {
+					item.component.$deep.mounted();
+				});
+			},
+			remove: (notClear = false) => {
+				component.$deep.registry.forEach((item) => {
 					item.component.$deep.remove();
 				});
 				unmountCall(component.$deep);
@@ -63,16 +69,15 @@ export const init = (component: Component) => {
 				}
 
 				if (!notClear) {
-					this.node = [];
-					this.registry = [];
-					this.watch = [];
-					this.mount = [];
-					this.unmount = [];
-					this.layout = [];
-					this.created = [];
-					this.beforeCreate = [];
-					this.updated = [];
-					this.beforeUpdate = [];
+					component.$deep.registry = [];
+					component.$deep.watch = [];
+					component.$deep.mount = [];
+					component.$deep.unmount = [];
+					component.$deep.layout = [];
+					component.$deep.created = [];
+					component.$deep.beforeCreate = [];
+					component.$deep.updated = [];
+					component.$deep.beforeUpdate = [];
 				}
 			},
 		};
@@ -135,7 +140,6 @@ export const childrenObserve = (children: HTMLElement[], el: HTMLElement) => {
 			}
 			// node
 			if (item && item.nodeName) {
-				log("[appendChild]", item.tagName);
 				el.appendChild(item);
 				return;
 			}
@@ -391,7 +395,6 @@ export const rendering = (
 	key: number,
 	nodeName: string | any,
 	children: HTMLElement[],
-	config?: any,
 	root?: Component
 ) => {
 	let old, now, duration, msg, warn, render;
@@ -429,7 +432,6 @@ export const rendering = (
 			warn = `[${nodeName.name}] key is 0. it's work, but add key property if have more on this component.`;
 			console.warn(warn);
 		}
-		if (!config || (config && !config.disableMount)) mountCall(component.$deep, {}, true);
 		// timer
 		now = performance.now();
 		duration = (now - old).toFixed(1);
@@ -464,7 +466,7 @@ export const rendering = (
 	if (!component.$deep.update) {
 		if (first) {
 			if (component.$node.isConnected) {
-				mountCall(component.$deep, data, true);
+				// mountCall(component.$deep, data, true);
 			}
 			layoutCall(component.$deep);
 		}
@@ -539,12 +541,20 @@ export const removeComponentOrEl = function (item: HTMLElement, component: Compo
 };
 
 export const unmountAndRemoveRegistry = (current: Component, key: number, component: Component) => {
-	component.$deep.registry = component.$deep.registry.filter((registry) => {
-		if (!(registry.component.constructor.name === current.constructor.name && registry.key === key)) {
-			return registry;
-		} else {
-			unmountCall(registry.component.$deep);
-			return false;
-		}
-	});
+	if(component) {
+		component.$deep.registry = component.$deep.registry.filter((registry) => {
+			if (!(registry.component.constructor.name === current.constructor.name && registry.key === key)) {
+				return registry;
+			} else {
+				unmountCall(registry.component.$deep);
+				return false;
+			}
+		});
+	}
 };
+
+export const mountComponentFromEl = (el: HTMLElement) => {
+	if(el.$children) {
+		el.$children.$deep.mounted();
+	}
+}

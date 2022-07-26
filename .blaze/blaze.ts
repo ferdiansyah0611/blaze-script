@@ -16,7 +16,7 @@ import {
 	computed,
 	getBlaze,
 } from "./utils";
-import { childrenObserve, attributeObserve, mountCall, unmountCall, rendering, init } from "./core";
+import { childrenObserve, attributeObserve, unmountCall, rendering, init } from "./core";
 import { Component, RegisteryComponent } from "./blaze.d";
 import { diffChildren } from "./diff";
 // export
@@ -80,7 +80,7 @@ export const e = function (
 			}
 			// props registery
 			state("props", data ? { ...data } : {}, newComponent);
-			const result = rendering(newComponent, $deep, true, true, data, key, nodeName, children, {}, component);
+			const result = rendering(newComponent, $deep, true, true, data, key, nodeName, children, component);
 			return result;
 		}
 		/**
@@ -88,7 +88,6 @@ export const e = function (
 		 * call lifecycle component
 		 * check equal old props with new props, if different then change old props to new props
 		 */
-		mountCall(check.component.$deep, data.props, true);
 		if (!check.component.$node.isConnected && check.component.$node.render) {
 			unmountCall(check.component.$deep);
 			$deep.registry = $deep.registry.filter(

@@ -51,6 +51,7 @@ export const makeRouter = (entry: string, config: any) => {
 		const query = document.querySelector(entry);
 		Array.from(query.children).forEach((item) => item.remove());
 		query.append(current.$node);
+		current.$deep.mounted(false)
 		app.$router.history.forEach((data) => {
 			data.current.$deep.remove();
 		});

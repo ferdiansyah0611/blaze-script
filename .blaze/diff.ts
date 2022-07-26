@@ -1,5 +1,5 @@
 import _ from "lodash";
-import { unmountCall, removeComponentOrEl, unmountAndRemoveRegistry } from "./core";
+import { unmountCall, removeComponentOrEl, unmountAndRemoveRegistry, mountComponentFromEl } from "./core";
 import { log } from "./utils";
 import { Component } from "./blaze.d";
 
@@ -42,8 +42,10 @@ const diff = function (prev: HTMLElement, el: HTMLElement, component: Component)
 		});
 		batch.push(() => {
 			prev.$name = el.$name;
+			prev.$children = el.$children;
 			prev.key = el.key || 0;
 			prev.replaceChildren(...Array.from(el.children));
+			mountComponentFromEl(prev);
 		});
 		return batch;
 	}
@@ -167,6 +169,10 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 		// replacing if oldest.children === 0
 		if (!oldest.children.length && newest.children.length) {
 			oldest.replaceChildren(...newest.children);
+			_.forEach(oldest.children, (node) => {
+				// mount
+				mountComponentFromEl(node);
+			});
 			return;
 		} else if (oldest.children.length && newest.children.length === 0) {
 			Array.from(oldest.children).forEach((item: HTMLElement) => {
@@ -188,7 +194,6 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 		}
 		// new children detection
 		else if (newest.children.length > oldest.children.length) {
-			// oldest.for = newest.for;
 			Array.from(newest.children).forEach((item: HTMLElement, i: number) => {
 				let latest = Array.from(oldest.children).find((el: HTMLElement) => el.key === item.key);
 				if (!latest) {
@@ -198,6 +203,9 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 					} else {
 						oldest.children[i - 1].insertAdjacentElement("afterend", item);
 					}
+
+					// mount
+					mountComponentFromEl(item);
 					return;
 				}
 			});
@@ -210,17 +218,20 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 			let children: HTMLElement[] = Array.from(oldest.children);
 			// if component
 			if (children.length && children[0].dataset.n) {
+				let latest: HTMLElement[] = Array.from(newest.children);
 				_.forEach(children, (node: HTMLElement, i: number) => {
-					if (node.key !== newest.children[i].key) {
+					if (latest[i] && node.key !== latest[i].key) {
 						unmountAndRemoveRegistry(node.$children, node.key, node.$root);
-						node.replaceWith(newest.children[i]);
+						node.replaceWith(latest[i]);
+						// mount
+						mountComponentFromEl(latest[i]);
 					} else {
 						if (node.updating) {
 							node.updating = false;
-							let difference = diff(node, newest.children[i], node.$children);
+							let difference = diff(node, latest[i], node.$children);
 							let childrenCurrent: any = Array.from(node.children);
 							difference.forEach((rechange: Function) => rechange());
-							nextDiffChildren(childrenCurrent, newest.children[i], node.$children);
+							nextDiffChildren(childrenCurrent, latest[i], node.$children);
 						}
 					}
 				});
@@ -241,41 +252,64 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 		return;
 	}
 	if (oldest.children.length !== newest.children.length) {
-		// checking element is component and exists in node or not
-		// if not exists, call remove component
-		if (component.$deep.checking) {
-			setTimeout(() => {
-				let nonactive = component.$deep.checking.filter((item) => item.$node.isConnected === false);
-				nonactive.forEach((item) => {
-					if (!item.$deep.active) {
-						item.$deep.active = true;
-						item.$deep.remove(true);
-					} else {
-						item.$deep.active = false;
+		let latestChildren = Array.from(newest.children);
+		let insert;
+		if (!oldest.children.length && newest.children.length) {
+			oldest.replaceChildren(...newest.children);
+			_.forEach(oldest.children, (node) => {
+				// mount
+				mountComponentFromEl(node);
+			});
+			return;
+		} else if (oldest.children.length && !newest.children.length) {
+			_.forEach(oldest.children, (node) => {
+				// unmount
+				unmountAndRemoveRegistry(node.$children, node.key, node.$root);
+			});
+			oldest.replaceChildren(...newest.children);
+			return;
+		} else if (newest.children.length < oldest.children.length) {
+			log("[different] newest < oldest");
+			_.forEach(Array.from(oldest.children), (node) => {
+				if (_.isNumber(node.key)) {
+					let latest = latestChildren.find((el: HTMLElement) => el.key === node.key);
+					if (!latest) {
+						// unmount
+						unmountAndRemoveRegistry(node.$children, node.key, node.$root);
+						insert = true;
+						node.remove();
 					}
-				});
-			}, 0);
-		}
-		_.forEach(newest.children, (data, i) => {
-			if (data.$children) {
-				if (data.$children.$deep.hasMount) {
-					data.$children.$deep.hasMount = false;
-					data.$children.$deep.mount = data.$children.$deep.mount.map((item) => {
-						item.run = false;
-						return item;
-					});
-					data.$children.$deep.disableAddUnmount = true;
-					if (!data.parentElement.$checking) {
-						data.parentElement.$checking = [];
-					}
-					data.parentElement.$checking.push(data.$children);
 				}
+			});
+			if (!insert) {
+				oldest.replaceChildren(...newest.children);
 			}
-			if (data.parentElement && data.parentElement.$checking && i === newest.children.length - 1) {
-				component.$deep.checking = data.parentElement.$checking;
+			return;
+		} else if (newest.children.length > oldest.children.length) {
+			log("[different] newest > oldest");
+			latestChildren.forEach((node: HTMLElement, i: number) => {
+				if (_.isNumber(node.key)) {
+					let latest = Array.from(oldest.children).find((el: HTMLElement) => el.key === node.key);
+					if (!latest) {
+						let check = oldest.children[i];
+						insert = true;
+						if (check) {
+							check.insertAdjacentElement("beforebegin", node);
+						} else {
+							oldest.children[i - 1].insertAdjacentElement("afterend", node);
+						}
+						// mount
+						mountComponentFromEl(node);
+						return;
+					}
+				}
+			});
+
+			if (!insert) {
+				oldest.replaceChildren(...latestChildren);
 			}
-		});
-		return oldest.replaceChildren(...newest.children);
+			return;
+		}
 	} else {
 		if (first) {
 			let difference = diff(oldest, newest, component);
