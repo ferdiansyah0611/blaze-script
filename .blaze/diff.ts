@@ -1,5 +1,11 @@
 import _ from "lodash";
-import { unmountCall, removeComponentOrEl, unmountAndRemoveRegistry, mountComponentFromEl } from "./core";
+import {
+	unmountCall,
+	removeComponentOrEl,
+	unmountAndRemoveRegistry,
+	mountComponentFromEl,
+	findComponentNode,
+} from "./core";
 import { log } from "./utils";
 import { Component } from "./blaze.d";
 
@@ -183,7 +189,7 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 		// not exists, auto delete...
 		else if (newest.children.length < oldest.children.length) {
 			Array.from(oldest.children).forEach((item: HTMLElement) => {
-				let latest = Array.from(newest.children).find((el: HTMLElement) => el.key === item.key);
+				let latest = findComponentNode(newest, item);
 				if (!latest) {
 					removeComponentOrEl(item, component);
 					return;
@@ -195,13 +201,14 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 		// new children detection
 		else if (newest.children.length > oldest.children.length) {
 			Array.from(newest.children).forEach((item: HTMLElement, i: number) => {
-				let latest = Array.from(oldest.children).find((el: HTMLElement) => el.key === item.key);
+				let latest = findComponentNode(oldest, item);
 				if (!latest) {
 					let check = oldest.children[i];
 					if (check) {
 						check.insertAdjacentElement("beforebegin", item);
 					} else {
-						oldest.children[i - 1].insertAdjacentElement("afterend", item);
+						let oldChild: HTMLElement[] = Array.from(oldest.children);
+						oldChild[i - 1].insertAdjacentElement("afterend", item);
 					}
 
 					// mount
@@ -221,8 +228,18 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 				let latest: HTMLElement[] = Array.from(newest.children);
 				_.forEach(children, (node: HTMLElement, i: number) => {
 					if (latest[i] && node.key !== latest[i].key) {
+						// unmount
 						unmountAndRemoveRegistry(node.$children, node.key, node.$root);
-						node.replaceWith(latest[i]);
+						if (node.$name !== latest[i].$name) {
+							node.replaceWith(latest[i]);
+						} else {
+							node.dataset.i = latest[i].key;
+							node.key = latest[i].key
+							let difference = diff(node, latest[i], node.$children);
+							let childrenCurrent: any = Array.from(node.children);
+							difference.forEach((rechange: Function) => rechange());
+							nextDiffChildren(childrenCurrent, latest[i], node.$children || component);
+						}
 						// mount
 						mountComponentFromEl(latest[i]);
 					} else {
@@ -231,7 +248,7 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 							let difference = diff(node, latest[i], node.$children);
 							let childrenCurrent: any = Array.from(node.children);
 							difference.forEach((rechange: Function) => rechange());
-							nextDiffChildren(childrenCurrent, latest[i], node.$children);
+							nextDiffChildren(childrenCurrent, latest[i], node.$children || component);
 						}
 					}
 				});
@@ -271,8 +288,8 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 		} else if (newest.children.length < oldest.children.length) {
 			log("[different] newest < oldest");
 			_.forEach(Array.from(oldest.children), (node) => {
-				if (_.isNumber(node.key)) {
-					let latest = latestChildren.find((el: HTMLElement) => el.key === node.key);
+				if (_.isNumber(node.key) || _.isString(node.key)) {
+					let latest = findComponentNode(newest, node);
 					if (!latest) {
 						// unmount
 						unmountAndRemoveRegistry(node.$children, node.key, node.$root);
@@ -288,8 +305,8 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 		} else if (newest.children.length > oldest.children.length) {
 			log("[different] newest > oldest");
 			latestChildren.forEach((node: HTMLElement, i: number) => {
-				if (_.isNumber(node.key)) {
-					let latest = Array.from(oldest.children).find((el: HTMLElement) => el.key === node.key);
+				if (_.isNumber(node.key) || _.isString(node.key)) {
+					let latest = findComponentNode(oldest, node);
 					if (!latest) {
 						let check = oldest.children[i];
 						insert = true;

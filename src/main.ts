@@ -19,8 +19,8 @@ declare global{
         isRouter: boolean,
         d: any,
         refs?: number,
-        i?: number,
-        key?: number,
+        i?: any,
+        key?: any,
         $index?: number
         $root?: any,
         updating?: boolean

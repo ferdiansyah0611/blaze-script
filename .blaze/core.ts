@@ -214,6 +214,12 @@ export const attributeObserve = (data: any, el: HTMLElement, component: Componen
 			}
 			// don't return
 		}
+		if (item === "key") {
+			el.dataset.n = component.constructor.name;
+			if (_.isNumber(data.key) || _.isString(data.key)) {
+				el.dataset.i = data.key;
+			}
+		}
 		// setHTML
 		if (item === "setHTML" && data[item]) {
 			el.innerHTML = escape(data[item]);
@@ -404,6 +410,12 @@ export const rendering = (
 		render.key = data.key || key;
 		render.$children = component;
 		render.$root = root;
+		if (render.dataset) {
+			render.dataset.n = nodeName.name;
+			if (_.isNumber(data.key) || _.isString(data.key)) {
+				render.dataset.i = data.key;
+			}
+		}
 	};
 
 	// beforeCreate effect
@@ -508,10 +520,6 @@ export const rendering = (
 		return false;
 	}
 
-	if (component.$node.dataset) {
-		component.$node.dataset.n = nodeName.name;
-	}
-
 	if (first) return component.$node;
 	return render;
 };
@@ -522,26 +530,23 @@ export const rendering = (
  */
 export const removeComponentOrEl = function (item: HTMLElement, component: Component) {
 	if (item.$children) {
-		let check = component.$deep.registry[item.$index - 1];
-		if (check) {
-			check.component.$deep.remove();
-			component.$deep.registry = component.$deep.registry.filter(
-				(registry) =>
-					!(
-						registry.component.constructor.name === item.$children.constructor.name &&
-						registry.key === item.key
-					)
-			);
-		} else {
-			item.remove();
-		}
+		component.$deep.registry = component.$deep.registry.filter((registry) => {
+			if (
+				!(registry.component.constructor.name === item.$children.constructor.name && registry.key === item.key)
+			) {
+				return registry
+			} else {
+				registry.component.$deep.remove();
+				return false;
+			}
+		});
 	} else {
 		item.remove();
 	}
 };
 
 export const unmountAndRemoveRegistry = (current: Component, key: number, component: Component) => {
-	if(component) {
+	if (component) {
 		component.$deep.registry = component.$deep.registry.filter((registry) => {
 			if (!(registry.component.constructor.name === current.constructor.name && registry.key === key)) {
 				return registry;
@@ -554,7 +559,11 @@ export const unmountAndRemoveRegistry = (current: Component, key: number, compon
 };
 
 export const mountComponentFromEl = (el: HTMLElement) => {
-	if(el.$children) {
+	if (el.$children) {
 		el.$children.$deep.mounted();
 	}
-}
+};
+
+export const findComponentNode = (parent: HTMLElement, item: HTMLElement) => {
+	return parent.querySelector(`[data-n="${item.$name}"][data-i="${item.key}"]`);
+};
