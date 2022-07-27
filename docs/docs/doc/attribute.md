@@ -68,3 +68,18 @@ Event listener reverse for a state or context
 	<button toggle="state.open">toggle</button>
 </section>
 ```
+
+## Refs
+
+Get current node
+
+```tsx
+<section>
+	<button refs="btn">btn</button>
+	<button refs="mybtn" i={0}>btn 2</button>
+</section>
+
+// Access Refs
+console.log(this.btn);
+console.log(this.mybtn[0]);
+```

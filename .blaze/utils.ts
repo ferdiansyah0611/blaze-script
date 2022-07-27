@@ -26,7 +26,7 @@ export const render = (callback: () => HTMLElement, component: Component) => (co
  * @state
  * state management and context on blaze
  */
-export const state = function (name: string, initial: any, component: Component | null, registry?: Component[]) {
+export const state = function (name: string | any, initial: any, component: Component | null, registry?: Component[]) {
 	// for context
 	if (Array.isArray(registry)) {
 		return new Proxy(
@@ -64,6 +64,9 @@ export const state = function (name: string, initial: any, component: Component 
 				});
 			};
 			// for update
+			if(!name) {
+				name = "state";
+			}
 			component[name] = new Proxy(
 				{ ...initial, _isProxy: true },
 				{
@@ -116,8 +119,12 @@ export const context = (entry: string, defaultContext: any, action: any) => {
 			}
 			component.$deep.dispatch[entry] = action;
 		}
-		registery.push(component);
+		let index = registery.push(component);
 		component.ctx[entry] = values;
+
+		component.$deep.unmount.push(() => {
+			registery = registery.filter((...i) => i[1] !== index)
+		});
 	};
 };
 

@@ -206,6 +206,7 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 		}
 		// new children detection
 		else if (newest.children.length > oldest.children.length) {
+			let checked = false
 			newestChildren.forEach((item: HTMLElement, i: number) => {
 				let latest = findComponentNode(oldest, item);
 				if (!latest) {
@@ -219,10 +220,13 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 
 					// mount
 					mountComponentFromEl(item);
+					checked = true
 					return;
 				}
 			});
-			nextDiffChildren(Array.from(oldest.children), newest, component);
+			if(!checked) {
+				nextDiffChildren(Array.from(oldest.children), newest, component);
+			}
 			return;
 		}
 		// same length children
