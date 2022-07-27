@@ -99,5 +99,5 @@ export class Blaze implements InterfaceBlaze {
 }
 
 export const createPortal = (component: Component) => {
-	component.$portal = Math.random().toString(16).slice(2);
+	component.$portal = crypto.randomUUID();
 }

@@ -13,7 +13,7 @@ export const childrenObserve = (children: HTMLElement[], el: HTMLElement) => {
 	} else if (children.length) {
 		children.forEach((item, i) => {
 			// logic
-			if (!item) {
+			if (!item && typeof item !== 'number') {
 				return;
 			}
 			if (item.hasOwnProperty("if") && !item.if) {
