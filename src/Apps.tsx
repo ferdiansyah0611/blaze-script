@@ -12,11 +12,9 @@ const MyApp = function () {
 
 	render(
 		() => (
-			<>
-				<div className="p-4">
-					<div id="route"></div>
-				</div>
-			</>
+			<div className="p-4">
+				<div id="route"></div>
+			</div>
 		),
 		this
 	);
