@@ -20,7 +20,7 @@ export const log = (...msg: any[]) => getAppConfig(0).dev && console.log(">", ..
  * @render
  * utils for rendering
  */
-export const render = (callback: Function, component: Component) => (component.render = callback);
+export const render = (callback: () => HTMLElement, component: Component) => (component.render = callback);
 
 /**
  * @state
@@ -125,7 +125,7 @@ export const context = (entry: string, defaultContext: any, action: any) => {
  * @watch
  * watching a state or props on component
  */
-export const watch = function (dependencies: string[], handle: Function, component: Component) {
+export const watch = function (dependencies: string[], handle: (a, b) => any, component: Component) {
 	if (!component.$deep.watch) {
 		component.$deep.watch = [];
 	}
@@ -142,10 +142,10 @@ export const watch = function (dependencies: string[], handle: Function, compone
  * @mount
  * lifecycle methods on first render, can be multiply mount
  */
-export const mount = (callback: Function, component: Component) => {
+export const mount = (callback: () => any, component: Component) => {
 	let data: Mount = {
 		run: false,
-		handle(defineConfig: any = {}, update: boolean = false) {
+		handle(defineConfig = {}, update = false) {
 			if (update) {
 				// batch if props 0 length
 				if (Object.keys(defineConfig).length) {
@@ -187,7 +187,7 @@ export const mount = (callback: Function, component: Component) => {
  * @layout
  * lifecycle methods on all render
  */
-export const layout = (callback: Function, component: Component) => {
+export const layout = (callback: () => any, component: Component) => {
 	if (!component.$deep.layout) {
 		component.$deep.layout = [];
 	}
@@ -199,7 +199,7 @@ export const layout = (callback: Function, component: Component) => {
  * @beforeCreate
  * lifecycle methods on before before create component
  */
-export const beforeCreate = (callback: Function, component: Component) => {
+export const beforeCreate = (callback: () => any, component: Component) => {
 	if (!component.$deep.beforeCreate) {
 		component.$deep.beforeCreate = [];
 	}
@@ -211,7 +211,7 @@ export const beforeCreate = (callback: Function, component: Component) => {
  * @created
  * lifecycle methods on created component
  */
-export const created = (callback: Function, component: Component) => {
+export const created = (callback: () => any, component: Component) => {
 	if (!component.$deep.created) {
 		component.$deep.created = [];
 	}
@@ -223,7 +223,7 @@ export const created = (callback: Function, component: Component) => {
  * @beforeUpdate
  * lifecycle methods on before updated component
  */
-export const beforeUpdate = (callback: Function, component: Component) => {
+export const beforeUpdate = (callback: () => any, component: Component) => {
 	if (!component.$deep.beforeUpdate) {
 		component.$deep.beforeUpdate = [];
 	}
@@ -235,7 +235,7 @@ export const beforeUpdate = (callback: Function, component: Component) => {
  * @updated
  * lifecycle methods on before updated component
  */
-export const updated = (callback: Function, component: Component) => {
+export const updated = (callback: () => any, component: Component) => {
 	if (!component.$deep.updated) {
 		component.$deep.updated = [];
 	}
@@ -247,7 +247,7 @@ export const updated = (callback: Function, component: Component) => {
  * @batch
  * utils for re-rendering
  */
-export const batch = async (callback: Function, component: Component) => {
+export const batch = async (callback: () => any, component: Component) => {
 	if (component) {
 		beforeUpdateCall(component.$deep);
 		component.$deep.batch = true;
@@ -283,7 +283,7 @@ export const dispatch = (name: string, component: Component, data: any, autoBatc
  * @computed
  * shorted a code, customize data, and action function.
  */
-export const computed = (callback: any, component: Component) => {
+export const computed = (callback: () => any, component: Component) => {
 	let data = callback.bind(component)();
 	let getter = data.get || {};
 	let setter = data.set || {};

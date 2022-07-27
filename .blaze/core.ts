@@ -29,7 +29,6 @@ export const init = (component: Component) => {
 			batch: false,
 			disableTrigger: false,
 			hasMount: false,
-			node: [],
 			registry: [],
 			watch: [],
 			mount: [],
@@ -87,17 +86,17 @@ export const init = (component: Component) => {
 
 	return {
 		dispatch: (name: string, data: any) => dispatch(name, component, data),
-		render: (callback: Function) => render(callback, component),
-		batch: (callback: Function) => batch(callback, component),
+		render: (callback: () => any) => render(callback, component),
+		batch: (callback: () => any) => batch(callback, component),
 		state: (...argv: any[]) => state.apply(null, [...argv, component]),
 		watch: (...argv: any[]) => watch.apply(null, [...argv, component]),
-		beforeCreate: (callback) => beforeCreate(callback, component),
-		created: (callback) => created(callback, component),
-		mount: (callback: Function) => mount(callback, component),
-		beforeUpdate: (callback) => beforeUpdate(callback, component),
-		updated: (callback) => updated(callback, component),
+		beforeCreate: (callback: () => any) => beforeCreate(callback, component),
+		created: (callback: () => any) => created(callback, component),
+		mount: (callback: () => any) => mount(callback, component),
+		beforeUpdate: (callback: () => any) => beforeUpdate(callback, component),
+		updated: (callback: () => any) => updated(callback, component),
 		computed: (data) => computed(data, component),
-		layout: (callback: Function) => layout(callback, component),
+		layout: (callback: () => any) => layout(callback, component),
 	};
 };
 
