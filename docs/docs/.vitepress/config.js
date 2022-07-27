@@ -42,6 +42,14 @@ function getGuideSidebar() {
       ],
     },
     {
+      text: 'Tutorial',
+      collapsible: true,
+      collapsed: true,
+      items: [
+        { text: "Create Note App", link: "/app/note" },
+      ],
+    },
+    {
       text: "Plugin",
       collapsible: true,
       collapsed: true,

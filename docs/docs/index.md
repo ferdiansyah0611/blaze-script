@@ -7,14 +7,14 @@ hero:
     tagline: The Future Of Frontend Development
     image:
         src: /logo.png
-        alt: VitePress
+        alt: BScript
     actions:
         - theme: brand
           text: Get Started
           link: /guide/what-is-blaze-script
         - theme: alt
           text: View on GitHub
-          link: https://github.com/vuejs/vitepress
+          link: https://github.com/ferdiansyah0611/blaze-script
 
 features:
     - icon: ⚡️
