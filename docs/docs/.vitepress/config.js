@@ -8,10 +8,19 @@ function getGuideSidebar() {
       ],
     },
     {
-      text: "Documentation",
+      text: "Component",
       collapsible: true,
       items: [
-        { text: "Lifecycle", link: "/doc/lifecycle" },
+        { text: "Introduction", link: "/component/introduction" },
+        { text: "Lifecycle", link: "/component/lifecycle" },
+        { text: "Portal", link: "/component/portal" },
+      ],
+    },
+    {
+      text: "Documentation",
+      collapsible: true,
+      collapsed: true,
+      items: [
         { text: "Attribute", link: "/doc/attribute" },
         { text: "List Rendering", link: "/doc/list-rendering" },
         { text: "Batch", link: "/doc/batch" },
@@ -21,12 +30,12 @@ function getGuideSidebar() {
         { text: "Handling Input", link: "/doc/input" },
         { text: "Short Code", link: "/doc/short" },
         { text: "Multiple App", link: "/doc/multiple-app" },
-        { text: "Portal", link: "/doc/portal" },
       ],
     },
     {
       text: "State Management",
       collapsible: true,
+      collapsed: true,
       items: [
         { text: "State", link: "/state-management/state" },
         { text: "Context", link: "/state-management/context" },
@@ -35,6 +44,7 @@ function getGuideSidebar() {
     {
       text: "Plugin",
       collapsible: true,
+      collapsed: true,
       items: [
         { text: "Router", link: "/plugin/router" },
         { text: "Helmet", link: "/plugin/helmet" },
@@ -48,6 +58,7 @@ function getGuideSidebar() {
     {
       text: 'API',
       collapsible: true,
+      collapsed: true,
       items: [
         { text: "Blaze", link: "/api/blaze" },
       ],
