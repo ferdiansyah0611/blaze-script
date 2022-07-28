@@ -1,6 +1,4 @@
-import { addLog, addComponent, reload } from "@root/plugin/extension";
 import { rendering } from "./core";
-import { getBlaze, batch } from "./utils";
 import { Component, InterfaceApp, InterfaceBlaze } from "./blaze.d";
 
 /**
@@ -38,32 +36,22 @@ export class createApp implements InterfaceApp {
 			this.plugin.forEach((plugin: any) =>
 				plugin(window.$app[this.config.key], window.$blaze[this.config.key], hmr, this.config.key)
 			);
-			addComponent(app, true);
 			// render
 			app.$deep.disableEqual = true;
-			rendering(app, null, true, false, {}, 0, app.constructor, []);
+			rendering(app, null, true, {}, 0, app.constructor, []);
 
 			let query = document.querySelector(this.el);
 			Array.from(query.children).forEach((node: HTMLElement) => node.remove());
 			query.append(window.$app[this.config.key].$node);
+
 			app.$deep.mounted(false);
-			// mountCall(app.$deep, {}, false);
-			// blaze event
-			getBlaze(this.config.key).runAfterAppReady(app);
+
+			this.blaze.runAfterAppReady(app);
 		};
 
 		if (window.$app) {
 			window.$app[this.config.key].$deep.remove();
-			reload();
-			batch(() => {
-				addLog(
-					{
-						msg: "[HMR] reloading app",
-					},
-					false
-				);
-				addComponent(window.$app[this.config.key], false);
-			}, window.$extension);
+			this.blaze._onReload(window.$app[this.config.key]);
 			load(true);
 			return;
 		}
@@ -84,10 +72,16 @@ export class Blaze implements InterfaceBlaze {
 	everyMakeElement: any[];
 	everyMakeComponent: any[];
 	afterAppReady: any[];
+	startComponent: any[];
+	endComponent: any[];
+	onReload: any[];
 	constructor() {
 		this.everyMakeElement = [];
 		this.everyMakeComponent = [];
 		this.afterAppReady = [];
+		this.startComponent = [];
+		this.endComponent = [];
+		this.onReload = [];
 	}
 	runEveryMakeElement(el: HTMLElement) {
 		this.everyMakeElement.forEach((item) => item(el));
@@ -97,6 +91,20 @@ export class Blaze implements InterfaceBlaze {
 	}
 	runAfterAppReady(component: Component) {
 		this.afterAppReady.forEach((item) => item(component));
+	}
+	_startComponent(component: Component) {
+		let endPerform = [];
+		this.startComponent.forEach((item) => endPerform.push(item(component)));
+
+		return () => {
+			endPerform.forEach((item) => item && item());
+		};
+	}
+	_endComponent(component: Component) {
+		this.endComponent.forEach((item) => item(component));
+	}
+	_onReload() {
+		this.onReload.forEach((item) => item());
 	}
 }
 

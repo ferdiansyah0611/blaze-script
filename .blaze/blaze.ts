@@ -76,7 +76,6 @@ export default function e(
 								newComponent,
 								$deep,
 								true,
-								true,
 								data,
 								key,
 								newComponent.constructor,
@@ -91,7 +90,6 @@ export default function e(
 						const resulted = rendering(
 							check.component,
 							$deep,
-							false,
 							false,
 							data,
 							key,
@@ -124,13 +122,13 @@ export default function e(
 				}
 				// props registery
 				state("props", data ? { ...data } : {}, newComponent);
-				const result = rendering(newComponent, $deep, true, true, data, key, nodeName, children, component);
+				const result = rendering(newComponent, $deep, true, data, key, nodeName, children, component);
 				return result;
 			}
 
 			diffProps(check.component);
 
-			const result = rendering(check.component, $deep, false, false, data, key, nodeName, children);
+			const result = rendering(check.component, $deep, false, data, key, nodeName, children);
 			diffChildren(check.component.$node, result, check.component);
 			return result;
 		}

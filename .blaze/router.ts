@@ -1,7 +1,7 @@
 import { rendering } from "./core";
 import { mount } from "@blaze";
 import { Component } from "./blaze.d";
-import { addLog, addComponent } from "@root/plugin/extension";
+import { addComponent } from "@root/plugin/extension";
 
 /**
  * @makeRouter
@@ -26,7 +26,7 @@ export const makeRouter = (entry: string, config: any) => {
 	const goto = (app: any, url: string, component: any, config: any, params?: any) => {
 		if (!document.querySelector(entry)) {
 			let msg = "[Router] entry not found, query is correct?";
-			addLog({ msg, type: "error" });
+			app.$router._error(msg);
 			return console.error(msg);
 		}
 
@@ -46,12 +46,13 @@ export const makeRouter = (entry: string, config: any) => {
 			current.$config = window.$app[keyApplication].$config
 		}
 		// render
-		rendering(current, null, true, false, {}, 0, current.constructor, []);
-		addComponent(current);
+		rendering(current, null, true, {}, 0, current.constructor, []);
 		const query = document.querySelector(entry);
 		Array.from(query.children).forEach((item) => item.remove());
 		query.append(current.$node);
 		current.$deep.mounted(false)
+		addComponent(current)
+
 		app.$router.history.forEach((data) => {
 			data.current.$deep.remove();
 		});
@@ -104,7 +105,7 @@ export const makeRouter = (entry: string, config: any) => {
 						component = current.component;
 						found = current;
 						let msg = `[Router] Not Found 404 ${url}`;
-						addLog({ msg });
+						app.$router._error(msg);
 						goto(app, url, component, {});
 						return false;
 					}
@@ -140,7 +141,7 @@ export const makeRouter = (entry: string, config: any) => {
 			}
 
 			let msg = `[Router] GET 200 ${url}`;
-			addLog({ msg });
+			app.$router._found(msg);
 			return goto(app, url, found.component, found.config, params);
 		}
 	};
@@ -151,6 +152,8 @@ export const makeRouter = (entry: string, config: any) => {
 		tool = {
 			$change: [],
 			history: [],
+			error: [],
+			found: [],
 			ready,
 			popstate,
 			hmr,
@@ -167,6 +170,12 @@ export const makeRouter = (entry: string, config: any) => {
 			},
 			onChange(data) {
 				this.$change.push(data);
+			},
+			_error(error) {
+				this.error.forEach(data => data(error));
+			},
+			_found(message) {
+				this.found.forEach(data => data(message));
 			},
 		};
 		// remove previous router

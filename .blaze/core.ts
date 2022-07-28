@@ -17,7 +17,6 @@ import {
 import e from "./blaze";
 import { Component, Mount } from "./blaze.d";
 import { diffChildren } from "./diff";
-import { addLog } from "@root/plugin/extension";
 
 /**
  * @init
@@ -40,7 +39,6 @@ export const init = (component: Component) => {
 				const result = rendering(
 					component,
 					null,
-					false,
 					false,
 					component.props,
 					component.props.key || 0,
@@ -230,14 +228,14 @@ export const rendering = (
 	component: Component,
 	$deep: Component["$deep"],
 	first: boolean,
-	withWarn: boolean,
 	data: any,
 	key: number,
 	nodeName: string | any,
 	children: HTMLElement[],
 	root?: Component
 ) => {
-	let old, now, duration, msg, warn, render;
+	let render, endPerformStartComponent;
+	let blaze = getBlaze(component.$config?.key || 0);
 
 	const renderComponent = () => {
 		render = component.render();
@@ -254,7 +252,7 @@ export const rendering = (
 
 	// beforeCreate effect
 	if (first) {
-		old = performance.now();
+		endPerformStartComponent = blaze._startComponent(component);
 		beforeCreateCall(component.$deep);
 		createdCall(component.$deep);
 	}
@@ -272,37 +270,9 @@ export const rendering = (
 			component.$node.$index = index;
 		}
 		// mount
-		getBlaze(component.$config?.key || 0).runEveryMakeComponent(component);
-		// warning
-		if (!data.key && withWarn && !component.$node.isConnected) {
-			warn = `[${nodeName.name}] key is 0. it's work, but add key property if have more on this component.`;
-			console.warn(warn);
-		}
-		// timer
-		now = performance.now();
-		duration = (now - old).toFixed(1);
-		msg = `[${nodeName.name}] ${duration}ms`;
-		component.$deep.time = duration;
-		// extension
-		if (window.$extension && !component.disableExtension) {
-			batch(() => {
-				addLog(
-					{
-						msg,
-					},
-					false
-				);
-				if (warn) {
-					addLog(
-						{
-							msg: warn,
-							type: "warn",
-						},
-						false
-					);
-				}
-			}, window.$extension);
-		}
+		blaze.runEveryMakeComponent(component);
+		blaze._endComponent(component);
+		endPerformStartComponent();
 	}
 
 	/**

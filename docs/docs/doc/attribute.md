@@ -34,6 +34,18 @@ By default, setHTML auto escaping for security
 </section>
 ```
 
+## svg
+
+SVG element only work in "svg", "path", "g", "circle", "ellipse", "line". But if element nothing in list, you can use attribute `svg=""`.
+
+```tsx
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="100px"
+	 height="100px" viewBox="0 0 100 100" enable-background="new 0 0 100 100" xml:space="preserve">
+	 <path fill="none" stroke="#000000" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" d="
+		M35.926,68.357C30.439,64.116,26.906,57.471,26.906,50c0-12.806,10.381-23.188,23.188-23.188c3.202,0,6.252,0.649,9.026,1.822"/>
+</svg>
+```
+
 ## if & else
 
 Logical optional

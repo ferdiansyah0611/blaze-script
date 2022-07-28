@@ -45,8 +45,6 @@ app.mount();
 
 -   Not recommendation for production because still on development
 -   Updating TextNode Only Work In SPAN|P|H1|H2|H3|H4|H5|H6|A|BUTTON
--   Component must be have a key props if more than one
--   SVG work but if not work in anycase, add element property svg=""
 
 ## Contributing
 
