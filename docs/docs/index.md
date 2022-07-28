@@ -24,8 +24,8 @@ features:
       title: Complex Lifecycle
       details: Complete lifecycle can make the application complex
     - icon: 🛠️
-      title: HMR
-      details: With HMR makes the development process faster
+      title: HMR & Hot Reload
+      details: With HMR & Hot Reload makes the development process faster
 ---
 
 <script setup>

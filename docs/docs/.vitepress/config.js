@@ -14,6 +14,7 @@ function getGuideSidebar() {
         { text: "Introduction", link: "/component/introduction" },
         { text: "Lifecycle", link: "/component/lifecycle" },
         { text: "Portal", link: "/component/portal" },
+        { text: "Lazy", link: "/component/lazy" },
       ],
     },
     {

@@ -13,7 +13,7 @@ export const childrenObserve = (children: HTMLElement[], el: HTMLElement) => {
 	} else if (children.length) {
 		children.forEach((item, i) => {
 			// logic
-			if (!item && typeof item !== 'number') {
+			if (!item && typeof item !== "number") {
 				return;
 			}
 			if (item.hasOwnProperty("if") && !item.if) {
@@ -103,7 +103,7 @@ export const attributeObserve = (data: any, el: HTMLElement, component: Componen
 		}
 		if (item === "key") {
 			el.dataset.n = component.constructor.name;
-			if (['number', 'string'].includes(typeof data.key)) {
+			if (["number", "string"].includes(typeof data.key)) {
 				el.dataset.i = data.key;
 			}
 		}

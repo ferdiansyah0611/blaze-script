@@ -1,6 +1,5 @@
-import { getBlaze } from "./utils";
+import isEqualWith from "lodash/isEqualWith";
 import {
-	e,
 	mount,
 	layout,
 	dispatch,
@@ -13,7 +12,9 @@ import {
 	beforeUpdate,
 	updated,
 	computed,
-} from "./blaze";
+	getBlaze,
+} from "./utils";
+import e from "./blaze";
 import { Component, Mount } from "./blaze.d";
 import { diffChildren } from "./diff";
 import { addLog } from "@root/plugin/extension";
@@ -245,7 +246,7 @@ export const rendering = (
 		render.$root = root;
 		if (render.dataset) {
 			render.dataset.n = nodeName.name;
-			if (['number', 'string'].includes(typeof data.key)) {
+			if (["number", "string"].includes(typeof data.key)) {
 				render.dataset.i = data.key;
 			}
 		}
@@ -367,7 +368,7 @@ export const removeComponentOrEl = function (item: HTMLElement, component: Compo
 			if (
 				!(registry.component.constructor.name === item.$children.constructor.name && registry.key === item.key)
 			) {
-				return registry
+				return registry;
 			} else {
 				registry.component.$deep.remove();
 				return false;
@@ -399,4 +400,12 @@ export const mountComponentFromEl = (el: HTMLElement) => {
 
 export const findComponentNode = (parent: HTMLElement, item: HTMLElement) => {
 	return parent.querySelector(`[data-n="${item.$name}"][data-i="${item.key}"]`);
+};
+
+export const equalProps = (oldProps, newProps) => {
+	return isEqualWith({ ...oldProps }, { ...newProps, _isProxy: true }, function (val1, val2): any {
+		if (typeof val1 === "function" && typeof val2 === "function") {
+			return val1.toString() === val2.toString();
+		}
+	});
 };

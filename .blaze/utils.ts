@@ -64,7 +64,7 @@ export const state = function (name: string | any, initial: any, component: Comp
 				});
 			};
 			// for update
-			if(!name) {
+			if (!name) {
 				name = "state";
 			}
 			component[name] = new Proxy(
@@ -100,8 +100,7 @@ export const state = function (name: string | any, initial: any, component: Comp
 					component.$deep.trigger();
 				}, component);
 			}
-			
-		}, component)
+		}, component);
 	}
 };
 
@@ -123,7 +122,7 @@ export const context = (entry: string, defaultContext: any, action: any) => {
 		component.ctx[entry] = values;
 
 		component.$deep.unmount.push(() => {
-			registery = registery.filter((...i) => i[1] !== index)
+			registery = registery.filter((...i) => i[1] !== index);
 		});
 	};
 };
@@ -310,4 +309,11 @@ export const computed = (callback: () => any, component: Component) => {
 		});
 	}
 	Object.assign(component, method);
+};
+
+export const lazy = (callback: () => any) => {
+	return {
+		lazy: true,
+		component: callback,
+	};
 };

@@ -19,7 +19,7 @@ export class createApp implements InterfaceApp {
 		this.component = component;
 		this.config = config;
 		this.blaze = new Blaze();
-		if(config.hasOwnProperty('key') === false || !(typeof config.key === 'number')) {
+		if (config.hasOwnProperty("key") === false || !(typeof config.key === "number")) {
 			this.config.key = 0;
 		}
 	}
@@ -28,23 +28,25 @@ export class createApp implements InterfaceApp {
 			let app = new this.component();
 			app.$config = this.config;
 			// inject to window
-			if(!window.$app) {
-				window.$app = []
-				window.$blaze = []
+			if (!window.$app) {
+				window.$app = [];
+				window.$blaze = [];
 			}
 			window.$app[this.config.key] = app;
 			window.$blaze[this.config.key] = this.blaze;
 			// run plugin
-			this.plugin.forEach((plugin: any) => plugin(window.$app[this.config.key], window.$blaze[this.config.key], hmr, this.config.key));
+			this.plugin.forEach((plugin: any) =>
+				plugin(window.$app[this.config.key], window.$blaze[this.config.key], hmr, this.config.key)
+			);
 			addComponent(app, true);
 			// render
-			app.$deep.disableEqual = true
+			app.$deep.disableEqual = true;
 			rendering(app, null, true, false, {}, 0, app.constructor, []);
 
 			let query = document.querySelector(this.el);
 			Array.from(query.children).forEach((node: HTMLElement) => node.remove());
 			query.append(window.$app[this.config.key].$node);
-			app.$deep.mounted(false)
+			app.$deep.mounted(false);
 			// mountCall(app.$deep, {}, false);
 			// blaze event
 			getBlaze(this.config.key).runAfterAppReady(app);
@@ -93,11 +95,11 @@ export class Blaze implements InterfaceBlaze {
 	runEveryMakeComponent(component: Component) {
 		this.everyMakeComponent.forEach((item) => item(component));
 	}
-	runAfterAppReady(component: Component){
+	runAfterAppReady(component: Component) {
 		this.afterAppReady.forEach((item) => item(component));
 	}
 }
 
 export const createPortal = (component: Component) => {
 	component.$portal = crypto.randomUUID();
-}
+};

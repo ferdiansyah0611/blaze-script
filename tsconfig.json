@@ -17,7 +17,7 @@
     "emitDecoratorMetadata": true,
     "baseUrl": "./",
     "paths": {
-      "@blaze": ["./.blaze/blaze"],
+      "@blaze": ["./.blaze/index"],
       "@blaze.d": ["./.blaze/blaze.d"],
       "@blaze.utils": ["./.blaze/utils"],
       "@blaze.router": ["./.blaze/router"],
