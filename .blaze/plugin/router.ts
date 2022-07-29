@@ -11,6 +11,40 @@ export const makeRouter = (entry: string, config: any) => {
 	let tool;
 	let popstate = false;
 	let keyApplication = 0;
+	let dev = false,
+		glob = {};
+	if (!config.url) config.url = [];
+
+	// auto route
+	if (config.auto) {
+		if (dev) {
+			Object.assign(glob, import.meta.glob("@app/note.dev/route/*.tsx"));
+			Object.assign(glob, import.meta.glob("@app/note.dev/route/**/*.tsx"));
+			Object.assign(glob, import.meta.glob("@app/note.dev/route/**/**/*.tsx"));
+			Object.assign(glob, import.meta.glob("@app/note.dev/route/**/**/**/*.tsx"));
+			Object.assign(glob, import.meta.glob("@app/note.dev/route/**/**/**/**/*.tsx"));
+		} else {
+			Object.assign(glob, import.meta.glob("@route/*.tsx"));
+			Object.assign(glob, import.meta.glob("@route/**/*.tsx"));
+			Object.assign(glob, import.meta.glob("@route/**/**/*.tsx"));
+			Object.assign(glob, import.meta.glob("@route/**/**/**/*.tsx"));
+			Object.assign(glob, import.meta.glob("@route/**/**/**/**/*.tsx"));
+		}
+		for (let modules in glob) {
+			let path = modules.split(dev ? "../../note.dev/route" : "../../src/route")[1].toLowerCase();
+			if (path.match(".tsx")) {
+				let url = path.split(".tsx")[0];
+				url = url.replaceAll("[", ":").replaceAll("]", "");
+				if (url.indexOf("index") !== -1) {
+					url = url.split("index")[0];
+					if (url.endsWith("/") && url.length > 1) {
+						url = url.replace(/\/$/, "");
+					}
+				}
+				config.url.push(page(url, glob[modules]));
+			}
+		}
+	}
 	if (config.resolve) {
 		config.url.map((item) => {
 			if (item.path) {
@@ -23,12 +57,13 @@ export const makeRouter = (entry: string, config: any) => {
 	 * @goto
 	 * run component and append to entry query
 	 */
-	const goto = (app: any, url: string, component: any, config: any, params?: any) => {
+	const goto = async (app: any, url: string, component: any, config: any, params?: any) => {
 		if (!document.querySelector(entry)) {
 			let msg = "[Router] entry not found, query is correct?";
 			app.$router._error(msg);
 			return console.error(msg);
 		}
+		let current;
 
 		const replaceOrPush = () => {
 			if (popstate) {
@@ -41,17 +76,26 @@ export const makeRouter = (entry: string, config: any) => {
 
 		replaceOrPush();
 
-		const current = new component(Object.assign(app, { params }));
-		if(window.$app) {
-			current.$config = window.$app[keyApplication].$config
+		// auto route or not
+		if (component.name.indexOf("../") !== -1) {
+			current = await component();
+			if (current.default) {
+				current = new current.default(Object.assign(app, { params }));
+			}
+		} else {
+			current = new component(Object.assign(app, { params }));
+		}
+
+		if (window.$app) {
+			current.$config = window.$app[keyApplication].$config;
 		}
 		// render
 		rendering(current, null, true, {}, 0, current.constructor, []);
 		const query = document.querySelector(entry);
 		Array.from(query.children).forEach((item) => item.remove());
 		query.append(current.$node);
-		current.$deep.mounted(false)
-		addComponent(current)
+		current.$deep.mounted(false);
+		addComponent(current);
 
 		app.$router.history.forEach((data) => {
 			data.current.$deep.remove();
@@ -101,7 +145,9 @@ export const makeRouter = (entry: string, config: any) => {
 							result: [url],
 						};
 					} else {
-						let current = config.url.find((path) => path.path.length === 0);
+						let current = config.url.find(
+							(path) => path.path.length === 0 || (config.auto && path.path === "/404")
+						);
 						component = current.component;
 						found = current;
 						let msg = `[Router] Not Found 404 ${url}`;
@@ -144,6 +190,8 @@ export const makeRouter = (entry: string, config: any) => {
 			app.$router._found(msg);
 			return goto(app, url, found.component, found.config, params);
 		}
+
+		return false;
 	};
 	return (app: Component, blaze, hmr, keyApp) => {
 		/**
@@ -172,10 +220,10 @@ export const makeRouter = (entry: string, config: any) => {
 				this.$change.push(data);
 			},
 			_error(error) {
-				this.error.forEach(data => data(error));
+				this.error.forEach((data) => data(error));
 			},
 			_found(message) {
-				this.found.forEach(data => data(message));
+				this.found.forEach((data) => data(message));
 			},
 		};
 		// remove previous router
@@ -183,7 +231,7 @@ export const makeRouter = (entry: string, config: any) => {
 			removeCurrentRouter(window.$router[keyApp]);
 		}
 		app.$router = tool;
-		if(!window.$router) {
+		if (!window.$router) {
 			window.$router = [];
 		}
 		window.$router[keyApp] = tool;
@@ -222,7 +270,7 @@ export const makeRouter = (entry: string, config: any) => {
  * mount on current component and add event popstate
  */
 export const startIn = (component: Component, keyApp?: number) => {
-	if(!(typeof keyApp === 'number')) {
+	if (!(typeof keyApp === "number")) {
 		keyApp = 0;
 	}
 

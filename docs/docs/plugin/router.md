@@ -37,6 +37,29 @@ app.use(
 app.mount();
 ```
 
+## Auto Route
+
+Auto route based on files in route folder with max 4 folder path. Example:
+
+```text
+index.tsx => /
+404.tsx => ""
+[id].tsx => /:id
+
+/admin/index.tsx => /admin
+/admin/[id].tsx => /admin/:id
+
+/admin/page/example/test/index.tsx => /admin
+```
+
+```tsx
+app.use(
+    makeRouter("#route", {
+        auto: true
+    })
+);
+```
+
 ## Params
 
 ```tsx
