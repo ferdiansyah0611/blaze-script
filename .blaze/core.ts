@@ -12,6 +12,7 @@ import {
 	beforeUpdate,
 	updated,
 	computed,
+	defineProp,
 	getBlaze,
 } from "./utils";
 import e from "./blaze";
@@ -96,6 +97,7 @@ export const init = (component: Component) => {
 		updated: (callback: () => any) => updated(callback, component),
 		computed: (data) => computed(data, component),
 		layout: (callback: () => any) => layout(callback, component),
+		defineProp: (props: any) => defineProp(props, component),
 	};
 };
 
@@ -117,9 +119,16 @@ export const jsx = (component: Component) => {
  * for run mount lifecycle
  */
 export const mountCall = ($deep: Component["$deep"], props: any = {}, update: boolean = false) => {
-	if (!$deep.hasMount) {
-		$deep.mount.forEach((item: Mount) => item.handle(props, update));
-		$deep.hasMount = true;
+	let error = window.$error;
+	try{
+		if (!$deep.hasMount) {
+			$deep.mount.forEach((item: Mount) => item.handle(props, update));
+			$deep.hasMount = true;
+		}
+	}catch (err) {
+		if(error) {
+			error.open(`Error Mount`, err.stack)
+		}
 	}
 };
 
@@ -128,7 +137,14 @@ export const mountCall = ($deep: Component["$deep"], props: any = {}, update: bo
  * for run unmount lifecycle
  */
 export const unmountCall = ($deep: Component["$deep"]) => {
-	$deep.unmount.forEach((item: Function) => item());
+	let error = window.$error;
+	try{
+		$deep.unmount.forEach((item: Function) => item());
+	}catch (err) {
+		if(error) {
+			error.open(`Error Unmount`, err.stack)
+		}
+	}
 };
 
 /**
@@ -136,7 +152,14 @@ export const unmountCall = ($deep: Component["$deep"]) => {
  * for run layout lifecycle
  */
 export const layoutCall = ($deep: Component["$deep"]) => {
-	if ($deep.layout) $deep.layout.forEach((item: Function) => item());
+	let error = window.$error;
+	try{
+		if ($deep.layout) $deep.layout.forEach((item: Function) => item());
+	}catch (err) {
+		if(error) {
+			error.open(`Error Layout`, err.stack)
+		}
+	}
 };
 
 /**
@@ -144,7 +167,14 @@ export const layoutCall = ($deep: Component["$deep"]) => {
  * for run before update data lifecycle
  */
 export const beforeCreateCall = ($deep: Component["$deep"]) => {
-	if ($deep.beforeCreate) $deep.beforeCreate.forEach((item: Function) => item());
+	let error = window.$error;
+	try{
+		if ($deep.beforeCreate) $deep.beforeCreate.forEach((item: Function) => item());
+	}catch (err) {
+		if(error) {
+			error.open(`Error beforeCreate`, err.stack)
+		}
+	}
 };
 
 /**
@@ -152,7 +182,14 @@ export const beforeCreateCall = ($deep: Component["$deep"]) => {
  * for run created lifecycle
  */
 export const createdCall = ($deep: Component["$deep"]) => {
-	if ($deep.created) $deep.created.forEach((item: Function) => item());
+	let error = window.$error;
+	try{
+		if ($deep.created) $deep.created.forEach((item: Function) => item());
+	}catch (err) {
+		if(error) {
+			error.open(`Error Created`, err.stack)
+		}
+	}
 };
 
 /**
@@ -160,7 +197,14 @@ export const createdCall = ($deep: Component["$deep"]) => {
  * for run before update data lifecycle
  */
 export const beforeUpdateCall = ($deep: Component["$deep"]) => {
-	if ($deep.beforeUpdate) $deep.beforeUpdate.forEach((item: Function) => item());
+	let error = window.$error;
+	try{
+		if ($deep.beforeUpdate) $deep.beforeUpdate.forEach((item: Function) => item());
+	}catch (err) {
+		if(error) {
+			error.open(`Error beforeUpdate`, err.stack)
+		}
+	}
 };
 
 /**
@@ -168,7 +212,14 @@ export const beforeUpdateCall = ($deep: Component["$deep"]) => {
  * for run before update data lifecycle
  */
 export const updatedCall = ($deep: Component["$deep"]) => {
-	if ($deep.updated) $deep.updated.forEach((item: Function) => item());
+	let error = window.$error;
+	try{
+		if ($deep.updated) $deep.updated.forEach((item: Function) => item());
+	}catch (err) {
+		if(error) {
+			error.open(`Error Updated`, err.stack)
+		}
+	}
 };
 
 /**

@@ -317,3 +317,7 @@ export const lazy = (callback: () => any) => {
 		component: callback,
 	};
 };
+
+export const defineProp = (props: any, component: Component) => {
+	component.props = props;
+}

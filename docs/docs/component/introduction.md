@@ -64,7 +64,12 @@ Use props and access them.
 
 ```tsx
 const Sidebar = function() {
-	const { render } = init(this);
+	const { render, defineProp } = init(this);
+	// optional (default value props)
+	// recommend if have a lot object props to prevent error on rendering
+	defineProp({
+		name: ''
+	})
 	render(() => <div>
 		<p>{this.props.name}</p>
 	</div>);
