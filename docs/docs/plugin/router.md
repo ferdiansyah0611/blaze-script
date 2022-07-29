@@ -42,20 +42,28 @@ app.mount();
 Auto route based on files in route folder with max 4 folder path. Example:
 
 ```text
-index.tsx => /
-404.tsx => ""
-[id].tsx => /:id
+index.tsx   => /
+404.tsx     => ""
+[id].tsx    => /:id
 
-/admin/index.tsx => /admin
-/admin/[id].tsx => /admin/:id
+/admin/index.tsx    => /admin
+/admin/[id].tsx     => /admin/:id
 
-/admin/page/example/test/index.tsx => /admin
+/admin/page/example/test/index.tsx  => /admin/page/example/test
 ```
 
 ```tsx
 app.use(
     makeRouter("#route", {
-        auto: true
+        auto: true,
+        // optional (config for route)
+        config: {
+            '/': {
+                beforeEach(){
+                    return true
+                }
+            }
+        }
     })
 );
 ```

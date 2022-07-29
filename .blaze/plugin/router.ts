@@ -7,22 +7,27 @@ import { addComponent } from "@root/plugin/extension";
  * @makeRouter
  * extension for router
  */
-export const makeRouter = (entry: string, config: any) => {
+export const makeRouter = (entry: string, config: any, dev?: boolean = false) => {
 	let tool;
 	let popstate = false;
 	let keyApplication = 0;
-	let dev = false,
-		glob = {};
+	let glob = {};
+	const mappingConfig = (item) => {
+		if(config.config && config.config[item.path]) {
+			item.config = config.config[item.path];
+		}
+	}
+
 	if (!config.url) config.url = [];
 
 	// auto route
 	if (config.auto) {
 		if (dev) {
-			Object.assign(glob, import.meta.glob("@app/note.dev/route/*.tsx"));
-			Object.assign(glob, import.meta.glob("@app/note.dev/route/**/*.tsx"));
-			Object.assign(glob, import.meta.glob("@app/note.dev/route/**/**/*.tsx"));
-			Object.assign(glob, import.meta.glob("@app/note.dev/route/**/**/**/*.tsx"));
-			Object.assign(glob, import.meta.glob("@app/note.dev/route/**/**/**/**/*.tsx"));
+			Object.assign(glob, import.meta.glob("@app/test.dev/route/*.tsx"));
+			Object.assign(glob, import.meta.glob("@app/test.dev/route/**/*.tsx"));
+			Object.assign(glob, import.meta.glob("@app/test.dev/route/**/**/*.tsx"));
+			Object.assign(glob, import.meta.glob("@app/test.dev/route/**/**/**/*.tsx"));
+			Object.assign(glob, import.meta.glob("@app/test.dev/route/**/**/**/**/*.tsx"));
 		} else {
 			Object.assign(glob, import.meta.glob("@route/*.tsx"));
 			Object.assign(glob, import.meta.glob("@route/**/*.tsx"));
@@ -31,7 +36,7 @@ export const makeRouter = (entry: string, config: any) => {
 			Object.assign(glob, import.meta.glob("@route/**/**/**/**/*.tsx"));
 		}
 		for (let modules in glob) {
-			let path = modules.split(dev ? "../../note.dev/route" : "../../src/route")[1].toLowerCase();
+			let path = modules.split(dev ? "../../test.dev/route" : "../../src/route")[1].toLowerCase();
 			if (path.match(".tsx")) {
 				let url = path.split(".tsx")[0];
 				url = url.replaceAll("[", ":").replaceAll("]", "");
@@ -47,10 +52,15 @@ export const makeRouter = (entry: string, config: any) => {
 	}
 	if (config.resolve) {
 		config.url.map((item) => {
+			mappingConfig(item)
+
 			if (item.path) {
 				item.path = config.resolve + (item.path === "/" ? "" : item.path);
 			}
 		});
+	}
+	else if(config.auto){
+		config.url.map(mappingConfig);
 	}
 
 	/**
@@ -80,10 +90,10 @@ export const makeRouter = (entry: string, config: any) => {
 		if (component.name.indexOf("../") !== -1) {
 			current = await component();
 			if (current.default) {
-				current = new current.default(Object.assign(app, { params }));
+				current = new current.default(Object.assign(app, { params }), window.$app[keyApplication]);
 			}
 		} else {
-			current = new component(Object.assign(app, { params }));
+			current = new component(Object.assign(app, { params }), window.$app[keyApplication]);
 		}
 
 		if (window.$app) {
@@ -146,7 +156,7 @@ export const makeRouter = (entry: string, config: any) => {
 						};
 					} else {
 						let current = config.url.find(
-							(path) => path.path.length === 0 || (config.auto && path.path === "/404")
+							(path) => path.path.length === 0 || (config.auto && path.path.indexOf("/404") !== -1)
 						);
 						component = current.component;
 						found = current;
