@@ -1,6 +1,7 @@
 import { render, init } from "@blaze";
 import { createApp } from '@root/render';
-import { makeRouter, page, startIn } from "@blaze.router";
+import { makeRouter, page, startIn } from "@root/plugin/router";
+import withError from "@root/plugin/error";
 // route
 import Index from './route/Index'
 import PageExample from './route/Page'
@@ -25,6 +26,7 @@ const app = new createApp("#app", MyApp, {
 });
 
 export default function Apps() {
+	app.use(withError());
 	app.use(
 		makeRouter("#route", {
 			url: [

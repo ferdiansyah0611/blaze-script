@@ -236,92 +236,102 @@ export const rendering = (
 ) => {
 	let render, endPerformStartComponent;
 	let blaze = getBlaze(component.$config?.key || 0);
-
-	const renderComponent = () => {
-		render = component.render();
-		render.key = data.key || key;
-		render.$children = component;
-		render.$root = root;
-		if (render.dataset) {
-			render.dataset.n = nodeName.name;
-			if (["number", "string"].includes(typeof data.key)) {
-				render.dataset.i = data.key;
-			}
-		}
-	};
-
-	// beforeCreate effect
-	if (first) {
-		endPerformStartComponent = blaze._startComponent(component);
-		beforeCreateCall(component.$deep);
-		createdCall(component.$deep);
-	}
-	// call render component
-	renderComponent();
-
-	if (first) {
-		component.children = children ? children : false;
-		component.$node = render;
-		if ($deep) {
-			let index = $deep.registry.push({
-				key,
-				component: component,
-			});
-			component.$node.$index = index;
-		}
-		// mount
-		blaze.runEveryMakeComponent(component);
-		blaze._endComponent(component);
-		endPerformStartComponent();
-	}
-
-	/**
-	 * @render
-	 * first rendering and call lifecycle function in fragment/first element
-	 */
-	if (!component.$deep.update) {
-		if (first) {
-			if (component.$node.isConnected) {
-				// mountCall(component.$deep, data, true);
-			}
-			layoutCall(component.$deep);
-		}
-	} else {
-		/**
-		 * @updateRender
-		 * update element on props/state change and call lifecycle function
-		 */
-
-		const current = component.$node;
-		if (current) {
-			layoutCall(component.$deep);
-		}
-	}
-
-	// portal component
-	if (component.$portal && component.$node.dataset) {
-		let query = document.body.querySelector(`[data-portal="${component.$portal}"]`);
-		let handle = () => {
-			if (data && data.hasOwnProperty("show")) {
-				if (!data.show) {
-					component.$node.style.display = "none";
-				} else {
-					component.$node.style.display = "unset";
+	let error = window.$error;
+	try{
+		const renderComponent = () => {
+			render = component.render();
+			render.key = data.key || key;
+			render.$children = component;
+			render.$root = root;
+			if (render.dataset) {
+				render.dataset.n = nodeName.name;
+				if (["number", "string"].includes(typeof data.key)) {
+					render.dataset.i = data.key;
 				}
 			}
 		};
+
+		// beforeCreate effect
 		if (first) {
-			component.$node.dataset.portal = component.$portal;
-			handle();
-			document.body.appendChild(component.$node);
+			endPerformStartComponent = blaze._startComponent(component);
+			beforeCreateCall(component.$deep);
+			createdCall(component.$deep);
+		}
+		// call render component
+		renderComponent();
+
+		if (first) {
+			component.children = children ? children : false;
+			component.$node = render;
+			if ($deep) {
+				let index = $deep.registry.push({
+					key,
+					component: component,
+				});
+				component.$node.$index = index;
+			}
+			// mount
+			blaze.runEveryMakeComponent(component);
+			blaze._endComponent(component);
+			endPerformStartComponent();
+		}
+
+		/**
+		 * @render
+		 * first rendering and call lifecycle function in fragment/first element
+		 */
+		if (!component.$deep.update) {
+			if (first) {
+				if (component.$node.isConnected) {
+					// mountCall(component.$deep, data, true);
+				}
+				layoutCall(component.$deep);
+			}
 		} else {
-			handle();
-			if (query) {
-				render.dataset.portal = component.$portal;
-				diffChildren(component.$node, render, component);
+			/**
+			 * @updateRender
+			 * update element on props/state change and call lifecycle function
+			 */
+
+			const current = component.$node;
+			if (current) {
+				layoutCall(component.$deep);
 			}
 		}
-		return false;
+
+		// portal component
+		if (component.$portal && component.$node.dataset) {
+			let query = document.body.querySelector(`[data-portal="${component.$portal}"]`);
+			let handle = () => {
+				if (data && data.hasOwnProperty("show")) {
+					if (!data.show) {
+						component.$node.style.display = "none";
+					} else {
+						component.$node.style.display = "unset";
+					}
+				}
+			};
+			if (first) {
+				component.$node.dataset.portal = component.$portal;
+				handle();
+				document.body.appendChild(component.$node);
+			} else {
+				handle();
+				if (query) {
+					render.dataset.portal = component.$portal;
+					diffChildren(component.$node, render, component);
+				}
+			}
+			return false;
+		}
+
+		if(error.state.open) {
+			error.close();
+		}
+	}catch(err){
+		if(error) {
+			error.open(`Component ${component.constructor.name}`, err.stack)
+		}
 	}
 
 	if (first) return component.$node;

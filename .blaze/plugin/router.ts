@@ -1,6 +1,6 @@
-import { rendering } from "./core";
+import { rendering } from "@root/core";
 import { mount } from "@blaze";
-import { Component } from "./blaze.d";
+import { Component } from "@root/blaze.d";
 import { addComponent } from "@root/plugin/extension";
 
 /**

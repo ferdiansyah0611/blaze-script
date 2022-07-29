@@ -6,6 +6,7 @@ declare global {
         $extension: any;
         $test: any;
         $router: any;
+        $error: any;
     }
     interface HTMLElement {
         $children: any;

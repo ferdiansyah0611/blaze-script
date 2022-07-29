@@ -54,8 +54,8 @@ const diff = function (prev: HTMLElement, el: HTMLElement, component: Component)
 		});
 		return batch;
 	}
-	// text/button/link
-	if (["SPAN", "P", "H1", "H2", "H3", "H4", "H5", "H6", "A", "BUTTON"].includes(prev.nodeName)) {
+	// text/button/link/code
+	if (["SPAN", "P", "H1", "H2", "H3", "H4", "H5", "H6", "A", "BUTTON", "CODE"].includes(prev.nodeName)) {
 		let run = false;
 		const rechange = (node, i) => {
 			if (node && el.childNodes[i] !== undefined) {

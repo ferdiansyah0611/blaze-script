@@ -1,0 +1,51 @@
+#error{
+	color: white;
+	position: fixed;
+	top: 0px;
+	height: 100vh;
+	width: 100%;
+	overflow: auto;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	padding:  0px 10px;
+	font-family: system-ui;
+	background: #000000bd;
+    backdrop-filter: blur(16px) saturate(160%);
+    z-index: 1000;
+}
+
+#error > div{
+	background: red;
+	width: 100%;
+	max-width: 350px;
+	border-radius: 5px;
+}
+#error > div > div{
+	padding: 5px;
+}
+#error > div > div:nth-child(1){
+	border-bottom: 1px solid white;
+}
+#error > div > div:nth-child(3){
+	border-top: 1px solid white;
+}
+
+#error h5{
+	font-weight: bold;
+	font-size: 20px;
+}
+#error code{
+	font-size: 14px;
+	font-family: system-ui;
+	overflow-wrap: break-word;
+}
+#error a{
+	font-size: 15px;
+	padding: 5px;
+}
+
+#error .code{
+	max-height: 300px;
+	overflow: auto;
+}

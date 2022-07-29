@@ -352,7 +352,9 @@ const computedExtension = (computed, keyApp) => {
 				},
 				resizeBody: () => {
 					setTimeout(() => {
-						window.$app[keyApp].$node.style.marginBottom = `${this.$node.offsetHeight}px`;
+						if(window.$app[keyApp].$node) {
+							window.$app[keyApp].$node.style.marginBottom = `${this.$node.offsetHeight}px`;
+						}
 					}, 1000);
 				},
 				handleConsole: () => {

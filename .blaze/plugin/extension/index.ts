@@ -27,9 +27,7 @@ export const addComponent = (data, trigger = true) => {
 };
 
 export const withExtension = (entry: string, enabled: boolean) => {
-	return (app, blaze, hmr, keyApp) => {
-		app;
-		hmr;
+	return (_a, blaze, _c, keyApp) => {
 		let query = document.querySelector(entry);
 		if (query && enabled && !window.$extension) {
 			let component = new Extension(keyApp);

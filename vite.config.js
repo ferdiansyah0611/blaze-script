@@ -7,7 +7,6 @@ export default defineConfig({
       "@blaze": path.resolve(__dirname, "./.blaze"),
       "@blaze.d": path.resolve(__dirname, "./.blaze/blaze.d"),
       "@blaze.utils": path.resolve(__dirname, "./.blaze/utils"),
-      "@blaze.router": path.resolve(__dirname, "./.blaze/router"),
       "@root": path.resolve(__dirname, "./.blaze"),
       "@route": path.resolve(__dirname, "./src/route"),
       "@component": path.resolve(__dirname, "./src/component"),

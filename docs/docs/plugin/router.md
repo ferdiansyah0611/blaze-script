@@ -5,8 +5,7 @@ Plugin for routing a page
 ## Setup
 
 ```tsx
-// import it
-import { makeRouter, page, startIn } from "@blaze.router";
+import { makeRouter, page, startIn } from "@root/plugin/router";
 
 const App = function () {
     const { render } = init(this);
