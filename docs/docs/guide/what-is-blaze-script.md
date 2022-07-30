@@ -11,10 +11,9 @@ Is a framework for building large-scale single page applications with similar co
 -   Virtual DOM
 -   State Management
 -   Lifecycle
--   Include Router and Context
 -   JSX Syntax
 -   Batch
--   Build Faster
+-   Navigation, Cache Request, Error Handling And More
 
 ## Installation
 
@@ -41,10 +40,9 @@ const app = new App("#app", Hello, {
 app.mount();
 ```
 
-## More Info
+## Information
 
--   Not recommendation for production because still on development
--   Updating TextNode Only Work In SPAN|P|H1|H2|H3|H4|H5|H6|A|BUTTON
+Not recommendation for production because still on development. If found a bug, create new issues on repository.
 
 ## Contributing
 

@@ -68,6 +68,12 @@ app.use(
 );
 ```
 
+Change page
+
+```tsx
+<a href="/home" data-link>Home</a>
+```
+
 ## Params
 
 ```tsx

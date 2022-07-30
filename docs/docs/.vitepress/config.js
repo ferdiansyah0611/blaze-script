@@ -62,6 +62,7 @@ function getGuideSidebar() {
         { text: "Media Query", link: "/plugin/media-query" },
         { text: "Query", link: "/plugin/query" },
         { text: "Tester", link: "/plugin/tester" },
+        { text: "Error", link: "/plugin/error" },
       ],
     },
     {

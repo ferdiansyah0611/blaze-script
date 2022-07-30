@@ -5,9 +5,6 @@ hero:
     name: Blaze Script
     text: Framework Single Page Application
     tagline: The Future Of Frontend Development
-    image:
-        src: /logo.png
-        alt: BScript
     actions:
         - theme: brand
           text: Get Started
