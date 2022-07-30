@@ -13,6 +13,7 @@
 	background: #000000bd;
     backdrop-filter: blur(16px) saturate(160%);
     z-index: 1000;
+    left: 0px;
 }
 
 #error > div{
@@ -43,6 +44,8 @@
 #error a{
 	font-size: 15px;
 	padding: 5px;
+	color: white;
+	text-decoration: none;
 }
 
 #error .code{

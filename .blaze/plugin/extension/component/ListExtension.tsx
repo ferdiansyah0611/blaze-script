@@ -2,7 +2,14 @@ import { init } from "@blaze";
 
 export default function ListExtension() {
 	this.disableExtension = true;
-	const { render } = init(this);
+	const { render, defineProp } = init(this);
+	defineProp({
+		item: {
+			constructor: {
+				name: ''
+			}
+		}
+	})
 	render(() => {
 		return (
 			<div style={this.props.style || ""} class="flex-1">

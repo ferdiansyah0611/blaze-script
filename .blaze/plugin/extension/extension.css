@@ -1,0 +1,163 @@
+#extension {
+	position: fixed;
+	bottom: 0px;
+	z-index: 10;
+	background: #1a1a1a;
+	left: 0px;
+	width: 100%;
+	font-family: system-ui;
+}
+#extension .open {
+}
+
+#extension .close {
+	right: 0px;
+}
+
+#extension a {
+	color: white;
+	text-decoration: none;
+}
+
+#extension .flex {
+	display: flex;
+}
+
+#extension .p-2 {
+	padding: 6px;
+}
+
+#extension .pr-2 {
+	padding-right: 6px;
+}
+
+#extension .ml-2 {
+	margin-left: 6px;
+}
+
+#extension input,
+#extension textarea {
+	padding: 20px;
+	outline: none;
+}
+#extension textarea {
+	width: 100%;
+}
+
+#extension input {
+	border: 0px;
+}
+
+#extension h5 {
+	margin: 0px;
+}
+
+#extension .bg-black {
+	background: black;
+}
+
+#extension .space-x-2 {
+	gap: 6px;
+}
+#extension .flex-1 {
+	flex: 1 0 0%;
+}
+#extension .justify-end {
+	justify-content: flex-end;
+}
+#extension .items-center {
+	align-items: center;
+}
+#extension .flex-col {
+	flex-direction: column;
+}
+#extension .sticky {
+	position: sticky;
+}
+#extension .top-0 {
+	top: 0px;
+}
+#extension .text-white,
+#extension button {
+	color: white;
+}
+
+#extension button {
+	cursor: pointer;
+	border: 0px;
+}
+#extension .bg-gray-800 {
+	background: #363636;
+}
+
+#extension .border-b {
+	border-bottom: 1px solid white;
+}
+
+#extension .text-gray-100 {
+	color: #e3e3e3;
+}
+#extension .text-yellow-100 {
+	color: #fffcad;
+}
+#extension .text-red-100 {
+	color: #ff8585;
+}
+
+#extension .text-green-400 {
+	color: #5cff78;
+}
+
+#extension .italic {
+	font-style: italic;
+}
+
+#extension #list-log {
+	display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+#extension p, h5, h6 {
+	margin-bottom: 4px;
+	margin-top: 4px;
+	font-size: 14px;
+}
+
+#extension .sticky {
+	display: flex;
+}
+
+#extension .bg-blue-800 {
+	background: #6a44ff;
+}
+
+#extension .bg-green-800 {
+	background: #0ba51e;
+}
+
+.text-left {
+	text-align: left;
+}
+
+[data-n="InputExtension"] input {
+	width: 100%;
+}
+
+#extension .w-4.h-4.rounded-full.bg-green-500 {
+	width: 14px;
+	height: 14px;
+	border-radius: 50%;
+	background: #66ff64;
+}
+
+#extension .w-4.h-4.rounded-full.bg-red-500 {
+	width: 14px;
+	height: 14px;
+	border-radius: 50%;
+	background: #ff6464;
+}
+
+#extension .text-sm {
+	font-size: 14px;
+}

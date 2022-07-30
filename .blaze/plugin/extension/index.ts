@@ -1,6 +1,7 @@
 import { rendering } from "@root/core";
 import { batch } from "@blaze";
 import Extension from "./component/Extension";
+import "./extension.css";
 
 type Log = {
 	msg: string;
@@ -29,6 +30,7 @@ export const addComponent = (data, trigger = true) => {
 export const withExtension = (entry: string, enabled: boolean) => {
 	return (_a, blaze, _c, keyApp) => {
 		let query = document.querySelector(entry);
+		// remove !window.$extension if develop extension
 		if (query && enabled && !window.$extension) {
 			let component = new Extension(keyApp);
 			rendering(component, null, true, {}, 0, component.constructor.name, []);

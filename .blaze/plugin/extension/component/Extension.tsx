@@ -3,6 +3,8 @@ import InputExtension from "./InputExtension";
 import ListExtension from "./ListExtension";
 import Testing from "./Testing";
 
+const exception = ["$name", "$children", "$root", "$index", "_isProxy", "fallback"];
+
 export default function Extension(keyApp) {
 	const { render, state, mount, computed } = init(this);
 	state("state", {
@@ -43,7 +45,7 @@ export default function Extension(keyApp) {
 
 	render(() => {
 		return (
-			<div>
+			<div id="extension">
 				<div class={this.state.open ? "block" : "hidden"}>
 					{/*console*/}
 					{this.state.openConsole && (
@@ -114,23 +116,9 @@ export default function Extension(keyApp) {
 							</div>
 							<div class="flex">
 								<div refs="bodyComponent" style={"max-height: 50vh;overflow: auto;flex: 1;"}>
-									<div class="sticky top-0 z-10 pr-2">
+									<div class="sticky top-0 z-10">
 										<input
-											onKeyUpValue={(value) => {
-												let number = value.match(/[0-9]+/);
-												if (number) {
-													return this.bodyComponent.scrollTo(
-														0,
-														this.bodyComponent.querySelector(`[data-search="${value}"][data-i="${Number(number[0])}"]`)
-															?.offsetTop
-													);
-												} else {
-													return this.bodyComponent.scrollTo(
-														0,
-														this.bodyComponent.querySelector(`[data-search="${value}"]`)?.offsetTop
-													);
-												}
-											}}
+											onChangeValue={this.handleSearchComponent}
 											placeholder="Search component..."
 											class="bg-black text-sm w-full text-white p-2 focus:border-gray-600 flex-1 focus:outline-none"
 											type="text"
@@ -188,17 +176,18 @@ export default function Extension(keyApp) {
 												<div class="flex flex-col border-b border-gray-500 pb-2">
 													{this.selectComponentState.map((item) => (
 														<div>
-															{Object.keys(this.state.selectComponent[item] || {})
-																.filter((items) => items !== "_isProxy")
-																.map((state, i) => (
-																	<InputExtension
-																		name={state}
-																		value={this.state.selectComponent[item][state]}
-																		disableMargin={true}
-																		onChange={(val) => (this.state.selectComponent[item][state] = val)}
-																		key={i + 1}
-																	/>
-																))}
+															{item !== "$node" &&
+																Object.keys(this.state.selectComponent[item] || {})
+																	.filter((item) => exception.includes(item) === false)
+																	.map((state, i) => (
+																		<InputExtension
+																			name={state}
+																			value={this.state.selectComponent[item][state]}
+																			disableMargin={true}
+																			onChange={(val) => (this.state.selectComponent[item][state] = val)}
+																			key={i + 1}
+																		/>
+																	))}
 														</div>
 													))}
 												</div>
@@ -285,7 +274,7 @@ export default function Extension(keyApp) {
 								Component
 							</a>
 							<a className="bg-gray-800 p-2" onClickPrevent={this.handleLog} href="/">
-								{!this.state.openLog ? "Open Log" : "Close Log"}
+								Log
 							</a>
 							<div class="flex-1 flex justify-end items-center">
 								<a href="/" onClickPrevent={this.toggleOpen}>
@@ -336,8 +325,8 @@ const computedExtension = (computed, keyApp) => {
 				},
 				// more
 				toggleOpen: () => {
-					let openClass = "fixed bottom-0 z-10 bg-gray-900 w-full";
-					let closeClass = "fixed bottom-0 right-0 z-10 bg-gray-900";
+					let openClass = "open";
+					let closeClass = "close";
 					// on open
 					if (!this.state.open) {
 						this.$node.className = openClass;
@@ -352,7 +341,7 @@ const computedExtension = (computed, keyApp) => {
 				},
 				resizeBody: () => {
 					setTimeout(() => {
-						if(window.$app[keyApp].$node) {
+						if (window.$app[keyApp].$node) {
 							window.$app[keyApp].$node.style.marginBottom = `${this.$node.offsetHeight}px`;
 						}
 					}, 1000);
@@ -405,6 +394,21 @@ const computedExtension = (computed, keyApp) => {
 					console.clear();
 				},
 				setSelectComponent: (data) => (this.state.selectComponent = data),
+				handleSearchComponent: (value) => {
+					let list = Array.from(this.$node.querySelectorAll('[data-n="ListExtension"]'));
+					list.forEach((node) => {
+						let current = node.children[0];
+						if (
+							node.children.length &&
+							value &&
+							(current.dataset.search.match(value) || current.dataset.i.match(value))
+						) {
+							current.classList.add("bg-green-800");
+						} else if (current) {
+							current.classList.remove("bg-green-800");
+						}
+					});
+				},
 			},
 			get: {
 				selectComponentState: () =>
@@ -412,7 +416,8 @@ const computedExtension = (computed, keyApp) => {
 						(item) => this.state.selectComponent[item]?._isProxy === true && item !== "props"
 					),
 				selectComponentContext: () => Object.keys(this.state.selectComponent.ctx || {}),
-				props: () => Object.keys(this.state.selectComponent.props || {}).filter((item) => item !== "_isProxy"),
+				props: () =>
+					Object.keys(this.state.selectComponent.props || {}).filter((item) => exception.includes(item) === false),
 			},
 		};
 	});
