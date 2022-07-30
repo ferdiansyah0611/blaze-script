@@ -2,7 +2,7 @@
 
 # Blaze Script
 
-Framework Single Page Application
+Is a framework for building large-scale single page applications with similar codeability as React Js and Vue Js
 
 </div>
 
@@ -11,10 +11,9 @@ Framework Single Page Application
 -   Virtual DOM
 -   State Management
 -   Lifecycle
--   Include Router and Context
 -   JSX Syntax
 -   Batch
--   Build Faster
+-   Navigation, Cache Request, Error Handling And More
 
 ## Get Started
 
@@ -35,32 +34,9 @@ const app = new App("#app", Hello, {
 app.mount();
 ```
 
-## Documentation
+## Information
 
-<div style="display: block;">
-
-• [Blaze](https://github.com/ferdiansyah0611/blaze-script/blob/main/docs/blaze.md)
-    
-• [Router](https://github.com/ferdiansyah0611/blaze-script/blob/main/docs/router.md)
-    
-• [Extension](https://github.com/ferdiansyah0611/blaze-script/blob/main/docs/extension.md)
-    
-• [Helmet](https://github.com/ferdiansyah0611/blaze-script/blob/main/docs/helmet.md)
-    
-• [Tester](https://github.com/ferdiansyah0611/blaze-script/blob/main/docs/tester.md)
-
-• [MediaQuery](https://github.com/ferdiansyah0611/blaze-script/blob/main/docs/mediaquery.md)
-
-• [Query](https://github.com/ferdiansyah0611/blaze-script/blob/main/docs/query.md)
-
-</div>
-
-## More Info
-
--   Not recommendation for production because still on development
--   Updating TextNode Only Work In SPAN|P|H1|H2|H3|H4|H5|H6|A|BUTTON
--   Component must be have a key props if more than one
--   SVG work but if not work in anycase, add element property svg=""
+Not recommendation for production because still on development. If found a bug, create new issues on repository.
 
 ## Contributing
 

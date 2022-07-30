@@ -13,10 +13,10 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 	let keyApplication = 0;
 	let glob = {};
 	const mappingConfig = (item) => {
-		if(config.config && config.config[item.path]) {
+		if (config.config && config.config[item.path]) {
 			item.config = config.config[item.path];
 		}
-	}
+	};
 
 	if (!config.url) config.url = [];
 
@@ -52,14 +52,13 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 	}
 	if (config.resolve) {
 		config.url.map((item) => {
-			mappingConfig(item)
+			mappingConfig(item);
 
 			if (item.path) {
 				item.path = config.resolve + (item.path === "/" ? "" : item.path);
 			}
 		});
-	}
-	else if(config.auto){
+	} else if (config.auto) {
 		config.url.map(mappingConfig);
 	}
 
@@ -67,7 +66,7 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 	 * @goto
 	 * run component and append to entry query
 	 */
-	const goto = async (app: any, url: string, component: any, config: any, params?: any) => {
+	const goto = async (app: any, url: string, component: any, config: any, params?: any, search?: any) => {
 		if (!document.querySelector(entry)) {
 			let msg = "[Router] entry not found, query is correct?";
 			app.$router._error(msg);
@@ -85,6 +84,19 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 		};
 
 		replaceOrPush();
+
+		// search
+		if (config.search) {
+			let searchparam = {};
+			for (const [key, value] of new URLSearchParams(search).entries()) {
+				searchparam[key] = value;
+			}
+			Object.assign(app, {
+				search: searchparam,
+			});
+		} else {
+			delete app.search;
+		}
 
 		// auto route or not
 		if (component.name.indexOf("../") !== -1) {
@@ -127,64 +139,44 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 	 * @ready
 	 * utils for check url is exists or not
 	 */
-	const ready = (app: any, first: boolean = false, url: string = new URL(location.href).pathname) => {
-		let routes = config.url.find((v: any) => v.path === url),
-			component: string = "",
-			params: any = {},
-			found: any;
+	const ready = (app: any, first: boolean = false, uri: any = new URL(location.href)) => {
+		let url = uri.pathname;
 
-		const validation = () => {
-			if (routes) {
-				component = routes.component;
-				found = routes;
-				return true;
-			} else {
-				const pathRegex = (path: string) =>
-					new RegExp("^" + path.replace(/\//g, "\\/").replace(/:\w+/g, "(.+)") + "$");
-				const potentialMatched = config.url.map((route: any) => {
-					return {
-						route,
-						result: url.match(pathRegex(route.path)),
-					};
-				});
-				let match = potentialMatched.find((potentialMatch: any) => potentialMatch.result !== null);
-				if (!match) {
-					if (routes) {
-						match = {
-							route: routes[0],
-							result: [url],
-						};
-					} else {
-						let current = config.url.find(
-							(path) => path.path.length === 0 || (config.auto && path.path.indexOf("/404") !== -1)
-						);
-						component = current.component;
-						found = current;
-						let msg = `[Router] Not Found 404 ${url}`;
-						app.$router._error(msg);
-						goto(app, url, component, {});
-						return false;
-					}
-				}
-				const getParams = (match: any) => {
-					const values = match.result.slice(1);
-					const keys = Array.from(match.route.path.matchAll(/:(\w+)/g)).map((result: any) => result[1]);
-					return Object.fromEntries(
-						keys.map((key: any, i: number) => {
-							return [key, values[i]];
-						})
-					);
-				};
-				params = getParams(match);
-				found = match.route;
-				return true;
-			}
+		const goNotFound = () => {
+			let current = config.url.find(
+				(path) => path.path.length === 0 || (config.auto && path.path.indexOf("/404") !== -1)
+			);
+			let msg = `[Router] Not Found 404 ${url}`;
+			app.$router._error(msg);
+			goto(app, url, current.component, {});
 		};
 
-		if (validation()) {
+		const { result, isValid, params } = check(config, url);
+
+		if (isValid) {
+			// search
+			if (uri.search) url += uri.search;
+			if (result.config.search && uri.search) {
+				let searchNotEqual;
+
+				result.config.search.forEach((search) => {
+					if (uri.search.indexOf(search) === -1) {
+						searchNotEqual = true;
+					}
+				});
+
+				if (searchNotEqual) {
+					goNotFound();
+					return false;
+				}
+			}
+			if ((!result.config.search && uri.search) || (result.config.search && !uri.search)) {
+				return goNotFound();
+			}
+
 			// beforeEach
-			if (found && found.config.beforeEach) {
-				if (!found.config.beforeEach(app.$router)) {
+			if (result && result.config.beforeEach) {
+				if (!result.config.beforeEach(app.$router)) {
 					return false;
 				}
 			}
@@ -198,10 +190,11 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 
 			let msg = `[Router] GET 200 ${url}`;
 			app.$router._found(msg);
-			return goto(app, url, found.component, found.config, params);
+			return goto(app, url, result.component, result.config, params, uri.search);
+		} else {
+			goNotFound();
+			return false;
 		}
-
-		return false;
 	};
 	return (app: Component, blaze, hmr, keyApp) => {
 		/**
@@ -221,8 +214,8 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 			back: () => {
 				history.back();
 			},
-			push: (url: string) => {
-				if (!(url === location.pathname)) {
+			push: (url: URL) => {
+				if ((url.search && url.search !== location.search) || !(url.pathname === location.pathname)) {
 					ready(app, false, url);
 				}
 			},
@@ -256,10 +249,14 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 				if (config.resolve) {
 					let url = new URL(el.href);
 					el.dataset.href = url.origin + config.resolve + (url.pathname === "/" ? "" : url.pathname);
+					// search
+					if (url.search) {
+						el.dataset.href += url.search;
+					}
 				}
 				el.addEventListener("click", (e: any) => {
 					e.preventDefault();
-					tool.push(new URL(config.resolve ? e.currentTarget.dataset.href : el.href).pathname);
+					tool.push(new URL(config.resolve ? e.currentTarget.dataset.href : el.href));
 				});
 				el.isRouter = true;
 			}
@@ -276,6 +273,47 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 };
 
 /**
+ * @check
+ * check potential match on route with url
+ */
+function check(config: any, url: string) {
+	let result, isValid, params;
+	let routes = config.url.find((v: any) => v.path === url);
+
+	if (routes) {
+		isValid = true;
+		result = routes;
+	} else {
+		const pathRegex = (path: string) => new RegExp("^" + path.replace(/\//g, "\\/").replace(/:\w+/g, "(.+)") + "$");
+		const potentialMatched = config.url.map((route: any) => {
+			return {
+				route,
+				result: url.match(pathRegex(route.path)),
+			};
+		});
+		let match = potentialMatched.find((potentialMatch: any) => potentialMatch.result !== null);
+		if (!match) {
+			isValid = false;
+			return { result, isValid };
+		}
+		const getParams = (match: any) => {
+			const values = match.result.slice(1);
+			const keys = Array.from(match.route.path.matchAll(/:(\w+)/g)).map((result: any) => result[1]);
+			return Object.fromEntries(
+				keys.map((key: any, i: number) => {
+					return [key, values[i]];
+				})
+			);
+		};
+		isValid = true;
+		params = getParams(match);
+		result = match.route;
+	}
+
+	return { result, isValid, params };
+}
+
+/**
  * @mount
  * mount on current component and add event popstate
  */
@@ -289,11 +327,11 @@ export const startIn = (component: Component, keyApp?: number) => {
 			window.$router[keyApp].ready(component, true);
 			window.addEventListener("popstate", () => {
 				window.$router[keyApp].popstate = true;
-				window.$router[keyApp].ready(component, false, location.pathname);
+				window.$router[keyApp].ready(component, false, location);
 			});
 		} else {
 			window.$router[keyApp].popstate = true;
-			window.$router[keyApp].ready(component, false, location.pathname);
+			window.$router[keyApp].ready(component, false, location);
 		}
 	}, component);
 };

@@ -11,25 +11,32 @@ const App = function () {
     const { render } = init(this);
     // add, where #route in component
     startIn(this);
-    render(() => <div>
-        <div id="route"></div>
-    </div>)
-}
+    render(() => (
+        <div>
+            <div id="route"></div>
+        </div>
+    ));
+};
 // ...
 app.use(
     makeRouter("#route", {
-        url: [page("/", Index), page("/test", Test, {
-            // if false, component not run and not push/replace url
-            beforeEach(router){
-                // router.go(-1)
-                // etc...
-                return true
-            },
-            // if false, auto redirect back
-            afterEach(router){
-                return true
-            }
-        }), page("/test/:id", TestParam), page("", NotFound)],
+        url: [
+            page("/", Index),
+            page("/test", Test, {
+                // if false, component not run and not push/replace url
+                beforeEach(router) {
+                    // router.go(-1)
+                    // etc...
+                    return true;
+                },
+                // if false, auto redirect back
+                afterEach(router) {
+                    return true;
+                },
+            }),
+            page("/test/:id", TestParam),
+            page("", NotFound),
+        ],
         // option for resolve url
         resolve: "/test/index.html",
     })
@@ -58,12 +65,12 @@ app.use(
         auto: true,
         // optional (config for route)
         config: {
-            '/': {
-                beforeEach(){
-                    return true
-                }
-            }
-        }
+            "/": {
+                beforeEach() {
+                    return true;
+                },
+            },
+        },
     })
 );
 ```
@@ -71,10 +78,27 @@ app.use(
 Change page
 
 ```tsx
-<a href="/home" data-link>Home</a>
+<a href="/home" data-link>
+    Home
+</a>
 ```
 
-## Params
+## Search
+
+```tsx
+app.use(
+    makeRouter("#route", {
+        url: [
+            // /test?name=ferdiansyah
+            page("/test", Test, {
+                search: ["name"],
+            }),
+        ],
+    })
+);
+```
+
+## Access Params & Search
 
 ```tsx
 const TestParam = function (app) {
@@ -83,6 +107,7 @@ const TestParam = function (app) {
         () => (
             <>
                 <p>{app.params.id}</p>
+                <p>{app.search.name}</p>
             </>
         ),
         this

@@ -29,6 +29,9 @@ declare global {
     interface ChildNode {
         data: any;
     }
+    interface URLSearchParams {
+        entries();
+    }
 }
 
 import Apps from "@/Apps";
