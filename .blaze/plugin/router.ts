@@ -7,7 +7,7 @@ import { addComponent } from "@root/plugin/extension";
  * @makeRouter
  * extension for router
  */
-export const makeRouter = (entry: string, config: any, dev?: boolean = false) => {
+export const makeRouter = (entry: string, config: any, dev: boolean = false) => {
 	let tool;
 	let popstate = false;
 	let keyApplication = 0;

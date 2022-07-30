@@ -1,4 +1,4 @@
-import isEqualWith from "lodash/isEqualWith";
+import isEqualWith from "lodash.isequalwith";
 import {
 	mount,
 	layout,

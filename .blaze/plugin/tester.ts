@@ -1,4 +1,4 @@
-import isEqualWith from "lodash/isEqualWith";
+import isEqualWith from "lodash.isequalwith";
 
 export default class Tester {
 	component: any;

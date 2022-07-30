@@ -396,8 +396,8 @@ const computedExtension = (computed, keyApp) => {
 				setSelectComponent: (data) => (this.state.selectComponent = data),
 				handleSearchComponent: (value) => {
 					let list = Array.from(this.$node.querySelectorAll('[data-n="ListExtension"]'));
-					list.forEach((node) => {
-						let current = node.children[0];
+					list.forEach((node: HTMLElement) => {
+						let current: any = node.children[0];
 						if (
 							node.children.length &&
 							value &&
