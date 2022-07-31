@@ -81,7 +81,7 @@ Event listener reverse for a state or context
 </section>
 ```
 
-## Refs
+## refs
 
 Get current node
 

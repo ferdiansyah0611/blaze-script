@@ -3,11 +3,11 @@
 By default, event listener is auto batching and async. If you want disable auto batch, try add attribute `batch={false}` on current element where have event listener.
 
 ```tsx
-import { init, render } from "@blaze";
+import { init } from "@blaze";
 
 const Hello = function () {
-    init(this);
-    let click = (e) => {
+    const { render } = init(this);
+    const click = (e) => {
         console.log("clicked");
     };
     render(
@@ -19,8 +19,7 @@ const Hello = function () {
                     Click Me
                 </a>
             </div>
-        ),
-        this
+        )
     );
 };
 ```

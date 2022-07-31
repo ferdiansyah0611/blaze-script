@@ -21,6 +21,8 @@ Is a framework for building large-scale single page applications with similar co
 git clone https://github.com/ferdiansyah0611/blaze-script && cd blaze-script && npm i
 ```
 
+By default, typescript is not installed in node_modules and we use tsc globally. if you haven't installed typescript on your device, you can install it using `npm i typescript`
+
 ## Get Started
 
 ```tsx

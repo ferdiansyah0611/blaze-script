@@ -85,7 +85,7 @@ export const init = (component: Component) => {
 	}
 
 	return {
-		dispatch: (name: string, data: any) => dispatch(name, component, data),
+		dispatch: (name: string, data: any, autoBatch?: boolean) => dispatch(name, component, data, autoBatch),
 		render: (callback: () => any) => render(callback, component),
 		batch: (callback: () => any) => batch(callback, component),
 		state: (...argv: any[]) => state.apply(null, [...argv, component]),
