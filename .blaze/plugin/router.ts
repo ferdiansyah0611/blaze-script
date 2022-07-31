@@ -28,12 +28,16 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 			Object.assign(glob, import.meta.glob("@app/test.dev/route/**/**/*.tsx"));
 			Object.assign(glob, import.meta.glob("@app/test.dev/route/**/**/**/*.tsx"));
 			Object.assign(glob, import.meta.glob("@app/test.dev/route/**/**/**/**/*.tsx"));
+			Object.assign(glob, import.meta.glob("@app/test.dev/route/**/**/**/**/**/*.tsx"));
+			Object.assign(glob, import.meta.glob("@app/test.dev/route/**/**/**/**/**/**/*.tsx"));
 		} else {
 			Object.assign(glob, import.meta.glob("@route/*.tsx"));
 			Object.assign(glob, import.meta.glob("@route/**/*.tsx"));
 			Object.assign(glob, import.meta.glob("@route/**/**/*.tsx"));
 			Object.assign(glob, import.meta.glob("@route/**/**/**/*.tsx"));
 			Object.assign(glob, import.meta.glob("@route/**/**/**/**/*.tsx"));
+			Object.assign(glob, import.meta.glob("@route/**/**/**/**/**/*.tsx"));
+			Object.assign(glob, import.meta.glob("@route/**/**/**/**/**/**/*.tsx"));
 		}
 		for (let modules in glob) {
 			let path = modules.split(dev ? "../../test.dev/route" : "../../src/route")[1].toLowerCase();
@@ -253,6 +257,7 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 					if (url.search) {
 						el.dataset.href += url.search;
 					}
+					el.href = el.dataset.href
 				}
 				el.addEventListener("click", (e: any) => {
 					e.preventDefault();

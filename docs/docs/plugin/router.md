@@ -46,15 +46,16 @@ app.mount();
 
 ## Auto Route
 
-Auto route based on files in route folder with max 4 folder path. Example:
+Auto route based on files in route folder with max 6 subfolder. Example:
 
 ```text
 index.tsx   => /
 404.tsx     => ""
 [id].tsx    => /:id
 
-/admin/index.tsx    => /admin
-/admin/[id].tsx     => /admin/:id
+admin/index.tsx    => /admin
+admin/user/[id].tsx     => /admin/user/:id
+admin/[id]/user.tsx     => /admin/:id/user
 
 /admin/page/example/test/index.tsx  => /admin/page/example/test
 ```
