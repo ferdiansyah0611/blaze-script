@@ -14,10 +14,7 @@ declare global {
         $name: string;
         if: boolean;
         else: any;
-        render: boolean;
         value: any;
-        hasAppend: boolean;
-        isRouter: boolean;
         d?: any;
         refs?: number;
         i?: any;

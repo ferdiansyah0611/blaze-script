@@ -1,4 +1,4 @@
-import { created } from '@blaze'
+import { mount } from '@blaze'
 
 export default function MediaQuery(query: string, callback: Function, component){
 	const media = window.matchMedia(query)
@@ -7,7 +7,7 @@ export default function MediaQuery(query: string, callback: Function, component)
 			callback(e.matches)
 		}
 	}
-	created(() => {
+	mount(() => {
 		handle(media)
 
 		media.addEventListener('change', handle)

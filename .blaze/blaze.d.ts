@@ -48,7 +48,7 @@ export interface Component {
 		beforeCreate?: Function[];
 		created?: Function[];
 		mount: Mount[];
-		mounted(update?: boolean);
+		mounted(update?: boolean, hmr?: boolean);
 		unmount: Function[];
 		layout?: Function[];
 		beforeUpdate?: Function[];

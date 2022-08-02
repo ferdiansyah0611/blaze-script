@@ -41,10 +41,9 @@ export class createApp implements InterfaceApp {
 			rendering(app, null, true, {}, 0, app.constructor, []);
 
 			let query = document.querySelector(this.el);
-			Array.from(query.children).forEach((node: HTMLElement) => node.remove());
-			query.append(window.$app[this.config.key].$node);
+			query.replaceChildren(window.$app[this.config.key].$node);
 
-			app.$deep.mounted(false);
+			app.$deep.mounted(false, hmr);
 
 			this.blaze.runAfterAppReady(app);
 		};

@@ -13,7 +13,6 @@
   },
   "dependencies": {
     "dexie": "^3.2.2",
-    "html-escaper": "^3.0.3",
     "lodash.isequalwith": "^4.4.0"
   }
 }

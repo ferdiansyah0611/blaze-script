@@ -1,4 +1,3 @@
-import { escape } from "html-escaper";
 import { deepObjectState } from "./core";
 import { batch } from "./utils";
 import { Component } from "./blaze.d";
@@ -166,3 +165,11 @@ export const attributeObserve = (data: any, el: HTMLElement, component: Componen
 		el[item] = data[item];
 	});
 };
+
+
+function escape(html: string){
+	let div = document.createElement('div')
+	div.innerHTML = html;
+	Array.from(div.querySelectorAll('script')).forEach((script) => script.remove())
+	return div.innerHTML;
+}

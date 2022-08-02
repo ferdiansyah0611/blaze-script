@@ -118,14 +118,17 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 		// render
 		rendering(current, null, true, {}, 0, current.constructor, []);
 		const query = document.querySelector(entry);
-		Array.from(query.children).forEach((item) => item.remove());
-		query.append(current.$node);
-		current.$deep.mounted(false);
+		query.replaceChildren(current.$node);
+		current.$deep.mounted(false, app.$router.hmr);
 		addComponent(current);
 
 		app.$router.history.forEach((data) => {
 			data.current.$deep.remove();
 		});
+		// remove previous router
+		if (app.$router.history.length) {
+			removeCurrentRouter(app.$router);
+		}
 
 		app.$router.history.push({ url, current });
 		// inject router
@@ -186,11 +189,7 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 			}
 
 			// call always change router
-			if (!first) app.$router.$change.forEach((item) => item());
-			// remove previous router
-			if (app.$router.history.length) {
-				removeCurrentRouter(app.$router);
-			}
+			if (!first) app.$router.$change.forEach((item) => item(url));
 
 			let msg = `[Router] GET 200 ${url}`;
 			app.$router._found(msg);
@@ -224,7 +223,10 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 				}
 			},
 			onChange(data) {
-				this.$change.push(data);
+				let check = this.$change.find((item) => item.toString() === data.toString())
+				if(!check) {
+					this.$change.push(data);
+				}
 			},
 			_error(error) {
 				this.error.forEach((data) => data(error));
@@ -249,7 +251,7 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 		 * on a element and dataset link is router link
 		 */
 		blaze.everyMakeElement.push((el: any) => {
-			if (el && el.nodeName === "A" && el.dataset.link && !el.isRouter && el.href !== "#") {
+			if (el && el.nodeName === "A" && el.dataset.link && el.href !== "#") {
 				if (config.resolve) {
 					let url = new URL(el.href);
 					el.dataset.href = url.origin + config.resolve + (url.pathname === "/" ? "" : url.pathname);
@@ -263,7 +265,6 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 					e.preventDefault();
 					tool.push(new URL(config.resolve ? e.currentTarget.dataset.href : el.href));
 				});
-				el.isRouter = true;
 			}
 		});
 

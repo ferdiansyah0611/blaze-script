@@ -33,18 +33,20 @@ const diff = function (prev: HTMLElement, el: HTMLElement, component: Component)
 		let name = prev.$name;
 		let key = prev.key;
 
-		prev.$root.$deep.registry.forEach((registry) => {
-			if (registry.component.constructor.name === name && registry.key === key) {
-				unmountCall(registry.component.$deep);
-				registry.component.$deep.mount = registry.component.$deep.mount.map((item) => {
-					item.run = false;
-					return item;
-				});
-				registry.component.$deep.hasMount = false;
-				registry.component.$deep.disableAddUnmount = true;
-				return registry;
-			}
-		});
+		if(prev.$root) {
+			prev.$root.$deep.registry.forEach((registry) => {
+				if (registry.component.constructor.name === name && registry.key === key) {
+					unmountCall(registry.component.$deep);
+					registry.component.$deep.mount = registry.component.$deep.mount.map((item) => {
+						item.run = false;
+						return item;
+					});
+					registry.component.$deep.hasMount = false;
+					registry.component.$deep.disableAddUnmount = true;
+					return registry;
+				}
+			});
+		}
 		batch.push(() => {
 			prev.$name = el.$name;
 			prev.$children = el.$children;
@@ -167,7 +169,7 @@ const diff = function (prev: HTMLElement, el: HTMLElement, component: Component)
  * and diff element
  */
 export const diffChildren = (oldest: any, newest: any, component: Component, first: boolean = true) => {
-	if (!newest || !oldest) {
+	if ((!newest || !oldest) || oldest.skip) {
 		return;
 	}
 	if (oldest.for) {

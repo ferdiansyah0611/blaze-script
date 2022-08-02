@@ -24,8 +24,8 @@
       "@root/*": ["./.blaze/*"],
       "@route": ["./src/route"],
       "@component/*": ["./src/component/*"],
-      "@style": ["./src/style"],
-      "@store": ["./src/store"],
+      "@style/*": ["./src/style/*"],
+      "@store/*": ["./src/store/*"],
       "@app": ["./"],
       "@/*": ["./src/*"]
     },

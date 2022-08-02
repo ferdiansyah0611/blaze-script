@@ -49,10 +49,19 @@ export const init = (component: Component) => {
 				diffChildren(component.$node, result, component);
 				return result;
 			},
-			mounted: (update) => {
+			mounted: (update, hmr?: boolean) => {
 				mountCall(component.$deep, update ? component.props : {}, update);
+				component.$deep.watch.forEach((item) => {
+					item.dependencies.forEach((dependencies) => {
+						let current = "component." + dependencies
+						let value = eval(current)
+						if(value) {
+							item.handle(dependencies, value)
+						}
+					})
+				})
 				component.$deep.registry.forEach((item) => {
-					item.component.$deep.mounted();
+					item.component.$deep.mounted(update, hmr);
 				});
 			},
 			remove: (notClear = false) => {
@@ -291,13 +300,13 @@ export const rendering = (
 	try{
 		const renderComponent = () => {
 			render = component.render();
-			render.key = data.key || key;
+			render.key = data.key || key || 0;
 			render.$children = component;
 			render.$root = root;
 			if (render.dataset) {
 				render.dataset.n = nodeName.name;
-				if (["number", "string"].includes(typeof data.key)) {
-					render.dataset.i = data.key;
+				if (["number", "string"].includes(typeof (data.key || 0))) {
+					render.dataset.i = data.key || 0;
 				}
 			}
 		};
@@ -384,7 +393,7 @@ export const rendering = (
 			error.open(`Component ${component.constructor.name}`, err.stack)
 		}
 	}
-
+	
 	if (first) return component.$node;
 	return render;
 };
