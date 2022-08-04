@@ -111,6 +111,10 @@ export default function e(
 			let check = $deep.registry.find(
 				(item: RegisteryComponent) => item.component.constructor.name === nodeName.name && item.key === key
 			);
+
+			if(window.$hmr && nodeName.name === window.$hmr.name) {
+				nodeName = window.$hmr;
+			}
 			/**
 			 * @registry
 			 */

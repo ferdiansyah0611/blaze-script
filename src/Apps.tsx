@@ -1,14 +1,8 @@
-import { render, init } from "@blaze";
-import { createApp } from '@root/render';
-import { makeRouter, page, startIn } from "@root/plugin/router";
-import withError from "@root/plugin/error";
-// route
-import Index from './route/Index'
-import PageExample from './route/Page'
-import NotFound from './route/404'
+import { init } from "@blaze";
+import { startIn } from "@root/plugin/router";
 
-const MyApp = function () {
-	init(this);
+export default function MyApp() {
+	const { render } = init(this);
 	startIn(this);
 
 	render(
@@ -16,28 +10,6 @@ const MyApp = function () {
 			<div className="p-4">
 				<div id="route"></div>
 			</div>
-		),
-		this
+		)
 	);
-};
-
-const app = new createApp("#app", MyApp, {
-	dev: import.meta.env.DEV,
-});
-
-export default function Apps() {
-	app.use(withError());
-	app.use(
-		makeRouter("#route", {
-			url: [
-				page("/", Index),
-				page("/page", PageExample),
-				page("/page/:id", PageExample),
-				page("", NotFound),
-			],
-		})
-	);
-	app.mount();
-
-	return app;
 }

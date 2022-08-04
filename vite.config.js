@@ -1,7 +1,9 @@
 import { defineConfig } from "vite";
 import path from "path";
+import hmr from "./.blaze/hmr"
 
 export default defineConfig({
+  plugins: [hmr()],
   resolve: {
     alias: {
       "@blaze": path.resolve(__dirname, "./.blaze"),

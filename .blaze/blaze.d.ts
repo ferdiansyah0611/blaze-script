@@ -39,7 +39,7 @@ export interface Component {
 		registry: RegisteryComponent[];
 		watch: Watch[];
 		trigger();
-		remove();
+		remove(notClear?: boolean, notNode?: boolean);
 		dispatch?: any;
 		time?: string;
 		disableAddUnmount?: boolean;

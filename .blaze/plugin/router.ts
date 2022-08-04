@@ -123,7 +123,7 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 		addComponent(current);
 
 		app.$router.history.forEach((data) => {
-			data.current.$deep.remove();
+			data.current.$deep.remove(true, true);
 		});
 		// remove previous router
 		if (app.$router.history.length) {
@@ -251,7 +251,7 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 		 * on a element and dataset link is router link
 		 */
 		blaze.everyMakeElement.push((el: any) => {
-			if (el && el.nodeName === "A" && el.dataset.link && el.href !== "#") {
+			if (el && el.nodeName === "A" && el.dataset.link && el.href !== "#" && !el.$router) {
 				if (config.resolve) {
 					let url = new URL(el.href);
 					el.dataset.href = url.origin + config.resolve + (url.pathname === "/" ? "" : url.pathname);
@@ -261,6 +261,7 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 					}
 					el.href = el.dataset.href
 				}
+				el.$router = true;
 				el.addEventListener("click", (e: any) => {
 					e.preventDefault();
 					tool.push(new URL(config.resolve ? e.currentTarget.dataset.href : el.href));
@@ -283,7 +284,7 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
  * check potential match on route with url
  */
 function check(config: any, url: string) {
-	let result, isValid, params;
+	let result, isValid, params = {};
 	let routes = config.url.find((v: any) => v.path === url);
 
 	if (routes) {

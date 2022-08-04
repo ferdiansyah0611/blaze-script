@@ -26,85 +26,125 @@ export const render = (callback: () => HTMLElement, component: Component) => (co
  * @state
  * state management and context on blaze
  */
-export const state = function (name: string | any, initial: any, component: Component | null, registry?: Component[]) {
+export const state = function (
+	name: string | any,
+	initial: any,
+	component: Component | null,
+	registryCall?: () => Component[],
+	listeningCall?: () => any[]
+) {
 	// for context
-	if (Array.isArray(registry)) {
-		return new Proxy(
-			{ ...initial, _isContext: true },
-			{
+	if (typeof registryCall === 'function') {
+		let validate = (newName?: string, withSub?: string) => {
+			return {
+				get(a, b, receiver) {
+					if (typeof a[b] === "object" && !Array.isArray(a[b])) {
+						return new Proxy({ ...a[b], _isContext: true }, validate(b, b));
+					}
+					return Reflect.get(a, b, receiver);
+				},
 				set(a: any, b: string, c: any) {
-					if(a[b] === c) return true;
-
+					if (a[b] === c) return true;
 					a[b] = c;
-					registry.forEach((register: Component) => {
+					let registry = registryCall();
+					let listening = listeningCall();
+
+					registry.forEach((register: Component, i) => {
+						let disable = register.$deep.disableTrigger;
+						const disableOnNotList = () => {
+							let currentListening = listening[i];
+							if (
+								currentListening &&
+								currentListening.listen.find((listen) => listen === (withSub ? withSub : b))
+							) {
+								disable = false;
+							} else {
+								disable = true;
+							}
+						};
+						const watchRun = () => {
+							// watching
+							register.$deep.watch.forEach((watch: Watch) => {
+								let find = watch.dependencies.find((item: string) => item === `ctx.${newName}.${b}`);
+								if (find) {
+									watch.handle(b, c);
+								}
+							});
+						};
+						disableOnNotList();
+						if (disable) {
+							disable = false;
+							watchRun();
+							return;
+						}
 						if (!register.$deep.batch && register.$deep.hasMount) {
 							register.$deep.trigger();
 						}
-						// watching
-						register.$deep.watch.forEach((watch: Watch) => {
-							let find = watch.dependencies.find((item: string) => item === `ctx.${name}.${b}`);
-							if (find) {
-								watch.handle(b, c);
-							}
-						});
+						watchRun();
+
+						disable = false;
 					});
 					return true;
 				},
-			}
-		);
+			};
+		};
+		return new Proxy({ ...initial, _isContext: true }, validate(name));
 	}
 	// for state
 	else {
-		created(() => {
-			let handle = (b, c) => {
-				// watching
-				component.$deep.watch.forEach((watch: Watch) => {
-					let find = watch.dependencies.find((item: string) => item === `${name}.${b}`);
-					if (find) {
-						watch.handle(b, c);
-					}
-				});
-			};
-			// for update
-			if (!name) {
-				name = "state";
-			}
-			component[name] = new Proxy(
-				{ ...initial, _isProxy: true },
-				{
-					set(a, b, c) {
-						if(a[b] === c) return true;
-
-						let allowed = !component.$deep.batch && !component.$deep.disableTrigger;
-						if (allowed) {
-							beforeUpdateCall(component.$deep);
-						}
-
-						a[b] = c;
-
-						if (allowed && component.$deep.hasMount) {
-							updatedCall(component.$deep);
-							component.$deep.trigger();
-						}
-						if (!component.$deep.disableTrigger) {
-							handle(b, c);
-						}
-						return true;
-					},
+		let validate = {
+			get(a, b, receiver) {
+				if (typeof a[b] === "object" && !Array.isArray(a[b])) {
+					return new Proxy({ ...a[b], _isProxy: true }, validate);
 				}
-			);
-			// trigger for first render
-			if (name === "props" && !component.$deep.update) {
-				component.$deep.disableTrigger = true;
-				for (const props of Object.entries(component.props)) {
-					handle(props[0], props[1]);
+				return Reflect.get(a, b, receiver);
+			},
+			set(a, b, c) {
+				if (a[b] === c) return true;
+
+				let allowed = !component.$deep.batch && !component.$deep.disableTrigger;
+				if (allowed) {
+					beforeUpdateCall(component.$deep);
 				}
-				component.$deep.disableTrigger = false;
-				mount(() => {
+
+				a[b] = c;
+
+				if (allowed && component.$deep.hasMount) {
+					updatedCall(component.$deep);
 					component.$deep.trigger();
-				}, component);
+				}
+				if (!component.$deep.disableTrigger) {
+					handle(b, c);
+				}
+				return true;
+			},
+		};
+		let handle = (b, c) => {
+			// watching
+			component.$deep.watch.forEach((watch: Watch) => {
+				let find = watch.dependencies.find((item: string) => item === `${name}.${b}`);
+				if (find) {
+					watch.handle(b, c);
+				}
+			});
+		};
+		// for update
+		if (!name) {
+			name = "state";
+		}
+		component[name] = new Proxy({ ...initial, _isProxy: true }, validate);
+		// trigger for first render
+		if (name === "props" && !component.$deep.update) {
+			component.$deep.disableTrigger = true;
+			for (const props of Object.entries(component.props)) {
+				handle(props[0], props[1]);
 			}
-		}, component);
+			component.$deep.disableTrigger = false;
+			mount(() => {
+				component.$deep.trigger();
+			}, component);
+		}
+		return component[name];
 	}
 };
 
@@ -114,20 +154,40 @@ export const state = function (name: string | any, initial: any, component: Comp
  */
 export const context = (entry: string, defaultContext: any, action: any) => {
 	let registery: Component[] = [];
-	let values = state(entry, defaultContext, null, registery);
-	return (component) => {
+	let listening: any[] = [];
+	let values = state(entry, defaultContext, null, () => registery, () => listening);
+	return (listen, component) => {
+		if (!Array.isArray(listen)) component = listen;
 		if (action) {
 			if (!component.$deep.dispatch) {
 				component.$deep.dispatch = {};
 			}
 			component.$deep.dispatch[entry] = action;
 		}
+		if (window.$hmr) {
+			let current;
+			registery = registery.map((item) => {
+				if (item.constructor.name === window.$hmr.name) {
+					current = Object.assign(item, item.$node.$children);
+				}
+				return item;
+			});
+			return current;
+		}
 		let index = registery.push(component);
+		if (Array.isArray(listen)) {
+			listening.push({
+				listen,
+			});
+		}
 		component.ctx[entry] = values;
 
 		component.$deep.unmount.push(() => {
-			registery = registery.filter((_a, b) => b !== (index - 1));
+			registery = registery.filter((_a, b) => b !== index - 1);
+			listening = listening.filter((_a, b) => b !== index - 1);
 		});
+
+		return values;
 	};
 };
 
@@ -324,4 +384,4 @@ export const lazy = (callback: () => any) => {
 
 export const defineProp = (props: any, component: Component) => {
 	component.props = props;
-}
+};

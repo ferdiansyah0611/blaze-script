@@ -16,14 +16,14 @@ import {
 	getBlaze,
 } from "./utils";
 import e from "./blaze";
-import { Component, Mount } from "./blaze.d";
+import { Component, Mount, RegisteryComponent } from "./blaze.d";
 import { diffChildren } from "./diff";
 
 /**
  * @init
  * setup/initialize a component
  */
-export const init = (component: Component) => {
+export const init = (component: Component, _auto?: string) => {
 	if (!component.$deep) {
 		component.$deep = {
 			update: 0,
@@ -53,24 +53,24 @@ export const init = (component: Component) => {
 				mountCall(component.$deep, update ? component.props : {}, update);
 				component.$deep.watch.forEach((item) => {
 					item.dependencies.forEach((dependencies) => {
-						let current = "component." + dependencies
-						let value = eval(current)
-						if(value) {
-							item.handle(dependencies, value)
+						let current = "component." + dependencies;
+						let value = eval(current);
+						if (value) {
+							item.handle(dependencies, value);
 						}
-					})
-				})
-				component.$deep.registry.forEach((item) => {
+					});
+				});
+				component.$deep.registry.forEach((item: RegisteryComponent) => {
 					item.component.$deep.mounted(update, hmr);
 				});
 			},
-			remove: (notClear = false) => {
-				component.$deep.registry.forEach((item) => {
-					item.component.$deep.remove();
+			remove: (notClear = false, notNode = false) => {
+				component.$deep.registry.forEach((item: RegisteryComponent) => {
+					item.component.$deep.remove(notClear, notNode);
 				});
 				unmountCall(component.$deep);
 
-				if (component.$node) {
+				if (component.$node && !notNode) {
 					component.$node.remove && component.$node.remove();
 				}
 
@@ -129,14 +129,14 @@ export const jsx = (component: Component) => {
  */
 export const mountCall = ($deep: Component["$deep"], props: any = {}, update: boolean = false) => {
 	let error = window.$error;
-	try{
+	try {
 		if (!$deep.hasMount) {
 			$deep.mount.forEach((item: Mount) => item.handle(props, update));
 			$deep.hasMount = true;
 		}
-	}catch (err) {
-		if(error) {
-			error.open(`Error Mount`, err.stack)
+	} catch (err) {
+		if (error) {
+			error.open(`Error Mount`, err.stack);
 		}
 	}
 };
@@ -147,11 +147,11 @@ export const mountCall = ($deep: Component["$deep"], props: any = {}, update: bo
  */
 export const unmountCall = ($deep: Component["$deep"]) => {
 	let error = window.$error;
-	try{
+	try {
 		$deep.unmount.forEach((item: Function) => item());
-	}catch (err) {
-		if(error) {
-			error.open(`Error Unmount`, err.stack)
+	} catch (err) {
+		if (error) {
+			error.open(`Error Unmount`, err.stack);
 		}
 	}
 };
@@ -162,11 +162,11 @@ export const unmountCall = ($deep: Component["$deep"]) => {
  */
 export const layoutCall = ($deep: Component["$deep"]) => {
 	let error = window.$error;
-	try{
+	try {
 		if ($deep.layout) $deep.layout.forEach((item: Function) => item());
-	}catch (err) {
-		if(error) {
-			error.open(`Error Layout`, err.stack)
+	} catch (err) {
+		if (error) {
+			error.open(`Error Layout`, err.stack);
 		}
 	}
 };
@@ -177,11 +177,11 @@ export const layoutCall = ($deep: Component["$deep"]) => {
  */
 export const beforeCreateCall = ($deep: Component["$deep"]) => {
 	let error = window.$error;
-	try{
+	try {
 		if ($deep.beforeCreate) $deep.beforeCreate.forEach((item: Function) => item());
-	}catch (err) {
-		if(error) {
-			error.open(`Error beforeCreate`, err.stack)
+	} catch (err) {
+		if (error) {
+			error.open(`Error beforeCreate`, err.stack);
 		}
 	}
 };
@@ -192,11 +192,11 @@ export const beforeCreateCall = ($deep: Component["$deep"]) => {
  */
 export const createdCall = ($deep: Component["$deep"]) => {
 	let error = window.$error;
-	try{
+	try {
 		if ($deep.created) $deep.created.forEach((item: Function) => item());
-	}catch (err) {
-		if(error) {
-			error.open(`Error Created`, err.stack)
+	} catch (err) {
+		if (error) {
+			error.open(`Error Created`, err.stack);
 		}
 	}
 };
@@ -207,11 +207,11 @@ export const createdCall = ($deep: Component["$deep"]) => {
  */
 export const beforeUpdateCall = ($deep: Component["$deep"]) => {
 	let error = window.$error;
-	try{
+	try {
 		if ($deep.beforeUpdate) $deep.beforeUpdate.forEach((item: Function) => item());
-	}catch (err) {
-		if(error) {
-			error.open(`Error beforeUpdate`, err.stack)
+	} catch (err) {
+		if (error) {
+			error.open(`Error beforeUpdate`, err.stack);
 		}
 	}
 };
@@ -222,11 +222,11 @@ export const beforeUpdateCall = ($deep: Component["$deep"]) => {
  */
 export const updatedCall = ($deep: Component["$deep"]) => {
 	let error = window.$error;
-	try{
+	try {
 		if ($deep.updated) $deep.updated.forEach((item: Function) => item());
-	}catch (err) {
-		if(error) {
-			error.open(`Error Updated`, err.stack)
+	} catch (err) {
+		if (error) {
+			error.open(`Error Updated`, err.stack);
 		}
 	}
 };
@@ -297,7 +297,7 @@ export const rendering = (
 	let render, endPerformStartComponent;
 	let blaze = getBlaze(component.$config?.key || 0);
 	let error = window.$error;
-	try{
+	try {
 		const renderComponent = () => {
 			render = component.render();
 			render.key = data.key || key || 0;
@@ -385,15 +385,15 @@ export const rendering = (
 			return false;
 		}
 
-		if(error.state.open) {
+		if (error.state.open) {
 			error.close();
 		}
-	}catch(err){
-		if(error) {
-			error.open(`Component ${component.constructor.name}`, err.stack)
+	} catch (err) {
+		if (error) {
+			error.open(`Component ${component.constructor.name}`, err.stack);
 		}
 	}
-	
+
 	if (first) return component.$node;
 	return render;
 };

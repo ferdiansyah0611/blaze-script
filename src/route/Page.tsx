@@ -1,13 +1,11 @@
-import { render, init } from "@blaze";
+// @ts-nocheck
+import { init } from "@blaze";
 
 export default function Page(app) {
-	init(this);
+	init(this, "auto");
 	render(
 		() => (
-			<>
-				<p>Test Page {app.params.id}</p>
-			</>
-		),
-		this
+			<p class="text-white">Test Page {app.params.id}</p>
+		)
 	);
 };
