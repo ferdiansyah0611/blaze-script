@@ -1,5 +1,5 @@
 import { beforeUpdateCall, updatedCall } from "./core";
-import { Component, Watch, Mount } from "./blaze.d";
+import { Component, Watch, Mount, State } from "./blaze.d";
 
 /**
  * @config
@@ -27,14 +27,14 @@ export const render = (callback: () => HTMLElement, component: Component) => (co
  * state management and context on blaze
  */
 export const state = function (
-	name: string | any,
-	initial: any,
-	component: Component | null,
-	registryCall?: () => Component[],
-	listeningCall?: () => any[]
+	name: State["name"],
+	initial: State["initial"],
+	component: State["component"],
+	registryCall?: State["registryCall"],
+	listeningCall?: State["listeningCall"]
 ) {
 	// for context
-	if (typeof registryCall === 'function') {
+	if (typeof registryCall === "function") {
 		let validate = (newName?: string, withSub?: string) => {
 			return {
 				get(a, b, receiver) {
@@ -155,7 +155,13 @@ export const state = function (
 export const context = (entry: string, defaultContext: any, action: any) => {
 	let registery: Component[] = [];
 	let listening: any[] = [];
-	let values = state(entry, defaultContext, null, () => registery, () => listening);
+	let values = state(
+		entry,
+		defaultContext,
+		null,
+		() => registery,
+		() => listening
+	);
 	return (listen, component) => {
 		if (!Array.isArray(listen)) component = listen;
 		if (action) {
@@ -165,14 +171,15 @@ export const context = (entry: string, defaultContext: any, action: any) => {
 			component.$deep.dispatch[entry] = action;
 		}
 		if (window.$hmr) {
-			let current;
-			registery = registery.map((item) => {
-				if (item.constructor.name === window.$hmr.name) {
-					current = Object.assign(item, item.$node.$children);
-				}
-				return item;
+			window.$hmr.forEach((hmr) => {
+				registery = registery.map((item) => {
+					if (item.constructor.name === hmr.name) {
+						item = Object.assign(item, item.$node.$children);
+					}
+					return item;
+				});
 			});
-			return current;
+			return values;
 		}
 		let index = registery.push(component);
 		if (Array.isArray(listen)) {
@@ -195,7 +202,7 @@ export const context = (entry: string, defaultContext: any, action: any) => {
  * @watch
  * watching a state or props on component
  */
-export const watch = function (dependencies: string[], handle: (a, b) => any, component: Component) {
+export const watch = function (dependencies: Watch['dependencies'], handle: Watch['handle'], component: Component) {
 	if (!component.$deep.watch) {
 		component.$deep.watch = [];
 	}
@@ -215,7 +222,7 @@ export const watch = function (dependencies: string[], handle: (a, b) => any, co
 export const mount = (callback: () => any, component: Component) => {
 	let data: Mount = {
 		run: false,
-		handle(defineConfig = {}, update = false) {
+		handle(defineConfig = {}, update = false, enabled = false) {
 			if (update) {
 				// batch if props 0 length
 				if (Object.keys(defineConfig).length) {
@@ -240,7 +247,7 @@ export const mount = (callback: () => any, component: Component) => {
 					}, component);
 				}
 			}
-			if (!this.run) {
+			if (!this.run || enabled) {
 				this.run = true;
 				let unmount = callback();
 				if (!component.$deep.disableAddUnmount && unmount) {

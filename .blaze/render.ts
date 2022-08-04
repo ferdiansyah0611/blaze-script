@@ -1,4 +1,4 @@
-import { rendering, unmountCall, mountCall } from "./core";
+import { rendering, unmountCall, mountCall, watchCall } from "./core";
 import { Component, InterfaceApp, InterfaceBlaze } from "./blaze.d";
 import { diffChildren } from "./diff";
 
@@ -22,56 +22,76 @@ export class createApp implements InterfaceApp {
 			this.config.key = 0;
 		}
 	}
-	reload() {
-		const componentAssign = (component, newComponent) => {
-			Object.keys(component).forEach((name) => {
-				if (name === "$config") {
-					newComponent.$config = component.$config;
-					return;
-				}
-				if (["$node", "render", "children"].includes(name)) {
-					return;
-				}
-				if(name === '$deep') {
-					Object.assign(newComponent[name], component[name]);
-					return;
-				}
-				newComponent[name] = component[name];
-			});
-			return newComponent;
+	componentProcess({ component, newComponent, key, previous }: any) {
+		if(previous) {
+			newComponent = new newComponent(previous, window.$app[component.$config?.key || 0]);
+		} else {
+			newComponent = new newComponent(window.$app[component.$config?.key || 0]);
 		}
 
-		if (window.$hmr.name === this.component.name) {
-			let component = window.$app[this.config.key || 0];
-			let newComponent = new window.$hmr(component);
-			componentAssign(component, newComponent);
-			unmountCall(component.$deep);
-			const result = rendering(newComponent, component.$deep, false, {}, 0, window.$hmr, component.children);
-			diffChildren(component.$node, result, newComponent);
-			newComponent.$node = component.$node;
-			window.$app[this.config.key || 0] = newComponent;
-			mountCall(newComponent.$deep);
-			return;
-		}
-		const checkComponent = (sub) => {
-			let component = sub.component;
-			component.$deep.registry = component.$deep.registry.map(checkComponent);
-			if (component.constructor.name === window.$hmr.name) {
-				let newComponent = new window.$hmr(component, window.$app[component.$config?.key || 0]);
-				componentAssign(component, newComponent);
-				unmountCall(component.$deep);
-				let data = {};
-				const result = rendering(newComponent, component.$deep, false, data, sub.key, window.$hmr, component.children);
-				diffChildren(component.$node, result, newComponent);
-				newComponent.$node = component.$node;
-				newComponent.$node.$children = newComponent;
-				sub.component = newComponent;
-				mountCall(newComponent.$deep);
+		unmountCall(component.$deep);
+		this.componentUpdate(component, newComponent);
+		const result = rendering(
+			newComponent,
+			component.$deep,
+			false,
+			component.props,
+			key,
+			newComponent.constructor,
+			component.children
+		);
+		diffChildren(component.$node, result, newComponent);
+		newComponent.$node = component.$node;
+		newComponent.$node.$children = newComponent;
+		newComponent.$deep.hasMount = false;
+		mountCall(newComponent.$deep, {}, false, true);
+		watchCall(newComponent);
+		return newComponent;
+	}
+	componentUpdate(component, newComponent) {
+		Object.keys(component).forEach((name) => {
+			if (name === "$config") {
+				newComponent.$config = component.$config;
+				return;
 			}
+			if (["$node", "render", "children"].includes(name)) {
+				return;
+			}
+			if (name === "$deep") {
+				Object.keys(component[name]).forEach((sub) => {
+					if(['mount', 'watch', 'unmount'].includes(sub)) return;
+					newComponent[name][sub] = component[name][sub]
+				})
+				return;
+			}
+			newComponent[name] = component[name];
+		});
+		return newComponent;
+	}
+	isComponent = (component) => component.toString().indexOf('init(this)') !== -1;
+	reload() {
+		window.$hmr.forEach((hmr) => {
+			if (hmr.name === this.component.name && this.isComponent(hmr)) {
+				let component = window.$app[this.config.key || 0];
+				let newComponent = hmr;
+				component = this.componentProcess({ component, newComponent, key: 0 });
+				return;
+			}
+		})
+		const checkComponent = (sub: any, previous?: Component) => {
+			let component = sub.component;
+			component.$deep.registry = component.$deep.registry.map((data) => checkComponent(data, component));
+			window.$hmr.forEach((hmr) => {
+				if (component.constructor.name === hmr.name && this.isComponent(hmr)) {
+					let newComponent = hmr;
+					sub.component = this.componentProcess({ component, newComponent, key: sub.key, previous });
+				}
+			})
 			return sub;
 		};
-		window.$app[this.config.key].$deep.registry = window.$app[this.config.key].$deep.registry.map(checkComponent);
-		window.$hmr = {};
+		window.$app[this.config.key].$deep.registry = window.$app[this.config.key].$deep.registry.map((data) => checkComponent(data));
+		this.blaze._onReload(window.$hmr);
+		window.$hmr = null;
 	}
 	mount() {
 		const load = (hmr = false) => {
@@ -103,7 +123,6 @@ export class createApp implements InterfaceApp {
 
 		if (window.$app) {
 			window.$app[this.config.key].$deep.remove(true, true);
-			this.blaze._onReload(window.$app[this.config.key]);
 			load(true);
 			return;
 		}
@@ -155,8 +174,8 @@ export class Blaze implements InterfaceBlaze {
 	_endComponent(component: Component) {
 		this.endComponent.forEach((item) => item(component));
 	}
-	_onReload() {
-		this.onReload.forEach((item) => item());
+	_onReload(component: Component) {
+		this.onReload.forEach((item) => item(component));
 	}
 }
 

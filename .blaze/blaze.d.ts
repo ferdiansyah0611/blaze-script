@@ -16,8 +16,16 @@ export interface Watch {
 	handle: (a, b) => any;
 }
 export interface Mount {
-	handle: (defineConfig: any, update: boolean) => any;
+	handle: (defineConfig: any, update: boolean, enabled: boolean) => any;
 	run: boolean;
+}
+
+export interface State {
+	name: string | any;
+	initial: any;
+	component: Component | null;
+	registryCall?: () => Component[];
+	listeningCall?: () => any[];
 }
 
 export interface Component {

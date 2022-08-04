@@ -37,9 +37,9 @@ export default function hmr() {
         src += `
 if (import.meta.hot) {
     import.meta.hot.accept((modules) => {
-        window.$hmr = modules.default
+        window.$hmr = []
         Object.keys(modules).forEach((mod) => {
-          console.log(modules[mod]);
+          window.$hmr.push(modules[mod]);
         })
         window.$createApp.forEach((app) => {
           app.reload()

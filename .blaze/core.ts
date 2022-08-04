@@ -49,19 +49,11 @@ export const init = (component: Component, _auto?: string) => {
 				diffChildren(component.$node, result, component);
 				return result;
 			},
-			mounted: (update, hmr?: boolean) => {
+			mounted: (update) => {
 				mountCall(component.$deep, update ? component.props : {}, update);
-				component.$deep.watch.forEach((item) => {
-					item.dependencies.forEach((dependencies) => {
-						let current = "component." + dependencies;
-						let value = eval(current);
-						if (value) {
-							item.handle(dependencies, value);
-						}
-					});
-				});
+				watchCall(component);
 				component.$deep.registry.forEach((item: RegisteryComponent) => {
-					item.component.$deep.mounted(update, hmr);
+					item.component.$deep.mounted(update);
 				});
 			},
 			remove: (notClear = false, notNode = false) => {
@@ -127,11 +119,16 @@ export const jsx = (component: Component) => {
  * @mountCall
  * for run mount lifecycle
  */
-export const mountCall = ($deep: Component["$deep"], props: any = {}, update: boolean = false) => {
+export const mountCall = (
+	$deep: Component["$deep"],
+	props: any = {},
+	update: boolean = false,
+	enabled: boolean = false
+) => {
 	let error = window.$error;
 	try {
 		if (!$deep.hasMount) {
-			$deep.mount.forEach((item: Mount) => item.handle(props, update));
+			$deep.mount.forEach((item: Mount) => item.handle(props, update, enabled));
 			$deep.hasMount = true;
 		}
 	} catch (err) {
@@ -214,6 +211,18 @@ export const beforeUpdateCall = ($deep: Component["$deep"]) => {
 			error.open(`Error beforeUpdate`, err.stack);
 		}
 	}
+};
+
+export const watchCall = (component: Component) => {
+	component.$deep.watch.forEach((item) => {
+		item.dependencies.forEach((dependencies) => {
+			let current = "component." + dependencies;
+			let value = eval(current);
+			if (value) {
+				item.handle(dependencies, value);
+			}
+		});
+	});
 };
 
 /**

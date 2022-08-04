@@ -14,25 +14,7 @@ Is a framework for building large-scale single page applications with similar co
 -   JSX Syntax
 -   Batch
 -   Navigation, Cache Request, Error Handling And More
-
-## Get Started
-
-```tsx
-import App, { init } from "@blaze";
-
-const Hello = function () {
-    const { render } = init(this);
-    render(
-        () => (
-            <p>Hello World</p>
-        )
-    );
-};
-const app = new App("#app", Hello, {
-    dev: import.meta.env.DEV,
-});
-app.mount();
-```
+-   Auto Dependencies
 
 ## Information
 
