@@ -30,7 +30,7 @@ export class createApp implements InterfaceApp {
 		}
 
 		unmountCall(component.$deep);
-		this.componentUpdate(component, newComponent);
+		newComponent = this.componentUpdate(component, newComponent);
 		const result = rendering(
 			newComponent,
 			component.$deep,
@@ -40,6 +40,8 @@ export class createApp implements InterfaceApp {
 			newComponent.constructor,
 			component.children
 		);
+		// console.log(component.$node, result);
+		// console.log(component.render.toString(), newComponent.render.toString());
 		diffChildren(component.$node, result, newComponent);
 		newComponent.$node = component.$node;
 		newComponent.$node.$children = newComponent;
@@ -50,10 +52,6 @@ export class createApp implements InterfaceApp {
 	}
 	componentUpdate(component, newComponent) {
 		Object.keys(component).forEach((name) => {
-			if (name === "$config") {
-				newComponent.$config = component.$config;
-				return;
-			}
 			if (["$node", "render", "children"].includes(name)) {
 				return;
 			}
@@ -74,7 +72,7 @@ export class createApp implements InterfaceApp {
 			if (hmr.name === this.component.name && this.isComponent(hmr)) {
 				let component = window.$app[this.config.key || 0];
 				let newComponent = hmr;
-				component = this.componentProcess({ component, newComponent, key: 0 });
+				Object.assign(component, this.componentProcess({ component, newComponent, key: 0 }))
 				return;
 			}
 		})
@@ -84,7 +82,7 @@ export class createApp implements InterfaceApp {
 			window.$hmr.forEach((hmr) => {
 				if (component.constructor.name === hmr.name && this.isComponent(hmr)) {
 					let newComponent = hmr;
-					sub.component = this.componentProcess({ component, newComponent, key: sub.key, previous });
+					Object.assign(sub.component, this.componentProcess({ component, newComponent, key: sub.key, previous }))
 				}
 			})
 			return sub;
