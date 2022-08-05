@@ -104,10 +104,19 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 
 		// auto route or not
 		if (component.name.indexOf("../") !== -1) {
+			// loader
+			let loader = new app.$router.loader();
+			rendering(loader, null, true, {}, 0, loader.constructor, []);
+			document.body.appendChild(loader.$node);
+			loader.$deep.mounted(false, app.$router.hmr);
+
 			current = await component();
 			if (current.default) {
 				current = new current.default(Object.assign(app, { params }), window.$app[keyApplication]);
 			}
+
+			// loader
+			loader.$deep.remove(true, false)
 		} else {
 			current = new component(Object.assign(app, { params }), window.$app[keyApplication]);
 		}
@@ -284,9 +293,17 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 		blaze.onReload.push((updateComponent: any[]) => {
 			updateComponent.forEach(newComponent => {
 				let component = app.$router.history.at(0).current
+				let loader = app.$router.loader
 				let createApp = window.$createApp[keyApp];
-				if(newComponent.name === component.constructor.name && createApp.isComponent(newComponent)) {
-					createApp.componentProcess({ component, newComponent, key: 0 });
+				if(createApp.isComponent(newComponent)) {
+					if(newComponent.name === component.constructor.name) {
+						createApp.componentProcess({ component, newComponent, key: 0 });
+					}
+					if(newComponent.name === loader.name) {
+						Object.assign(app.$router, {
+							loader: newComponent
+						})
+					}
 				}
 			})
 		})
@@ -338,12 +355,14 @@ function check(config: any, url: string) {
  * @mount
  * mount on current component and add event popstate
  */
-export const startIn = (component: Component, keyApp?: number) => {
+export const startIn = (component: Component, keyApp?: number, loader?: Function) => {
 	if (!(typeof keyApp === "number")) {
 		keyApp = 0;
 	}
 
 	mount(() => {
+		window.$router[keyApp].loader = loader
+
 		if (!window.$router[keyApp].hmr) {
 			window.$router[keyApp].ready(component, true);
 			window.addEventListener("popstate", () => {
