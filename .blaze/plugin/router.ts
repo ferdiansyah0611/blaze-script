@@ -12,6 +12,7 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 	let popstate = false;
 	let keyApplication = 0;
 	let glob = {};
+	let isCustomize;
 	const mappingConfig = (item) => {
 		if (config.config && config.config[item.path]) {
 			item.config = config.config[item.path];
@@ -19,9 +20,9 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 	};
 
 	if (!config.url) config.url = [];
-
+	if(config.customize && config.customize.render) isCustomize = true
 	// auto route
-	if (config.auto) {
+	if (config.auto && !isCustomize) {
 		if (dev) {
 			Object.assign(glob, import.meta.glob("@app/test.dev/route/*.tsx"));
 			Object.assign(glob, import.meta.glob("@app/test.dev/route/**/*.tsx"));
@@ -62,10 +63,18 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 				item.path = config.resolve + (item.path === "/" ? "" : item.path);
 			}
 		});
-	} else if (config.auto) {
+	} else if (config.auto && !isCustomize) {
 		config.url.map(mappingConfig);
 	}
 
+		const replaceOrPush = (url) => {
+			if (popstate) {
+				history.replaceState(null, "", url);
+			} else {
+				history.pushState(null, "", url);
+			}
+			popstate = false;
+		};
 	/**
 	 * @goto
 	 * run component and append to entry query
@@ -78,16 +87,8 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 		}
 		let current;
 
-		const replaceOrPush = () => {
-			if (popstate) {
-				history.replaceState(null, "", url);
-			} else {
-				history.pushState(null, "", url);
-			}
-			popstate = false;
-		};
 
-		replaceOrPush();
+		replaceOrPush(url);
 
 		// search
 		if (config.search) {
@@ -105,18 +106,12 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 		// auto route or not
 		if (component.name.indexOf("../") !== -1) {
 			// loader
-			let loader = new app.$router.loader();
-			rendering(loader, null, true, {}, 0, loader.constructor, []);
-			document.body.appendChild(loader.$node);
-			loader.$deep.mounted(false, app.$router.hmr);
-
+			let loader = Loader(app);
 			current = await component();
 			if (current.default) {
 				current = new current.default(Object.assign(app, { params }), window.$app[keyApplication]);
 			}
-
-			// loader
-			loader.$deep.remove(true, false)
+			loader.end();
 		} else {
 			current = new component(Object.assign(app, { params }), window.$app[keyApplication]);
 		}
@@ -142,14 +137,27 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 		app.$router.history.push({ url, current });
 		// inject router
 		current.$router = tool;
-
 		// afterEach
+		afterEach(config);
+	};
+
+	function beforeEach(result) {
+		if (result && result.config.beforeEach) {
+			if (!result.config.beforeEach(app.$router)) {
+				return false;
+			}
+		}
+	}
+	function afterEach(config) {
 		if (config && config.afterEach) {
 			if (!config.afterEach(app.$router)) {
 				return app.$router.back();
 			}
 		}
-	};
+	}
+	function changeRun(app, request) {
+		app.$router.$change.forEach((item) => item(request));
+	}
 
 	/**
 	 * @ready
@@ -166,6 +174,14 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 			app.$router._error(msg);
 			goto(app, url, current.component, {});
 		};
+
+		if(config.customize && config.customize.render) {
+			return config.customize.render(url, {
+				check, page, entry, replaceOrPush,
+				keyApplication, app, removeCurrentRouter,
+				beforeEach, afterEach, changeRun, Loader
+			})
+		}
 
 		const { result, isValid, params } = check(config, url);
 
@@ -189,16 +205,9 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 			if ((!result.config.search && uri.search) || (result.config.search && !uri.search)) {
 				return goNotFound();
 			}
-
-			// beforeEach
-			if (result && result.config.beforeEach) {
-				if (!result.config.beforeEach(app.$router)) {
-					return false;
-				}
-			}
-
+			if(!beforeEach(result)) return false;
 			// call always change router
-			if (!first) app.$router.$change.forEach((item) => item(url));
+			changeRun(app, url);
 
 			let msg = `[Router] GET 200 ${url}`;
 			app.$router._found(msg);
@@ -389,3 +398,14 @@ const removeCurrentRouter = ($router) => {
 		i !== 0;
 	});
 };
+
+export const Loader = function(app) {
+	let loader = new app.$router.loader();
+	rendering(loader, null, true, {}, 0, loader.constructor, []);
+	document.body.appendChild(loader.$node);
+	loader.$deep.mounted(false, app.$router.hmr);
+	console.log(loader);
+	return{
+		end: () => loader.$deep.remove(true, false)
+	}
+}
