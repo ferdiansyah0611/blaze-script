@@ -22,7 +22,7 @@
       "@blaze.utils": ["./.blaze/utils"],
       "@blaze.router": ["./.blaze/router"],
       "@root/*": ["./.blaze/*"],
-      "@route": ["./src/route"],
+      "@route/*": ["./src/route/*"],
       "@component/*": ["./src/component/*"],
       "@style/*": ["./src/style/*"],
       "@store/*": ["./src/store/*"],

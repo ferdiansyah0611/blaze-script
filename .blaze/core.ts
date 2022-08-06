@@ -1,3 +1,5 @@
+import { Component, Mount, RegisteryComponent } from "./blaze.d";
+import type { ConfigEntityRender, EntityCompile } from "./blaze.d";
 import isEqualWith from "lodash.isequalwith";
 import {
 	mount,
@@ -16,8 +18,8 @@ import {
 	getBlaze,
 } from "./utils";
 import e from "./blaze";
-import { Component, Mount, RegisteryComponent } from "./blaze.d";
 import { diffChildren } from "./diff";
+import { addComponent } from "@root/plugin/extension";
 
 /**
  * @init
@@ -458,3 +460,68 @@ export const equalProps = (oldProps, newProps) => {
 		}
 	});
 };
+
+export class EntityRender {
+	config: ConfigEntityRender;
+	component: any;
+	$before?: () => any;
+	constructor(component, config) {
+		this.component = component;
+		this.config = config;
+	}
+	before = (callback: () => any) => {
+		this.$before = callback.bind(this);
+		return this;
+	};
+	start = () => {
+		const { arg, key, inject } = this.config;
+		if (this.$before) this.$before();
+
+		if (arg) this.component = new this.component(...arg);
+		else this.component = new this.component();
+		// inject object to component
+		if (inject) {
+			Object.assign(this.component, inject);
+		}
+		// inject config
+		this.component.$config = window.$app[key || 0].$config;
+		return this;
+	};
+	done = (callback: () => any) => {
+		callback.bind(this)();
+	};
+	compile(option: EntityCompile) {
+		rendering(
+			this.component,
+			option.deep,
+			option.first,
+			option.data || {},
+			option.key,
+			this.component.constructor,
+			option.children || []
+		);
+		return this;
+	}
+	saveToExtension() {
+		addComponent(this.component);
+		return this;
+	}
+	mount(update?: boolean) {
+		this.component.$deep.mounted(update);
+		return this;
+	}
+	remove(notClear?: boolean, notNode?: boolean) {
+		this.component.$deep.remove(notClear, notNode);
+		return this;
+	}
+	replaceChildren(entry: string) {
+		const query = document.querySelector(entry);
+		if (query) query.replaceChildren(this.component.$node);
+		else console.error("[replaceChildren]", entry, "not detected");
+		return this;
+	}
+	appendChild(target: HTMLElement) {
+		if (target) target.appendChild(this.component.$node);
+		return this;
+	}
+}

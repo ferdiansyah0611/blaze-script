@@ -67,3 +67,17 @@ export interface Component {
 		key?: number;
 	};
 }
+
+export type ConfigEntityRender = {
+	inject?: any;
+	arg?: any[];
+	key: number;
+};
+
+export type EntityCompile = {
+	first: boolean;
+	key?: number;
+	data?: any;
+	children?: HTMLElement[];
+	deep?: Component["$deep"];
+};

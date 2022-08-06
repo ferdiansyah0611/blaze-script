@@ -1,7 +1,85 @@
-import { rendering } from "@root/core";
+import { EntityRender } from "@root/core";
 import { mount } from "@blaze";
 import { Component } from "@root/blaze.d";
-import { addComponent } from "@root/plugin/extension";
+
+class EntityRouter {
+	app: any;
+	config: any;
+	tool: any;
+	constructor(app, config, tool) {
+		this.app = app;
+		this.config = config;
+		this.tool = tool;
+	}
+	static change(app: any, request: string) {
+		app.$router.$change.forEach((item) => item(request));
+	}
+	static found(app, url) {
+		let msg = `[Router] GET 200 ${url}`;
+		app.$router._found(msg);
+	}
+	static gotoNotFound(app, config, url, goto) {
+		let current = config.url.find(
+			(path) => path.path.length === 0 || (config.auto && path.path.indexOf("/404") !== -1)
+		);
+		let msg = `[Router] Not Found 404 ${url}`;
+		app.$router._error(msg);
+		goto(app, url, current.component, {});
+		return;
+	}
+	handling(url: string, popstate: boolean) {
+		if (popstate) {
+			history.replaceState(null, "", url);
+		} else {
+			history.pushState(null, "", url);
+		}
+		popstate = false;
+	}
+	beforeEach(config: any): boolean {
+		if (config && config.beforeEach) {
+			if (!config.beforeEach(this.app.$router)) {
+				return false;
+			}
+			return true;
+		}
+		return true;
+	}
+	afterEach(config: any): boolean {
+		if (config && config.afterEach) {
+			if (!config.afterEach(this.app.$router)) {
+				return this.app.$router.back();
+			}
+		}
+		return true;
+	}
+	setSearch(search: string, config: any) {
+		if (config.search) {
+			let searchparam = {};
+			for (const [key, value] of new URLSearchParams(search).entries()) {
+				searchparam[key] = value;
+			}
+			Object.assign(this.app, {
+				search: searchparam,
+			});
+		} else {
+			delete this.app.search;
+		}
+	}
+	removePrevious() {
+		let check = this.app.$router.history.at(0);
+		if (check && check.current && check.current.$deep) check.current.$deep.remove();
+		this.app.$router.history = this.app.$router.history.filter((data, i) => {
+			data;
+			i !== 0;
+		});
+	}
+	add(url: string, current: Component) {
+		this.app.$router.history.push({ url, current });
+	}
+	inject(component: Component) {
+		component.$router = this.tool;
+	}
+}
 
 /**
  * @makeRouter
@@ -20,7 +98,7 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 	};
 
 	if (!config.url) config.url = [];
-	if(config.customize && config.customize.render) isCustomize = true
+	if (config.customize && config.customize.render) isCustomize = true;
 	// auto route
 	if (config.auto && !isCustomize) {
 		if (dev) {
@@ -66,121 +144,96 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 	} else if (config.auto && !isCustomize) {
 		config.url.map(mappingConfig);
 	}
-
-		const replaceOrPush = (url) => {
-			if (popstate) {
-				history.replaceState(null, "", url);
-			} else {
-				history.pushState(null, "", url);
-			}
-			popstate = false;
-		};
 	/**
 	 * @goto
 	 * run component and append to entry query
 	 */
-	const goto = async (app: any, url: string, component: any, config: any, params?: any, search?: any) => {
+	const goto = async (
+		app: any,
+		url: string,
+		component: any,
+		configure: any,
+		params?: any,
+		search?: any,
+		entity?: any
+	) => {
 		if (!document.querySelector(entry)) {
 			let msg = "[Router] entry not found, query is correct?";
 			app.$router._error(msg);
 			return console.error(msg);
 		}
 		let current;
-
-
-		replaceOrPush(url);
-
-		// search
-		if (config.search) {
-			let searchparam = {};
-			for (const [key, value] of new URLSearchParams(search).entries()) {
-				searchparam[key] = value;
-			}
-			Object.assign(app, {
-				search: searchparam,
-			});
-		} else {
-			delete app.search;
+		if (entity) {
+			entity.handling(url, popstate);
+			entity.setSearch(search, configure);
 		}
 
+		const callComponent = (request) => {
+			current = new EntityRender(request, {
+				arg: [Object.assign(app, { params }), window.$app[keyApplication]],
+				key: keyApplication,
+			});
+		};
 		// auto route or not
 		if (component.name.indexOf("../") !== -1) {
 			// loader
-			let loader = Loader(app);
-			current = await component();
-			if (current.default) {
-				current = new current.default(Object.assign(app, { params }), window.$app[keyApplication]);
+			const loader = new EntityRender(app.$router.loader, {});
+			loader
+				.start()
+				.compile({
+					first: true,
+					deep: null,
+				})
+				.appendChild(document.body)
+				.mount(app.$router.hmr);
+
+			let check = await component();
+			if (check.default) {
+				callComponent(check.default);
 			}
-			loader.end();
+			loader.remove(true, false);
 		} else {
-			current = new component(Object.assign(app, { params }), window.$app[keyApplication]);
+			callComponent(component);
 		}
 
-		if (window.$app) {
-			current.$config = window.$app[keyApplication].$config;
-		}
-		// render
-		rendering(current, null, true, {}, 0, current.constructor, []);
-		const query = document.querySelector(entry);
-		query.replaceChildren(current.$node);
-		current.$deep.mounted(false, app.$router.hmr);
-		addComponent(current);
-
-		app.$router.history.forEach((data) => {
-			data.current.$deep.remove(true, true);
-		});
-		// remove previous router
-		if (app.$router.history.length) {
-			removeCurrentRouter(app.$router);
-		}
-
-		app.$router.history.push({ url, current });
-		// inject router
-		current.$router = tool;
-		// afterEach
-		afterEach(config);
+		current
+			.start()
+			.compile({
+				first: true,
+				deep: null,
+			})
+			.replaceChildren(entry)
+			.mount(app.$router.hmr)
+			.saveToExtension()
+			.done(function () {
+				if (entity) {
+					entity.removePrevious();
+					entity.add(url, this.component);
+					entity.inject(this.component);
+					entity.afterEach(configure);
+				}
+			});
 	};
-
-	function beforeEach(result) {
-		if (result && result.config.beforeEach) {
-			if (!result.config.beforeEach(app.$router)) {
-				return false;
-			}
-		}
-	}
-	function afterEach(config) {
-		if (config && config.afterEach) {
-			if (!config.afterEach(app.$router)) {
-				return app.$router.back();
-			}
-		}
-	}
-	function changeRun(app, request) {
-		app.$router.$change.forEach((item) => item(request));
-	}
 
 	/**
 	 * @ready
 	 * utils for check url is exists or not
 	 */
-	const ready = (app: any, first: boolean = false, uri: any = new URL(location.href)) => {
+	const ready = (app: any, uri: any = new URL(location.href)) => {
 		let url = uri.pathname;
 
-		const goNotFound = () => {
-			let current = config.url.find(
-				(path) => path.path.length === 0 || (config.auto && path.path.indexOf("/404") !== -1)
-			);
-			let msg = `[Router] Not Found 404 ${url}`;
-			app.$router._error(msg);
-			goto(app, url, current.component, {});
-		};
-
-		if(config.customize && config.customize.render) {
+		if (config.customize && config.customize.render) {
 			return config.customize.render(url, {
-				check, page, entry, replaceOrPush,
-				keyApplication, app, removeCurrentRouter,
-				beforeEach, afterEach, changeRun, Loader
-			})
+				check,
+				page,
+				entry,
+				keyApplication,
+				app,
+				EntityRouter,
+				popstate,
+				tool,
+				config,
+			});
 		}
 
 		const { result, isValid, params } = check(config, url);
@@ -198,23 +251,24 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 				});
 
 				if (searchNotEqual) {
-					goNotFound();
+					EntityRouter.gotoNotFound(app, config, url, goto);
 					return false;
 				}
 			}
 			if ((!result.config.search && uri.search) || (result.config.search && !uri.search)) {
-				return goNotFound();
+				return EntityRouter.gotoNotFound(app, config, url, goto);
 			}
-			if(!beforeEach(result)) return false;
-			// call always change router
-			changeRun(app, url);
 
-			let msg = `[Router] GET 200 ${url}`;
-			app.$router._found(msg);
-			return goto(app, url, result.component, result.config, params, uri.search);
+			const entity = new EntityRouter(app, config, tool);
+
+			if (!entity.beforeEach(result.config)) return false;
+
+			EntityRouter.change(app, url);
+			EntityRouter.found(app, url);
+
+			return goto(app, url, result.component, result.config, params, uri.search, entity);
 		} else {
-			goNotFound();
-			return false;
+			return EntityRouter.gotoNotFound(app, config, url, goto);
 		}
 	};
 	return (app: Component, blaze, hmr, keyApp) => {
@@ -237,12 +291,12 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 			},
 			push: (url: URL) => {
 				if ((url.search && url.search !== location.search) || !(url.pathname === location.pathname)) {
-					ready(app, false, url);
+					ready(app, url);
 				}
 			},
 			onChange(data) {
-				let check = this.$change.find((item) => item.toString() === data.toString())
-				if(!check) {
+				let check = this.$change.find((item) => item.toString() === data.toString());
+				if (!check) {
 					this.$change.push(data);
 				}
 			},
@@ -253,10 +307,6 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 				this.found.forEach((data) => data(message));
 			},
 		};
-		// remove previous router
-		if (window.$router && window.$router[keyApp].history.length) {
-			removeCurrentRouter(window.$router[keyApp]);
-		}
 		app.$router = tool;
 		if (!window.$router) {
 			window.$router = [];
@@ -277,7 +327,7 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 					if (url.search) {
 						el.dataset.href += url.search;
 					}
-					el.href = el.dataset.href
+					el.href = el.dataset.href;
 				}
 				el.$router = true;
 				el.addEventListener("click", (e: any) => {
@@ -300,22 +350,22 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 		 * hot reload
 		 */
 		blaze.onReload.push((updateComponent: any[]) => {
-			updateComponent.forEach(newComponent => {
-				let component = app.$router.history.at(0).current
-				let loader = app.$router.loader
+			updateComponent.forEach((newComponent) => {
+				let component = app.$router.history.at(0).current;
+				let loader = app.$router.loader;
 				let createApp = window.$createApp[keyApp];
-				if(createApp.isComponent(newComponent)) {
-					if(newComponent.name === component.constructor.name) {
+				if (createApp.isComponent(newComponent)) {
+					if (newComponent.name === component.constructor.name) {
 						createApp.componentProcess({ component, newComponent, key: 0 });
 					}
-					if(newComponent.name === loader.name) {
+					if (newComponent.name === loader.name) {
 						Object.assign(app.$router, {
-							loader: newComponent
-						})
+							loader: newComponent,
+						});
 					}
 				}
-			})
-		})
+			});
+		});
 	};
 };
 
@@ -370,17 +420,17 @@ export const startIn = (component: Component, keyApp?: number, loader?: Function
 	}
 
 	mount(() => {
-		window.$router[keyApp].loader = loader
+		window.$router[keyApp].loader = loader;
 
 		if (!window.$router[keyApp].hmr) {
-			window.$router[keyApp].ready(component, true);
+			window.$router[keyApp].ready(component);
 			window.addEventListener("popstate", () => {
 				window.$router[keyApp].popstate = true;
-				window.$router[keyApp].ready(component, false, location);
+				window.$router[keyApp].ready(component, location);
 			});
 		} else {
 			window.$router[keyApp].popstate = true;
-			window.$router[keyApp].ready(component, false, location);
+			window.$router[keyApp].ready(component, location);
 		}
 	}, component);
 };
@@ -390,22 +440,3 @@ export const page = (path: string, component: any, config: any = {}) => ({
 	component,
 	config,
 });
-
-const removeCurrentRouter = ($router) => {
-	$router.history.at(0).current.$deep.remove();
-	$router.history = $router.history.filter((data, i) => {
-		data;
-		i !== 0;
-	});
-};
-
-export const Loader = function(app) {
-	let loader = new app.$router.loader();
-	rendering(loader, null, true, {}, 0, loader.constructor, []);
-	document.body.appendChild(loader.$node);
-	loader.$deep.mounted(false, app.$router.hmr);
-	console.log(loader);
-	return{
-		end: () => loader.$deep.remove(true, false)
-	}
-}
