@@ -1,5 +1,6 @@
-import { rendering, unmountCall, mountCall, watchCall } from "./core";
+import { rendering } from "./core";
 import { Component, InterfaceApp, InterfaceBlaze } from "./blaze.d";
+import Lifecycle from "./lifecycle";
 import { diffChildren } from "./diff";
 
 /**
@@ -29,7 +30,9 @@ export class createApp implements InterfaceApp {
 			newComponent = new newComponent(window.$app[component.$config?.key || 0]);
 		}
 
-		unmountCall(component.$deep);
+		let old = new Lifecycle(component);
+		old.unmount();
+
 		newComponent = this.componentUpdate(component, newComponent);
 		const result = rendering(
 			newComponent,
@@ -40,14 +43,15 @@ export class createApp implements InterfaceApp {
 			newComponent.constructor,
 			component.children
 		);
-		// console.log(component.$node, result);
-		// console.log(component.render.toString(), newComponent.render.toString());
+
 		diffChildren(component.$node, result, newComponent);
 		newComponent.$node = component.$node;
 		newComponent.$node.$children = newComponent;
 		newComponent.$deep.hasMount = false;
-		mountCall(newComponent.$deep, {}, false, true);
-		watchCall(newComponent);
+
+		let now = new Lifecycle(newComponent);
+		now.mount({}, false, true);
+		now.watch();
 		return newComponent;
 	}
 	componentUpdate(component, newComponent) {

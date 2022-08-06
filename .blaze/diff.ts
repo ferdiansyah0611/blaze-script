@@ -1,12 +1,12 @@
 import {
-	unmountCall,
 	removeComponentOrEl,
 	unmountAndRemoveRegistry,
 	mountComponentFromEl,
 	findComponentNode,
-} from "./core";
+} from "./dom";
 import { log } from "./utils";
 import { Component } from "./blaze.d";
+import Lifecycle from "./lifecycle";
 
 /**
  * @diff
@@ -36,7 +36,7 @@ const diff = function (prev: HTMLElement, el: HTMLElement, component: Component)
 		if(prev.$root) {
 			prev.$root.$deep.registry.forEach((registry) => {
 				if (registry.component.constructor.name === name && registry.key === key) {
-					unmountCall(registry.component.$deep);
+					new Lifecycle(registry.component).unmount();
 					registry.component.$deep.mount = registry.component.$deep.mount.map((item) => {
 						item.run = false;
 						return item;

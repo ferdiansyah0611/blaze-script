@@ -1,5 +1,5 @@
-import { beforeUpdateCall, updatedCall } from "./core";
 import { Component, Watch, Mount, State } from "./blaze.d";
+import Lifecycle from "./lifecycle";
 
 /**
  * @config
@@ -103,14 +103,16 @@ export const state = function (
 				if (a[b] === c) return true;
 
 				let allowed = !component.$deep.batch && !component.$deep.disableTrigger;
+				let lifecycle = new Lifecycle(component);
+
 				if (allowed) {
-					beforeUpdateCall(component.$deep);
+					lifecycle.beforeUpdate();
 				}
 
 				a[b] = c;
 
 				if (allowed && component.$deep.hasMount) {
-					updatedCall(component.$deep);
+					lifecycle.updated();
 					component.$deep.trigger();
 				}
 				if (!component.$deep.disableTrigger) {
@@ -326,11 +328,14 @@ export const updated = (callback: () => any, component: Component) => {
  */
 export const batch = async (callback: () => any, component: Component) => {
 	if (component) {
-		beforeUpdateCall(component.$deep);
+		let lifecycle = new Lifecycle(component);
+		lifecycle.beforeUpdate();
 		component.$deep.batch = true;
+
 		await callback();
+
 		component.$deep.batch = false;
-		updatedCall(component.$deep);
+		lifecycle.updated();
 		component.$deep.trigger();
 	}
 };

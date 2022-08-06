@@ -1,4 +1,4 @@
-import { Component, Mount, RegisteryComponent } from "./blaze.d";
+import { Component, RegisteryComponent } from "./blaze.d";
 import type { ConfigEntityRender, EntityCompile } from "./blaze.d";
 import isEqualWith from "lodash.isequalwith";
 import {
@@ -20,6 +20,7 @@ import {
 import e from "./blaze";
 import { diffChildren } from "./diff";
 import { addComponent } from "@root/plugin/extension";
+import Lifecycle from "./lifecycle";
 
 /**
  * @init
@@ -52,8 +53,9 @@ export const init = (component: Component, _auto?: string) => {
 				return result;
 			},
 			mounted: (update) => {
-				mountCall(component.$deep, update ? component.props : {}, update);
-				watchCall(component);
+				const lifecycle = new Lifecycle(component);
+				lifecycle.mount(update ? component.props : {}, update);
+				lifecycle.watch();
 				component.$deep.registry.forEach((item: RegisteryComponent) => {
 					item.component.$deep.mounted(update);
 				});
@@ -62,7 +64,7 @@ export const init = (component: Component, _auto?: string) => {
 				component.$deep.registry.forEach((item: RegisteryComponent) => {
 					item.component.$deep.remove(notClear, notNode);
 				});
-				unmountCall(component.$deep);
+				new Lifecycle(component).unmount();
 
 				if (component.$node && !notNode) {
 					component.$node.remove && component.$node.remove();
@@ -115,131 +117,6 @@ export const jsx = (component: Component) => {
 		},
 		Fragment: "Fragment",
 	};
-};
-
-/**
- * @mountCall
- * for run mount lifecycle
- */
-export const mountCall = (
-	$deep: Component["$deep"],
-	props: any = {},
-	update: boolean = false,
-	enabled: boolean = false
-) => {
-	let error = window.$error;
-	try {
-		if (!$deep.hasMount) {
-			$deep.mount.forEach((item: Mount) => item.handle(props, update, enabled));
-			$deep.hasMount = true;
-		}
-	} catch (err) {
-		if (error) {
-			error.open(`Error Mount`, err.stack);
-		}
-	}
-};
-
-/**
- * @unmountCall
- * for run unmount lifecycle
- */
-export const unmountCall = ($deep: Component["$deep"]) => {
-	let error = window.$error;
-	try {
-		$deep.unmount.forEach((item: Function) => item());
-	} catch (err) {
-		if (error) {
-			error.open(`Error Unmount`, err.stack);
-		}
-	}
-};
-
-/**
- * @layoutCall
- * for run layout lifecycle
- */
-export const layoutCall = ($deep: Component["$deep"]) => {
-	let error = window.$error;
-	try {
-		if ($deep.layout) $deep.layout.forEach((item: Function) => item());
-	} catch (err) {
-		if (error) {
-			error.open(`Error Layout`, err.stack);
-		}
-	}
-};
-
-/**
- * @beforeCreateCall
- * for run before update data lifecycle
- */
-export const beforeCreateCall = ($deep: Component["$deep"]) => {
-	let error = window.$error;
-	try {
-		if ($deep.beforeCreate) $deep.beforeCreate.forEach((item: Function) => item());
-	} catch (err) {
-		if (error) {
-			error.open(`Error beforeCreate`, err.stack);
-		}
-	}
-};
-
-/**
- * @createdCall
- * for run created lifecycle
- */
-export const createdCall = ($deep: Component["$deep"]) => {
-	let error = window.$error;
-	try {
-		if ($deep.created) $deep.created.forEach((item: Function) => item());
-	} catch (err) {
-		if (error) {
-			error.open(`Error Created`, err.stack);
-		}
-	}
-};
-
-/**
- * @beforeUpdateCall
- * for run before update data lifecycle
- */
-export const beforeUpdateCall = ($deep: Component["$deep"]) => {
-	let error = window.$error;
-	try {
-		if ($deep.beforeUpdate) $deep.beforeUpdate.forEach((item: Function) => item());
-	} catch (err) {
-		if (error) {
-			error.open(`Error beforeUpdate`, err.stack);
-		}
-	}
-};
-
-export const watchCall = (component: Component) => {
-	component.$deep.watch.forEach((item) => {
-		item.dependencies.forEach((dependencies) => {
-			let current = "component." + dependencies;
-			let value = eval(current);
-			if (value) {
-				item.handle(dependencies, value);
-			}
-		});
-	});
-};
-
-/**
- * @updatedCall
- * for run before update data lifecycle
- */
-export const updatedCall = ($deep: Component["$deep"]) => {
-	let error = window.$error;
-	try {
-		if ($deep.updated) $deep.updated.forEach((item: Function) => item());
-	} catch (err) {
-		if (error) {
-			error.open(`Error Updated`, err.stack);
-		}
-	}
 };
 
 /**
@@ -309,6 +186,7 @@ export const rendering = (
 	let blaze = getBlaze(component.$config?.key || 0);
 	let error = window.$error;
 	try {
+		const lifecycle = new Lifecycle(component)
 		const renderComponent = () => {
 			render = component.render();
 			render.key = data.key || key || 0;
@@ -325,8 +203,8 @@ export const rendering = (
 		// beforeCreate effect
 		if (first) {
 			endPerformStartComponent = blaze._startComponent(component);
-			beforeCreateCall(component.$deep);
-			createdCall(component.$deep);
+			lifecycle.beforeCreate();
+			lifecycle.created();
 		}
 		// call render component
 		renderComponent();
@@ -353,10 +231,7 @@ export const rendering = (
 		 */
 		if (!component.$deep.update) {
 			if (first) {
-				if (component.$node.isConnected) {
-					// mountCall(component.$deep, data, true);
-				}
-				layoutCall(component.$deep);
+				lifecycle.layout();
 			}
 		} else {
 			/**
@@ -366,7 +241,7 @@ export const rendering = (
 
 			const current = component.$node;
 			if (current) {
-				layoutCall(component.$deep);
+				lifecycle.layout();
 			}
 		}
 
@@ -409,50 +284,6 @@ export const rendering = (
 	return render;
 };
 
-/**
- * @removeComponentOrEl
- * remove a subcomponent or element
- */
-export const removeComponentOrEl = function (item: HTMLElement, component: Component) {
-	if (item.$children) {
-		component.$deep.registry = component.$deep.registry.filter((registry) => {
-			if (
-				!(registry.component.constructor.name === item.$children.constructor.name && registry.key === item.key)
-			) {
-				return registry;
-			} else {
-				registry.component.$deep.remove();
-				return false;
-			}
-		});
-	} else {
-		item.remove();
-	}
-};
-
-export const unmountAndRemoveRegistry = (current: Component, key: number, component: Component) => {
-	if (component) {
-		component.$deep.registry = component.$deep.registry.filter((registry) => {
-			if (!(registry.component.constructor.name === current.constructor.name && registry.key === key)) {
-				return registry;
-			} else {
-				unmountCall(registry.component.$deep);
-				return false;
-			}
-		});
-	}
-};
-
-export const mountComponentFromEl = (el: HTMLElement) => {
-	if (el.$children) {
-		el.$children.$deep.mounted();
-	}
-};
-
-export const findComponentNode = (parent: HTMLElement, item: HTMLElement) => {
-	return parent.querySelector(`[data-n="${item.$name}"][data-i="${item.key}"]`);
-};
-
 export const equalProps = (oldProps, newProps) => {
 	return isEqualWith({ ...oldProps }, { ...newProps, _isProxy: true }, function (val1, val2): any {
 		if (typeof val1 === "function" && typeof val2 === "function") {
@@ -461,6 +292,11 @@ export const equalProps = (oldProps, newProps) => {
 	});
 };
 
+
+/**
+ * @EntityRender
+ * utilites for render
+ */
 export class EntityRender {
 	config: ConfigEntityRender;
 	component: any;
