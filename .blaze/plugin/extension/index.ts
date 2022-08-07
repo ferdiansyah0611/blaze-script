@@ -1,4 +1,4 @@
-import { rendering } from "@root/core";
+import { rendering } from "@root/system/core";
 import { batch } from "@blaze";
 import Extension from "./component/Extension";
 import "./extension.css";

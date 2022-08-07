@@ -5,7 +5,7 @@ import {
 	findComponentNode,
 } from "./dom";
 import { log } from "./utils";
-import { Component } from "./blaze.d";
+import { Component } from "../blaze.d";
 import Lifecycle from "./lifecycle";
 
 /**

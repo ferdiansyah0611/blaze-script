@@ -1,5 +1,5 @@
-import { Component, RegisteryComponent } from "./blaze.d";
-import type { ConfigEntityRender, EntityCompile } from "./blaze.d";
+import { Component, RegisteryComponent } from "../blaze.d";
+import type { ConfigEntityRender, EntityCompile } from "../blaze.d";
 import isEqualWith from "lodash.isequalwith";
 import {
 	mount,
@@ -14,6 +14,7 @@ import {
 	beforeUpdate,
 	updated,
 	computed,
+	effect,
 	defineProp,
 	getBlaze,
 } from "./utils";
@@ -102,6 +103,7 @@ export const init = (component: Component, _auto?: string) => {
 		updated: (callback: () => any) => updated(callback, component),
 		computed: (data) => computed(data, component),
 		layout: (callback: () => any) => layout(callback, component),
+		effect: (callback: () => any) => effect(callback, component),
 		defineProp: (props: any) => defineProp(props, component),
 	};
 };

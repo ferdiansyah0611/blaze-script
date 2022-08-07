@@ -1,4 +1,4 @@
-import { Component, Watch, Mount, State } from "./blaze.d";
+import { Component, Watch, Mount, State } from "../blaze.d";
 import Lifecycle from "./lifecycle";
 
 /**
@@ -51,6 +51,7 @@ export const state = function (
 
 					registry.forEach((register: Component, i) => {
 						let disable = register.$deep.disableTrigger;
+						let lifecycle = new Lifecycle(register);
 						const disableOnNotList = () => {
 							let currentListening = listening[i];
 							if (
@@ -63,13 +64,8 @@ export const state = function (
 							}
 						};
 						const watchRun = () => {
-							// watching
-							register.$deep.watch.forEach((watch: Watch) => {
-								let find = watch.dependencies.find((item: string) => item === `ctx.${newName}.${b}`);
-								if (find) {
-									watch.handle(b, c);
-								}
-							});
+							lifecycle.watch((item: string) => item === `ctx.${newName}.${b}`, c);
+							lifecycle.effect(`ctx.${newName}.${b}`, c);
 						};
 						disableOnNotList();
 						if (disable) {
@@ -116,12 +112,12 @@ export const state = function (
 					component.$deep.trigger();
 				}
 				if (!component.$deep.disableTrigger) {
-					handle(b, c);
+					handle(b, c, lifecycle);
 				}
 				return true;
 			},
 		};
-		let handle = (b, c) => {
+		let handle = (b: string, c: any, lifecycle?: any) => {
 			// watching
 			component.$deep.watch.forEach((watch: Watch) => {
 				let find = watch.dependencies.find((item: string) => item === `${name}.${b}`);
@@ -129,6 +125,7 @@ export const state = function (
 					watch.handle(b, c);
 				}
 			});
+			if (lifecycle) lifecycle.effect(`${name}.${b}`, c);
 		};
 		// for update
 		if (!name) {
@@ -204,7 +201,7 @@ export const context = (entry: string, defaultContext: any, action: any) => {
  * @watch
  * watching a state or props on component
  */
-export const watch = function (dependencies: Watch['dependencies'], handle: Watch['handle'], component: Component) {
+export const watch = function (dependencies: Watch["dependencies"], handle: Watch["handle"], component: Component) {
 	if (!component.$deep.watch) {
 		component.$deep.watch = [];
 	}
@@ -214,6 +211,20 @@ export const watch = function (dependencies: Watch['dependencies'], handle: Watc
 	});
 	return {
 		clear: () => (component.$deep.watch = component.$deep.watch.filter((...data: any) => data[1] !== key - 1)),
+	};
+};
+
+/**
+ * @effect
+ * auto effect a state or props on component
+ */
+export const effect = function (callback: () => any, component: Component) {
+	if (!component.$deep.effect) {
+		component.$deep.effect = [];
+	}
+	let key = component.$deep.effect.push(callback);
+	return {
+		clear: () => (component.$deep.effect = component.$deep.effect.filter((...data: any) => data[1] !== key - 1)),
 	};
 };
 

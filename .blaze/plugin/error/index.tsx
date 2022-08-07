@@ -1,6 +1,6 @@
 import "./error.css";
 import { init } from "@blaze";
-import { rendering } from "@root/core";
+import { rendering } from "@root/system/core";
 
 export default function withError() {
   return () => {

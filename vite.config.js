@@ -1,6 +1,6 @@
 import { defineConfig } from "vite";
 import path from "path";
-import hmr from "./.blaze/hmr"
+import hmr from "./.blaze/system/hmr";
 
 export default defineConfig({
   plugins: [hmr()],
@@ -20,13 +20,13 @@ export default defineConfig({
   },
   esbuild: {
     jsxFactory: "this.$h.h",
-    jsxFragment: "this.$h.Fragment"
+    jsxFragment: "this.$h.Fragment",
   },
   build: {
     rollupOptions: {
       input: {
         main: path.resolve(__dirname, "index.html"),
-      }
-    }
-  }
+      },
+    },
+  },
 });

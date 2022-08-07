@@ -1,7 +1,7 @@
-import { rendering } from "./system/core";
-import { Component, InterfaceApp, InterfaceBlaze } from "./blaze.d";
-import Lifecycle from "./system/lifecycle";
-import { diffChildren } from "./system/diff";
+import { rendering } from "./core";
+import { Component, InterfaceApp, InterfaceBlaze } from "../blaze.d";
+import Lifecycle from "./lifecycle";
+import { diffChildren } from "./diff";
 
 /**
  * @App
@@ -61,7 +61,7 @@ export class createApp implements InterfaceApp {
 			}
 			if (name === "$deep") {
 				Object.keys(component[name]).forEach((sub) => {
-					if(['mount', 'watch', 'unmount'].includes(sub)) return;
+					if(['mount', 'watch', 'unmount', 'effect'].includes(sub)) return;
 					newComponent[name][sub] = component[name][sub]
 				})
 				return;

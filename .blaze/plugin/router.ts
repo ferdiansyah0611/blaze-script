@@ -1,4 +1,4 @@
-import { EntityRender } from "@root/core";
+import { EntityRender } from "@root/system/core";
 import { mount } from "@blaze";
 import { Component } from "@root/blaze.d";
 

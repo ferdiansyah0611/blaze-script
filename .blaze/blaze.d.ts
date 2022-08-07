@@ -61,6 +61,7 @@ export interface Component {
 		layout?: Function[];
 		beforeUpdate?: Function[];
 		updated?: Function[];
+		effect?: Function[];
 	};
 	$config?: {
 		dev: boolean;

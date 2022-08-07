@@ -12,7 +12,6 @@
     "vite": "^2.9.0"
   },
   "dependencies": {
-    "dexie": "^3.2.2",
     "lodash.isequalwith": "^4.4.0"
   }
 }

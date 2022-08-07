@@ -26,7 +26,7 @@
       "@component/*": ["./src/component/*"],
       "@style/*": ["./src/style/*"],
       "@store/*": ["./src/store/*"],
-      "@app": ["./"],
+      "@app/*": ["./*"],
       "@/*": ["./src/*"]
     },
     "jsx": "preserve",

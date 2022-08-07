@@ -18,6 +18,7 @@ export default function hmr() {
           src.match('batch'),
           src.match('state'),
           src.match('watch'),
+          src.match('effect'),
           src.match('computed'),
         ]
         let text = "";

@@ -1,4 +1,4 @@
-import { Component } from "./blaze.d";
+import { Component } from "../blaze.d";
 import Lifecycle from "./lifecycle";
 
 /**

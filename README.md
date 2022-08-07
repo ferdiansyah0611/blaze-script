@@ -1,9 +1,6 @@
 <div align="center">
-
-# Blaze Script
-
-Is a framework for building large-scale single page applications with similar codeability as React Js and Vue Js
-
+    <h1>Blaze Script</h1>
+    <p>Is a framework for building large-scale single page applications with similar codeability as React Js and Vue Js</p>
 </div>
 
 ## Feature
@@ -15,6 +12,42 @@ Is a framework for building large-scale single page applications with similar co
 -   Batch
 -   Navigation, Cache Request, Error Handling And More
 -   Auto Dependencies
+-   Uses few third-party packages
+
+## Installation
+
+```bash
+git clone git@github.com:ferdiansyah0611/blaze-script.git myapp && cd myapp && npm i
+```
+
+By default, typescript is not installed in node_modules and we use tsc globally. if you haven't installed typescript on your device, you can install it using `npm i typescript`
+
+## Get Started
+
+```tsx
+// Apps.tsx
+import App, { init } from "@blaze";
+import { createApp } from "@root/render";
+import withError from "@root/plugin/error";
+
+export default function Apps() {
+	const { render } = init(this);
+	render(() => <p>Hello World</p>);
+}
+```
+
+```tsx
+// main.ts
+import MyApp from "@/Apps";
+import { createApp } from "@root/render";
+import withError from "@root/plugin/error";
+
+const app = new createApp("#app", MyApp, {
+	dev: false,
+});
+app.use(withError());
+app.mount();
+```
 
 ## Information
 

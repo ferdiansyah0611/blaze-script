@@ -1,4 +1,5 @@
-import Dexie from "dexie";
+// @ts-nocheck
+import Dexie from "https://cdn.jsdelivr.net/npm/dexie@3.2.2/dist/modern/dexie.mjs";
 
 export default function query(url, config): void {
 	const name = config.as;

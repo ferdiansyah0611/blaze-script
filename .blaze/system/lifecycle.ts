@@ -1,4 +1,4 @@
-import { Component, Mount } from "./blaze.d";
+import { Component, Mount } from "../blaze.d";
 
 export default class Lifecycle {
 	component: Component;
@@ -115,15 +115,43 @@ export default class Lifecycle {
 			}
 		}
 	}
-	watch() {
+	/**
+	 * @watch
+	 * watch state/props/context
+	 */
+	watch(logic?: any, valueUpdate?: any) {
 		this.component.$deep.watch.forEach((item) => {
 			item.dependencies.forEach((dependencies) => {
+				if (logic && logic(dependencies)) {
+					return item.handle(dependencies, valueUpdate);
+				}
+
 				let current = "this.component." + dependencies;
 				let value = eval(current);
 				if (value) {
 					item.handle(dependencies, value);
 				}
 			});
+		});
+	}
+	/**
+	 * @effect
+	 * similar with watch, but effect is automatic without write dependencies
+	 */
+	effect(depend, value) {
+		(this.component.$deep.effect || []).forEach((item) => {
+			let fn = item.toString();
+			let checkIsTrue = fn.match(new RegExp(`this.${depend}|${depend}`, "g"));
+
+			if (checkIsTrue) {
+				let notAllowed = new RegExp(`this.${depend}=|${depend}=|this.${depend} =|${depend} =`, "g");
+				let isIlegal = fn.match(notAllowed);
+				if (!isIlegal) {
+					item(value);
+				}
+				return;
+			}
+			return;
 		});
 	}
 }

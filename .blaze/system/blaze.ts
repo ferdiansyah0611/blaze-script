@@ -1,7 +1,7 @@
 import { state, getBlaze } from "./utils";
 import { rendering, equalProps } from "./core";
 import { childrenObserve, attributeObserve } from "./observe";
-import { Component, RegisteryComponent } from "./blaze.d";
+import { Component, RegisteryComponent } from "../blaze.d";
 import { diffChildren } from "./diff";
 
 /**

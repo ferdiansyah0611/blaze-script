@@ -1,6 +1,6 @@
 import { deepObjectState } from "./core";
 import { batch } from "./utils";
-import { Component } from "./blaze.d";
+import { Component } from "../blaze.d";
 
 /**
  * @childrenObserve
