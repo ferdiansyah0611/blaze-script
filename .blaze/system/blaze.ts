@@ -1,8 +1,9 @@
-import { state, getBlaze } from "./utils";
-import { rendering, equalProps } from "./core";
+import { state } from "./utils";
+import { rendering, equalProps, getBlaze } from "./core";
 import { childrenObserve, attributeObserve } from "./observe";
 import { Component, RegisteryComponent } from "../blaze.d";
 import { diffChildren } from "./diff";
+import { App } from "./global";
 
 /**
  * @createElement
@@ -67,7 +68,7 @@ export default function e(
 								item.component.constructor.name === result.default.name && item.key === key
 						);
 						if (!check) {
-							newComponent = new result.default(component, window.$app[component.$config?.key || 0]);
+							newComponent = new result.default(component, App.get(component.$config?.key || 0, 'app'));
 							if (component.$config) {
 								newComponent.$config = component.$config;
 							}
@@ -115,7 +116,7 @@ export default function e(
 			 * @registry
 			 */
 			if (!check) {
-				let newComponent = new nodeName(component, window.$app[component.$config?.key || 0]);
+				let newComponent = new nodeName(component, App.get(component.$config?.key || 0, 'app'));
 				// inject config app
 				if (component.$config) {
 					newComponent.$config = component.$config;
@@ -168,7 +169,7 @@ export default function e(
 
 		childrenObserve(children, el);
 		el.$name = componentName;
-		getBlaze(component.$config?.key || 0).runEveryMakeElement(el);
+		getBlaze(component.$config?.key || 0)?.run?.onMakeElement(el);
 		return;
 	};
 	/**

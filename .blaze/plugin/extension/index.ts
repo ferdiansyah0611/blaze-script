@@ -2,6 +2,7 @@ import { rendering } from "@root/system/core";
 import { batch } from "@blaze";
 import Extension from "./component/Extension";
 import "./extension.css";
+import { Router } from "@root/system/global";
 
 type Log = {
 	msg: string;
@@ -38,7 +39,7 @@ export const withExtension = (entry: string, enabled: boolean) => {
 			component.$deep.mounted(false);
 		}
 
-		blaze.startComponent.push((component) => {
+		blaze.onStartComponent.push((component) => {
 			let old = performance.now(),
 				now,
 				duration,
@@ -72,29 +73,28 @@ export const withExtension = (entry: string, enabled: boolean) => {
 				}
 			};
 		});
-		blaze.afterAppReady.push((component) => {
+		blaze.onAfterAppReady.push((component) => {
 			addComponent(component, true);
 		});
 		blaze.onReload.push((component) => {
 			batch(() => {
-				reload();
 				addLog(
 					{
 						msg: "[HMR] reloading app",
 					},
 					false
 				);
-				addComponent(component, false);
 			}, window.$extension);
 		});
-		if (window.$router) {
-			window.$router[keyApp].error.push((msg) => {
+		let router = Router.get(keyApp);
+		if (router) {
+			router.error.push((msg) => {
 				addLog({
 					msg,
 					type: 'error'
 				});
 			});
-			window.$router[keyApp].found.push((msg) => {
+			router.found.push((msg) => {
 				addLog({
 					msg,
 				});

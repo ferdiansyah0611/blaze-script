@@ -1,14 +1,18 @@
 import { Component, Watch, Mount, State } from "../blaze.d";
 import Lifecycle from "./lifecycle";
+import { Store, HMR, App } from "./global";
 
 /**
  * @config
  * get blaze app or config
  */
-export const getAppConfig = (key) => window.$app[key].$config || {};
-export const getBlaze = (key) => window.$blaze[key] || {};
-
-/*----------UTILITES----------*/
+export const getAppConfig = (key) => {
+	let app = App.get(key);
+	if (app) {
+		return app.config;
+	}
+	return {};
+};
 
 /**
  * @logging
@@ -161,7 +165,18 @@ export const context = (entry: string, defaultContext: any, action: any) => {
 		() => registery,
 		() => listening
 	);
-	return (listen, component) => {
+	// only dev
+	if (import.meta.env.DEV) {
+		if (!Store.get()[entry]) {
+			Store.set(entry, {
+				registery,
+				listening,
+				values,
+			});
+		}
+	}
+	return (listen, component, reload) => {
+		if (reload) return { entry, registery, listening, values };
 		if (!Array.isArray(listen)) component = listen;
 		if (action) {
 			if (!component.$deep.dispatch) {
@@ -169,8 +184,9 @@ export const context = (entry: string, defaultContext: any, action: any) => {
 			}
 			component.$deep.dispatch[entry] = action;
 		}
-		if (window.$hmr) {
-			window.$hmr.forEach((hmr) => {
+		let hmrArray = HMR.get();
+		if (hmrArray.length) {
+			hmrArray.forEach((hmr) => {
 				registery = registery.map((item) => {
 					if (item.constructor.name === hmr.name) {
 						item = Object.assign(item, item.$node.$children);

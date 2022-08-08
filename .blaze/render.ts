@@ -1,7 +1,9 @@
-import { rendering } from "./system/core";
+import { rendering, EntityRender } from "./system/core";
 import { Component, InterfaceApp, InterfaceBlaze } from "./blaze.d";
 import Lifecycle from "./system/lifecycle";
 import { diffChildren } from "./system/diff";
+import isEqualWith from "lodash.isequalwith";
+import { Store, HMR, App } from "./system/global";
 
 /**
  * @App
@@ -13,6 +15,7 @@ export class createApp implements InterfaceApp {
 	plugin: any[];
 	blaze: any;
 	config?: any;
+	app: Component;
 	constructor(el: string, component: any, config?: any) {
 		this.plugin = [];
 		this.el = el;
@@ -24,10 +27,11 @@ export class createApp implements InterfaceApp {
 		}
 	}
 	componentProcess({ component, newComponent, key, previous }: any) {
-		if(previous) {
-			newComponent = new newComponent(previous, window.$app[component.$config?.key || 0]);
+		let app = App.get(component.$config?.key || 0);
+		if (previous) {
+			newComponent = new newComponent(previous, app);
 		} else {
-			newComponent = new newComponent(window.$app[component.$config?.key || 0]);
+			newComponent = new newComponent(app);
 		}
 
 		let old = new Lifecycle(component);
@@ -61,75 +65,90 @@ export class createApp implements InterfaceApp {
 			}
 			if (name === "$deep") {
 				Object.keys(component[name]).forEach((sub) => {
-					if(['mount', 'watch', 'unmount'].includes(sub)) return;
-					newComponent[name][sub] = component[name][sub]
-				})
+					if (["mount", "watch", "unmount", "effect"].includes(sub)) return;
+					newComponent[name][sub] = component[name][sub];
+				});
 				return;
 			}
 			newComponent[name] = component[name];
 		});
 		return newComponent;
 	}
-	isComponent = (component) => component.toString().indexOf('init(this)') !== -1;
-	reload() {
-		window.$hmr.forEach((hmr) => {
+	isComponent = (component) => component.toString().indexOf("init(this)") !== -1;
+	reload(newHmr, isStore: any) {
+		HMR.set(newHmr);
+
+		const hmrArray = HMR.get();
+		if (isStore) {
+			let store = Store.get();
+
+			hmrArray.forEach((hmr) => {
+				let get = hmr("", "", true);
+				let current = store[get.entry];
+				if (current) {
+					Object.keys(current.values).forEach((values) => {
+						if (
+							Array.isArray(current.values[values]) &&
+							!isEqualWith(current.values[values], get.values[values])
+						) {
+							current.listening.forEach((listening, i) => {
+								if (listening.listen.find((listen) => listen === values) && current.registery[i]) {
+									current.registery[i].$deep.trigger();
+								}
+							});
+						}
+					});
+					Object.assign(current.values, get.values);
+				}
+			});
+			return;
+		}
+		hmrArray.forEach((hmr) => {
 			if (hmr.name === this.component.name && this.isComponent(hmr)) {
-				let component = window.$app[this.config.key || 0];
-				let newComponent = hmr;
-				Object.assign(component, this.componentProcess({ component, newComponent, key: 0 }))
+				Object.assign(this.app, this.componentProcess({ component: this.app, newComponent: hmr, key: 0 }));
 				return;
 			}
-		})
+		});
 		const checkComponent = (sub: any, previous?: Component) => {
 			let component = sub.component;
 			component.$deep.registry = component.$deep.registry.map((data) => checkComponent(data, component));
-			window.$hmr.forEach((hmr) => {
+			hmrArray.forEach((hmr) => {
 				if (component.constructor.name === hmr.name && this.isComponent(hmr)) {
-					let newComponent = hmr;
-					Object.assign(sub.component, this.componentProcess({ component, newComponent, key: sub.key, previous }))
+					Object.assign(
+						component,
+						this.componentProcess({ component, newComponent: hmr, key: sub.key, previous })
+					);
 				}
-			})
+			});
 			return sub;
 		};
-		window.$app[this.config.key].$deep.registry = window.$app[this.config.key].$deep.registry.map((data) => checkComponent(data));
-		this.blaze._onReload(window.$hmr);
-		window.$hmr = null;
+		this.app.$deep.registry = this.app.$deep.registry.map((data) => checkComponent(data));
+		this.blaze.run.onReload(hmrArray);
+		HMR.clear();
 	}
 	mount() {
-		const load = (hmr = false) => {
-			let app = new this.component();
-			app.$config = this.config;
-			// inject to window
-			if (!window.$app) {
-				window.$app = [];
-				window.$blaze = [];
-				window.$createApp = [];
-				window.$app[this.config.key] = app;
-				window.$createApp[this.config.key] = this;
-				window.$blaze[this.config.key] = this.blaze;
-			}
-			// run plugin
-			this.plugin.forEach((plugin: any) =>
-				plugin(window.$app[this.config.key], window.$blaze[this.config.key], hmr, this.config.key)
-			);
-			// render
-			app.$deep.disableEqual = true;
-			rendering(app, null, true, {}, 0, app.constructor, []);
-
-			let query = document.querySelector(this.el);
-			query.replaceChildren(window.$app[this.config.key].$node);
-			app.$deep.mounted(false, hmr);
-
-			this.blaze.runAfterAppReady(app);
-		};
-
-		if (window.$app) {
-			window.$app[this.config.key].$deep.remove(true, true);
-			load(true);
-			return;
-		}
 		document.addEventListener("DOMContentLoaded", () => {
-			load();
+			App.set(this);
+
+			const app = new EntityRender(this.component, {
+				inject: {
+					$config: this.config,
+				},
+			});
+			app.beforeCompile(({ component }) => {
+				this.app = component;
+				this.plugin.forEach((plugin: any) => plugin(component, this.blaze, false, this.config.key));
+			})
+				.start()
+				.compile({
+					first: true,
+					deep: null,
+				})
+				.replaceChildren(this.el)
+				.mount(false)
+				.done(({ component }) => {
+					this.blaze.run.onAfterAppReady(component);
+				});
 		});
 	}
 	use(plugin: any) {
@@ -142,42 +161,38 @@ export class createApp implements InterfaceApp {
  * class for event on blaze, like on make element and more
  */
 export class Blaze implements InterfaceBlaze {
-	everyMakeElement: any[];
-	everyMakeComponent: any[];
-	afterAppReady: any[];
-	startComponent: any[];
-	endComponent: any[];
+	onMakeElement: any[];
+	onMakeComponent: any[];
+	onAfterAppReady: any[];
 	onReload: any[];
+	onStartComponent: any[];
+	onEndComponent: any[];
 	constructor() {
-		this.everyMakeElement = [];
-		this.everyMakeComponent = [];
-		this.afterAppReady = [];
-		this.startComponent = [];
-		this.endComponent = [];
+		this.onMakeElement = [];
+		this.onMakeComponent = [];
+		this.onAfterAppReady = [];
 		this.onReload = [];
+		this.onStartComponent = [];
+		this.onEndComponent = [];
 	}
-	runEveryMakeElement(el: HTMLElement) {
-		this.everyMakeElement.forEach((item) => item(el));
-	}
-	runEveryMakeComponent(component: Component) {
-		this.everyMakeComponent.forEach((item) => item(component));
-	}
-	runAfterAppReady(component: Component) {
-		this.afterAppReady.forEach((item) => item(component));
-	}
-	_startComponent(component: Component) {
-		let endPerform = [];
-		this.startComponent.forEach((item) => endPerform.push(item(component)));
+	get run() {
+		return {
+			onMakeElement: (el: HTMLElement) => this.onMakeElement.forEach((item) => item(el)),
+			onMakeComponent: (component: Component) => this.onMakeComponent.forEach((item) => item(component)),
+			onAfterAppReady: (component: Component) => this.onAfterAppReady.forEach((item) => item(component)),
+			onReload: (component: Component) => this.onReload.forEach((item) => item(component)),
+			onStartComponent: (component: Component) => {
+				let endPerform = [];
+				this.onStartComponent.forEach((item) => endPerform.push(item(component)));
 
-		return () => {
-			endPerform.forEach((item) => item && item());
+				return () => {
+					endPerform.forEach((item) => item && item());
+				};
+			},
+			onEndComponent: (component: Component) => {
+				this.onEndComponent.forEach((item) => item(component));
+			},
 		};
-	}
-	_endComponent(component: Component) {
-		this.endComponent.forEach((item) => item(component));
-	}
-	_onReload(component: Component) {
-		this.onReload.forEach((item) => item(component));
 	}
 }
 

@@ -5,6 +5,25 @@ export default function hmr() {
     name: 'transform-file',
 
     transform(src, id) {
+      if(id.indexOf('store') !== -1) {
+        src += `
+if (import.meta.hot) {
+    import.meta.hot.accept((modules) => {
+      let hmr = []
+      Object.keys(modules).forEach((mod) => {
+        hmr.push(modules[mod]);
+      })
+      window.app.forEach((apps) => {
+        apps.reload(hmr, true)
+      })
+    })
+}
+`
+        return {
+          code: src,
+          map: null
+        }
+      }
       if (tsx.test(id)) {
         let dependencies = [
           src.match('beforeCreate'),
@@ -38,12 +57,12 @@ export default function hmr() {
         src += `
 if (import.meta.hot) {
     import.meta.hot.accept((modules) => {
-        window.$hmr = []
+        let hmr = []
         Object.keys(modules).forEach((mod) => {
-          window.$hmr.push(modules[mod]);
+          hmr.push(modules[mod]);
         })
-        window.$createApp.forEach((app) => {
-          app.reload()
+        window.app.forEach((apps) => {
+          apps.reload(hmr)
         })
     });
 }`

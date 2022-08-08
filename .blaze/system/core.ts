@@ -15,13 +15,13 @@ import {
 	updated,
 	computed,
 	effect,
-	defineProp,
-	getBlaze,
+	defineProp
 } from "./utils";
 import e from "./blaze";
 import { diffChildren } from "./diff";
 import { addComponent } from "@root/plugin/extension";
 import Lifecycle from "./lifecycle";
+import { App } from "./global";
 
 /**
  * @init
@@ -204,7 +204,7 @@ export const rendering = (
 
 		// beforeCreate effect
 		if (first) {
-			endPerformStartComponent = blaze._startComponent(component);
+			endPerformStartComponent = blaze.run.onStartComponent(component);
 			lifecycle.beforeCreate();
 			lifecycle.created();
 		}
@@ -222,8 +222,8 @@ export const rendering = (
 				component.$node.$index = index;
 			}
 			// mount
-			blaze.runEveryMakeComponent(component);
-			blaze._endComponent(component);
+			blaze.run.onMakeComponent(component);
+			blaze.run.onEndComponent(component);
 			endPerformStartComponent();
 		}
 
@@ -303,12 +303,17 @@ export class EntityRender {
 	config: ConfigEntityRender;
 	component: any;
 	$before?: () => any;
+	$beforeCompile?: (current: any) => any;
 	constructor(component, config) {
 		this.component = component;
 		this.config = config;
 	}
-	before = (callback: () => any) => {
+	before = (callback: (current: any) => any) => {
 		this.$before = callback.bind(this);
+		return this;
+	};
+	beforeCompile = (callback: (current: any) => any) => {
+		this.$beforeCompile = callback.bind(this);
 		return this;
 	};
 	start = () => {
@@ -322,13 +327,15 @@ export class EntityRender {
 			Object.assign(this.component, inject);
 		}
 		// inject config
-		this.component.$config = window.$app[key || 0].$config;
+		let root = App.get(key || 0, 'config');
+		if(root) this.component.$config = root;
 		return this;
 	};
-	done = (callback: () => any) => {
-		callback.bind(this)();
+	done = (callback: (current: any) => any) => {
+		callback.bind(this)(this);
 	};
 	compile(option: EntityCompile) {
+		if (this.$beforeCompile) this.$beforeCompile(this);
 		rendering(
 			this.component,
 			option.deep,
@@ -363,3 +370,12 @@ export class EntityRender {
 		return this;
 	}
 }
+
+
+export const getBlaze = (key) => {
+	let app = App.get(key);
+	if (app) {
+		return app.blaze;
+	}
+	return {};
+};

@@ -5,10 +5,13 @@ export default function ListExtension() {
 	const { render, defineProp } = init(this);
 	defineProp({
 		item: {
-			constructor: {
-				name: ''
+			$node: {
+				$name: ''
+			},
+			props: {
+				key: 0
 			}
-		}
+		},
 	})
 	render(() => {
 		return (
@@ -16,10 +19,10 @@ export default function ListExtension() {
 				<button
 					onClick={() => this.props.setSelectComponent(this.props.item)}
 					class="bg-gray-800 p-2 w-full rounded-md mb-1 text-sm text-left"
-					data-search={this.props.item.constructor.name.toLowerCase()}
-					data-i={this.props.item.props.key || 0}
+					data-search={this.props.item?.$node?.$name.toLowerCase()}
+					data-i={this.props.item?.props?.key || 0}
 				>
-					{"<"}{this.props.item.constructor.name}{this.props.item.props.key ? ` key="${this.props.item.props.key}"` : ""}{"/>"}
+					{"<"}{this.props.item?.$node?.$name}{this.props.item?.props?.key ? ` key="${this.props.item?.props?.key}"` : ""}{"/>"}
 				</button>
 				{this.props.item.$deep.registry.map((item, i) => (
 					<ListExtension

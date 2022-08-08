@@ -12,6 +12,8 @@
 
 #extension .close {
 	right: 0px;
+    left: unset;
+    width: auto;
 }
 
 #extension a {

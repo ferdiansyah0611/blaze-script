@@ -3,8 +3,7 @@ export interface InterfaceApp {
 	use: (plugin: any) => any;
 }
 export interface InterfaceBlaze {
-	runEveryMakeElement: (el: HTMLElement) => void;
-	runEveryMakeComponent: (component: Component) => void;
+	run: any;
 }
 
 export interface RegisteryComponent {
