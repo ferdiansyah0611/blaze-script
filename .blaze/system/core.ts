@@ -57,6 +57,7 @@ export const init = (component: Component, _auto?: string) => {
 				const lifecycle = new Lifecycle(component);
 				lifecycle.mount(update ? component.props : {}, update);
 				lifecycle.watch();
+				lifecycle.effect(true);
 				component.$deep.registry.forEach((item: RegisteryComponent) => {
 					item.component.$deep.mounted(update);
 				});

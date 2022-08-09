@@ -19,9 +19,9 @@ export interface Mount {
 	run: boolean;
 }
 
-export interface State {
+export interface State<T>{
 	name: string | any;
-	initial: any;
+	initial: T;
 	component: Component | null;
 	registryCall?: () => Component[];
 	listeningCall?: () => any[];

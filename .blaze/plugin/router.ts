@@ -3,6 +3,9 @@ import { mount } from "@blaze";
 import { Component } from "@root/blaze.d";
 import { App, Router } from "@root/system/global";
 
+var firstPage = true
+var popstate = false;
+
 class EntityRouter {
 	app: any;
 	config: any;
@@ -13,28 +16,33 @@ class EntityRouter {
 		this.tool = tool;
 	}
 	static change(app: any, request: string) {
-		app.$router.$change.forEach((item) => item(request));
+		app.$router.$.change.forEach((item) => item(request));
 	}
 	static found(app, url) {
 		let msg = `[Router] GET 200 ${url}`;
-		app.$router._found(msg);
+		app.$router.run.found(msg);
 	}
 	static gotoNotFound(app, config, url, goto) {
 		let current = config.url.find(
 			(path) => path.path.length === 0 || (config.auto && path.path.indexOf("/404") !== -1)
 		);
 		let msg = `[Router] Not Found 404 ${url}`;
-		app.$router._error(msg);
+		app.$router.run.error(msg);
 		goto(app, url, current.component, {});
 		return;
 	}
-	handling(url: string, popstate: boolean) {
+	handling(url: string) {
+		if(firstPage) {
+			firstPage = false
+			return;
+		}
 		if (popstate) {
 			history.replaceState(null, "", url);
+			popstate = false;
+			return
 		} else {
 			history.pushState(null, "", url);
 		}
-		popstate = false;
 	}
 	beforeEach(config: any): boolean {
 		if (config && config.beforeEach) {
@@ -67,15 +75,12 @@ class EntityRouter {
 		}
 	}
 	removePrevious() {
-		let check = this.app.$router.history.at(0);
-		if (check && check.current && check.current.$deep) check.current.$deep.remove();
-		this.app.$router.history = this.app.$router.history.filter((data, i) => {
-			data;
-			i !== 0;
-		});
+		let check = this.app.$router.$.active;
+		if (check && check.$deep) check.$deep.remove();
+		this.app.$router.$.active = null;
 	}
-	add(url: string, current: Component) {
-		this.app.$router.history.push({ url, current });
+	add(component: Component) {
+		this.app.$router.$.active = component;
 	}
 	inject(component: Component) {
 		component.$router = this.tool;
@@ -88,7 +93,6 @@ class EntityRouter {
  */
 export const makeRouter = (entry: string, config: any, dev: boolean = false) => {
 	let tool;
-	let popstate = false;
 	let keyApplication = 0;
 	let glob = {};
 	let isCustomize;
@@ -160,12 +164,12 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 	) => {
 		if (!document.querySelector(entry)) {
 			let msg = "[Router] entry not found, query is correct?";
-			app.$router._error(msg);
+			app.$router.run.error(msg);
 			return console.error(msg);
 		}
 		let current;
 		if (entity) {
-			entity.handling(url, popstate);
+			entity.handling(url);
 			entity.setSearch(search, configure);
 		}
 
@@ -209,7 +213,7 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 			.done(function () {
 				if (entity) {
 					entity.removePrevious();
-					entity.add(url, this.component);
+					entity.add(this.component);
 					entity.inject(this.component);
 					entity.afterEach(configure);
 				}
@@ -231,9 +235,8 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 				keyApplication,
 				app,
 				EntityRouter,
-				popstate,
 				tool,
-				config,
+				config
 			});
 		}
 
@@ -277,12 +280,14 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 		 * inject router to current component
 		 */
 		tool = {
-			$change: [],
-			history: [],
-			error: [],
-			found: [],
+			'$': {
+				change: [],
+				// history: [],
+				active: null,
+				error: [],
+				found: [],
+			},
 			ready,
-			popstate,
 			hmr,
 			go(goNumber: number) {
 				history.go(goNumber);
@@ -295,18 +300,18 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 					ready(app, url);
 				}
 			},
-			onChange(data) {
-				let check = this.$change.find((item) => item.toString() === data.toString());
+			watch(data) {
+				let check = this.$.change.find((item) => item.toString() === data.toString());
 				if (!check) {
-					this.$change.push(data);
+					this.$.change.push(data);
 				}
 			},
-			_error(error) {
-				this.error.forEach((data) => data(error));
-			},
-			_found(message) {
-				this.found.forEach((data) => data(message));
-			},
+			get run() {
+				return{
+					error: (error) => this.$.error.forEach((data) => data(error)),
+					found: (message) => this.$.found.forEach((data) => data(message)),
+				}
+			}
 		};
 		app.$router = tool;
 		let current = Router.get(keyApp)
@@ -334,6 +339,7 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 				el.addEventListener("click", (e: any) => {
 					e.preventDefault();
 					tool.push(new URL(config.resolve ? e.currentTarget.dataset.href : el.href));
+					popstate = false;
 				});
 			}
 		});
@@ -352,7 +358,7 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 		 */
 		blaze.onReload.push((updateComponent: any[]) => {
 			updateComponent.forEach((newComponent) => {
-				let component = app.$router.history.at(0).current;
+				let component = app.$router.$.active;
 				let loader = app.$router.loader;
 				let createApp = App.get(keyApp);
 				if (createApp.isComponent(newComponent)) {
@@ -421,17 +427,17 @@ export const startIn = (component: Component, keyApp?: number, loader?: Function
 	}
 
 	mount(() => {
-		let router = component.$router
+		let router = Router.get(keyApp)
 		router.loader = loader;
 
 		if (!router.hmr) {
 			router.ready(component);
 			window.addEventListener("popstate", () => {
-				router.popstate = true;
+				popstate = true;
 				router.ready(component, location);
 			});
 		} else {
-			router.popstate = true;
+			popstate = false;
 			router.ready(component, location);
 		}
 	}, component);

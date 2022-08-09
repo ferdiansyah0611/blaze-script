@@ -76,7 +76,7 @@ export const withExtension = (entry: string, enabled: boolean) => {
 		blaze.onAfterAppReady.push((component) => {
 			addComponent(component, true);
 		});
-		blaze.onReload.push((component) => {
+		blaze.onReload.push((_component) => {
 			batch(() => {
 				addLog(
 					{
@@ -88,13 +88,13 @@ export const withExtension = (entry: string, enabled: boolean) => {
 		});
 		let router = Router.get(keyApp);
 		if (router) {
-			router.error.push((msg) => {
+			router.$.error.push((msg) => {
 				addLog({
 					msg,
 					type: 'error'
 				});
 			});
-			router.found.push((msg) => {
+			router.$.found.push((msg) => {
 				addLog({
 					msg,
 				});

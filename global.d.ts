@@ -1,13 +1,14 @@
 declare global {
     interface Window {
-        $app: any;
-        $blaze: any;
-        $extension: any;
-        $test: any;
+        // system
+        app: any;
+        store: any;
+        hmr: any;
+        // plugin
         $router: any;
         $error: any;
-        $hmr: any;
-        $createApp: any;
+        $extension: any;
+        $test: any;
     }
     interface HTMLElement {
         $children: any;

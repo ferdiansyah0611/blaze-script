@@ -30,15 +30,9 @@ export const render = (callback: () => HTMLElement, component: Component) => (co
  * @state
  * state management and context on blaze
  */
-export const state = function (
-	name: State["name"],
-	initial: State["initial"],
-	component: State["component"],
-	registryCall?: State["registryCall"],
-	listeningCall?: State["listeningCall"]
-) {
+export const state = function <T>(name: State<T>["name"], initial: T, component: State<T>["component"], call?: any) {
 	// for context
-	if (typeof registryCall === "function") {
+	if (typeof call === "function") {
 		let validate = (newName?: string, withSub?: string) => {
 			return {
 				get(a, b, receiver) {
@@ -50,10 +44,9 @@ export const state = function (
 				set(a: any, b: string, c: any) {
 					if (a[b] === c) return true;
 					a[b] = c;
-					let registry = registryCall();
-					let listening = listeningCall();
+					let { registery, listening } = call();
 
-					registry.forEach((register: Component, i) => {
+					registery.forEach((register: Component, i) => {
 						let disable = register.$deep.disableTrigger;
 						let lifecycle = new Lifecycle(register);
 						const disableOnNotList = () => {
@@ -158,13 +151,7 @@ export const state = function (
 export const context = (entry: string, defaultContext: any, action: any) => {
 	let registery: Component[] = [];
 	let listening: any[] = [];
-	let values = state(
-		entry,
-		defaultContext,
-		null,
-		() => registery,
-		() => listening
-	);
+	let values = state(entry, defaultContext, null, () => ({ registery, listening }));
 	// only dev
 	if (import.meta.env.DEV) {
 		if (!Store.get()[entry]) {

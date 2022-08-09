@@ -138,8 +138,10 @@ export default class Lifecycle {
 	 * @effect
 	 * similar with watch, but effect is automatic without write dependencies
 	 */
-	effect(depend, value) {
+	effect(depend: string | boolean, value?: any) {
 		(this.component.$deep.effect || []).forEach((item) => {
+			if(typeof depend === 'boolean') return item();
+
 			let fn = item.toString();
 			let checkIsTrue = fn.match(new RegExp(`this.${depend}|${depend}`, "g"));
 
