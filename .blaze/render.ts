@@ -54,6 +54,7 @@ export class createApp implements InterfaceApp {
 		newComponent.$deep.hasMount = false;
 
 		let now = new Lifecycle(newComponent);
+		now.created()
 		now.mount({}, false, true);
 		now.watch();
 		return newComponent;
@@ -65,7 +66,7 @@ export class createApp implements InterfaceApp {
 			}
 			if (name === "$deep") {
 				Object.keys(component[name]).forEach((sub) => {
-					if (["mount", "watch", "unmount", "effect"].includes(sub)) return;
+					if (["mount", "watch", "unmount", "effect", 'beforeCreate', 'created', 'beforeUpdate', 'updated'].includes(sub)) return;
 					newComponent[name][sub] = component[name][sub];
 				});
 				return;

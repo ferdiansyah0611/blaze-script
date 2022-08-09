@@ -1,6 +1,6 @@
 import { state } from "./utils";
 import { rendering, equalProps, getBlaze } from "./core";
-import { childrenObserve, attributeObserve } from "./observe";
+import { makeChildren, makeAttribute } from "./maker";
 import { Component, RegisteryComponent } from "../blaze.d";
 import { diffChildren } from "./diff";
 import { App } from "./global";
@@ -164,10 +164,10 @@ export default function e(
 				el = document.createElement(nodeName);
 			}
 
-			if (!svg) attributeObserve(data, el, component);
+			if (!svg) makeAttribute(data, el, component);
 		}
 
-		childrenObserve(children, el);
+		makeChildren(children, el);
 		el.$name = componentName;
 		getBlaze(component.$config?.key || 0)?.run?.onMakeElement(el);
 		return;

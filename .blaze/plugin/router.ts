@@ -282,7 +282,6 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 		tool = {
 			'$': {
 				change: [],
-				// history: [],
 				active: null,
 				error: [],
 				found: [],
