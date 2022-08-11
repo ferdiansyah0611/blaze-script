@@ -17,7 +17,7 @@ declare global {
         if: boolean;
         else: any;
         value: any;
-        d?: any;
+        diff?: any;
         refs?: number;
         i?: any;
         key?: any;

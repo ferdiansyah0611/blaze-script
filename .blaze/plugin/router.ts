@@ -369,6 +369,8 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 							loader: newComponent,
 						});
 					}
+
+					component.$deep.registry = component.$deep.registry.map((data) => createApp.reloadRegistry(data));
 				}
 			});
 		});
@@ -432,8 +434,10 @@ export const startIn = (component: Component, keyApp?: number, loader?: Function
 		if (!router.hmr) {
 			router.ready(component);
 			window.addEventListener("popstate", () => {
-				popstate = true;
-				router.ready(component, location);
+				if(!location.hash) {
+					popstate = true;
+					router.ready(component, location);
+				}
 			});
 		} else {
 			popstate = false;

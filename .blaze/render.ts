@@ -85,6 +85,20 @@ export class createApp implements InterfaceApp {
 		return newComponent;
 	}
 	isComponent = (component) => component.toString().indexOf("init(this)") !== -1;
+	reloadRegistry = (sub: any, previous?: Component) => {
+		let component = sub.component;
+		let hmrArray = HMR.get();
+		component.$deep.registry = component.$deep.registry.map((data) => this.reloadRegistry(data, component));
+		hmrArray.forEach((hmr) => {
+			if (component.constructor.name === hmr.name && this.isComponent(hmr)) {
+				Object.assign(
+					component,
+					this.componentProcess({ component, newComponent: hmr, key: sub.key, previous })
+				);
+			}
+		});
+		return sub;
+	};
 	reload(newHmr, isStore: any) {
 		HMR.set(newHmr);
 
@@ -119,20 +133,7 @@ export class createApp implements InterfaceApp {
 				return;
 			}
 		});
-		const checkComponent = (sub: any, previous?: Component) => {
-			let component = sub.component;
-			component.$deep.registry = component.$deep.registry.map((data) => checkComponent(data, component));
-			hmrArray.forEach((hmr) => {
-				if (component.constructor.name === hmr.name && this.isComponent(hmr)) {
-					Object.assign(
-						component,
-						this.componentProcess({ component, newComponent: hmr, key: sub.key, previous })
-					);
-				}
-			});
-			return sub;
-		};
-		this.app.$deep.registry = this.app.$deep.registry.map((data) => checkComponent(data));
+		this.app.$deep.registry = this.app.$deep.registry.map((data) => this.reloadRegistry(data));
 		this.blaze.run.onReload(hmrArray);
 		HMR.clear();
 	}

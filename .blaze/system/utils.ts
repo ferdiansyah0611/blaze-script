@@ -87,7 +87,7 @@ export const state = function <T>(name: State<T>["name"], initial: T, component:
 	else {
 		let validate = {
 			get(a, b, receiver) {
-				if (typeof a[b] === "object" && !Array.isArray(a[b])) {
+				if (typeof a[b] === "object" && !Array.isArray(a[b]) && b.indexOf('$') === -1) {
 					return new Proxy({ ...a[b], _isProxy: true }, validate);
 				}
 				return Reflect.get(a, b, receiver);

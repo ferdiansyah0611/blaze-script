@@ -7,7 +7,7 @@ import { App, Router } from "@root/system/global";
 const exception = ["$name", "$children", "$root", "$index", "_isProxy", "fallback", 'h', 'Fragment', '_isContext'];
 
 export default function Extension(keyApp) {
-	const { render, state, mount, computed } = init(this);
+	const { render, state, mount, computed, created } = init(this);
 	state("state", {
 		console: [],
 		log: [],
@@ -25,13 +25,22 @@ export default function Extension(keyApp) {
 		selectComponent: {
 			$deep: {},
 		},
+		resultTest: {
+			result: []
+		}
 	});
+	created(() => {
+		let value = localStorage.getItem('extension')
+		if(value && value === "true") {
+			this.state.open = true;
+		}
+	})
 	mount(() => {
 		// inject to window
 		window.$extension = this;
 		let router = Router.get(keyApp);
 		if (router)
-			router.onChange(() => {
+			router.watch(() => {
 				batch(() => {
 					this.clearLog();
 					this.state.selectComponent = {
@@ -65,7 +74,7 @@ export default function Extension(keyApp) {
 								<div style={"max-height: 50vh;overflow: auto;"}>
 									<div class="text-sm mb-2 p-2">
 										{this.state.console.map((item) => (
-											<div d class="border-b flex">
+											<div diff class="border-b flex">
 												<p className="text-gray-100 flex-1">
 													{typeof item.data === "string" ? item.data : JSON.stringify(item.data)}
 												</p>
@@ -118,12 +127,13 @@ export default function Extension(keyApp) {
 							</div>
 							<div class="flex">
 								<div refs="bodyComponent" style={"max-height: 50vh;overflow: auto;flex: 1;"}>
-									<div class="sticky top-0 z-10">
+									<div class="sticky top-0 z-10 bg-black">
 										<input
 											onChangeValue={this.handleSearchComponent}
 											placeholder="Search component..."
 											class="bg-black text-sm w-full text-white p-2 focus:border-gray-600 flex-1 focus:outline-none"
 											type="text"
+											style="margin: 6px;"
 										/>
 									</div>
 									<div id="list-component" class="flex flex-col text-white p-2">
@@ -137,10 +147,10 @@ export default function Extension(keyApp) {
 										))}
 									</div>
 								</div>
-								<div d class="text-white flex-1" style={"max-height: 50vh;overflow: auto;max-width: 450px;"}>
+								<div diff class="text-white flex-1" style={"max-height: 50vh;overflow: auto;max-width: 450px;"}>
 									<div>
 										{this.state.selectComponent.constructor.name !== "Object" ? (
-											<div d class="flex space-x-2 items-center p-2">
+											<div diff class="flex space-x-2 items-center p-2">
 												<span
 													class={
 														this.state.selectComponent.$node.isConnected
@@ -199,15 +209,14 @@ export default function Extension(keyApp) {
 										)}
 										{this.selectComponentContext.length ? (
 											<div>
-												<h6 class="ml-2 font-medium p-2">Context</h6>
 												<div class="flex flex-col border-b border-gray-500 pb-2">
-													{this.selectComponentContext.map((item, key) => (
+													{this.selectComponentContext.map((item) => (
 														<div>
 															<h5 class="text-gray-200 p-2 ml-2">
-																{key + 1}. {item}
+																{item} - Context
 															</h5>
 															{Object.keys(this.state.selectComponent["ctx"][item] || {})
-																.filter((items) => items !== "_isContext")
+																.filter((items) => items !== "_isContext" && items !== '_isProxy')
 																.map((state, i) => (
 																	<InputExtension
 																		name={state}
@@ -224,22 +233,30 @@ export default function Extension(keyApp) {
 										) : (
 											false
 										)}
-										<Testing
-											runTest={this.state.runTest}
-											describe={this.state.selectComponent?.$deep?.test?.result || []}
-										/>
-										<div d className="mt-2">
-											{this.state.selectComponent.constructor.name !== "Object" ? (
+
+										{
+											(window.$test && this.state.runTest && this.state.resultTest.result.length) ?
+											<Testing
+												describe={this.state.resultTest.result}
+											/>
+											: false
+										}
+										<div diff className="mt-2">
+											{this.state.selectComponent.$node ? (
 												<div>
-													<div d class="ml-2">
-														<h5 d class="p-2 flex-1 font-bold">
+													<div diff class="ml-2">
+														<h5 diff class="p-2 flex-1 font-bold">
 															More
 														</h5>
 													</div>
-													<div d class="p-2 flex space-x-1 ml-2">
-														<button onClick={this.runTest} class="bg-green-800 p-2 text-sm" d>
-															Run Test
-														</button>
+													<div diff class="p-2 flex space-x-1 ml-2">
+														{
+															window.$test ?
+															<button onClick={this.runTest} class="bg-green-800 p-2 text-sm" d>
+																Run Test
+															</button>
+															: false
+														}
 														<button
 															onClick={() => this.state.selectComponent.$deep.trigger()}
 															class="bg-gray-800 p-2 text-sm"
@@ -268,7 +285,7 @@ export default function Extension(keyApp) {
 				</div>
 				<div>
 					{this.state.open ? (
-						<div d className="flex space-x-2 text-white text-sm p-2">
+						<div diff className="flex space-x-2 text-white text-sm p-2">
 							<a className="bg-gray-800 p-2" onClickPrevent={this.handleConsole} href="/">
 								Console
 							</a>
@@ -340,15 +357,16 @@ const computedExtension = (computed, keyApp) => {
 						this.state.openLog = false;
 						this.state.openComponent = false;
 						this.state.open = !this.state.open;
+						localStorage.setItem('extension', this.state.open)
+						this.resizeBody(this.state.open);
 					}, this)
 
-					this.resizeBody();
 				},
-				resizeBody: () => {
+				resizeBody: (isTrue) => {
 					setTimeout(() => {
 						let node = App.get(keyApp, 'app')
 						if (node.$node) {
-							node.$node.style.marginBottom = `${this.$node.offsetHeight}px`;
+							node.$node.style.marginBottom = `${!isTrue ? 0 : this.$node.offsetHeight}px`;
 						}
 					}, 1000);
 				},
@@ -386,20 +404,25 @@ const computedExtension = (computed, keyApp) => {
 					} catch (err) {}
 				},
 				runTest: () => {
-					this.state.runTest = true;
-					if (window.$test) {
-						let check = window.$test.find((test) => test.name === this.state.selectComponent.constructor.name);
-						if (check) {
-							check.callback(this.state.selectComponent);
-							this.$deep.trigger();
+					batch(() => {
+						this.state.runTest = true;
+						if (window.$test) {
+							let check = window.$test.find((test) => test.name === this.state.selectComponent.$node.$name);
+							if (check) {
+								check.callback(this.state.selectComponent);
+								this.state.resultTest = this.state.selectComponent.$deep.test
+							}
 						}
-					}
+					}, this)
 				},
 				clearLog: () => {
 					this.state.log = [];
 					console.clear();
 				},
-				setSelectComponent: (data) => (this.state.selectComponent = data),
+				setSelectComponent: (data) => batch(() => {
+					this.state.runTest = false;
+					this.state.selectComponent = data
+				}, this),
 				handleSearchComponent: (value) => {
 					let list = Array.from(this.$node.querySelectorAll('[data-n="ListExtension"]'));
 					list.forEach((node: HTMLElement) => {
@@ -422,7 +445,7 @@ const computedExtension = (computed, keyApp) => {
 						(item) => this.state.selectComponent[item]?._isProxy === true && item !== "props" && item !== "$deep"
 					)
 				},
-				selectComponentContext: () => Object.keys(this.state.selectComponent.ctx || {}),
+				selectComponentContext: () => Object.keys(this.state.selectComponent.ctx || {}).filter(item => item !== '_isProxy'),
 				props: () =>
 					Object.keys(this.state.selectComponent.props || {}).filter((item) => exception.includes(item) === false),
 			},

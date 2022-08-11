@@ -77,6 +77,11 @@ export const withExtension = (entry: string, enabled: boolean) => {
 			addComponent(component, true);
 		});
 		blaze.onReload.push((_component) => {
+			_component.forEach((component) => {
+				if(['Extension', 'InputExtension', 'ListExtension', 'Testing'].includes(component.name)) {
+					location.reload()
+				}
+			})
 			batch(() => {
 				addLog(
 					{

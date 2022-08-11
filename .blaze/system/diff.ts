@@ -25,7 +25,7 @@ const diff = function (prev: HTMLElement, el: HTMLElement, component: Component)
 	if (prev.key !== el.key) {
 		batch.push(() => (prev.key = el.key));
 	}
-	if (!prev || ((prev.d || el.d) && !(el instanceof SVGElement)) || prev.nodeName === "#document-fragment") {
+	if (!prev || ((prev.diff || el.diff) && !(el instanceof SVGElement)) || prev.nodeName === "#document-fragment") {
 		return batch;
 	}
 	// different component in same node

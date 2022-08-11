@@ -53,7 +53,7 @@ export const makeAttribute = (data: any, el: HTMLElement, component: Component) 
 	Object.keys(data).forEach((item: any) => {
 		if (item === "model") {
 			let path = data[item];
-			el.addEventListener("change", (e: any) => {
+			el.addEventListener(data.live ? "keyup" : "change", (e: any) => {
 				deepObjectState(path, data, component, e.target.value);
 			});
 			el.value = deepObjectState(path, data, component);
@@ -112,28 +112,32 @@ export const makeAttribute = (data: any, el: HTMLElement, component: Component) 
 			return;
 		}
 		// event
-		if (item.match(/^on[A-Z]/)) {
+		if (item.match(/^on[A-Z][a-z]+/)) {
 			if (typeof data[item] === "function") {
 				let find = item.match(/Prevent|StopPropagation|Value/);
+				let name, call
 				if (find) {
 					let isValue = find[0] === "Value";
-					el.addEventListener(item.split(find[0]).join("").toLowerCase().slice(2), async (e: any) => {
+					name = item.split(find[0]).join("").toLowerCase().slice(2);
+					call = async (e: any) => {
 						e.preventDefault();
 						if (!data.batch) {
 							await data[item](isValue ? e.target.value : e);
 						} else {
 							batch(async () => await data[item](isValue ? e.target.value : e), component);
 						}
-					});
+					}
 				} else {
-					el.addEventListener(item.toLowerCase().slice(2), async (e) => {
+					name = item.toLowerCase().slice(2)
+					call = async (e) => {
 						if (!data.batch) {
 							await data[item](e);
 						} else {
 							batch(async () => await data[item](e), component);
 						}
-					});
+					}
 				}
+				el.addEventListener(name, call);
 			}
 			return;
 		}
