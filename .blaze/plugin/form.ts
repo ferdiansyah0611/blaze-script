@@ -70,6 +70,11 @@ export default function form(nameFunction: string, handle: (err) => any, validat
 						list.add([name, "is not valid date"]);
 					}
 				}
+				if(check("isPhoneNumber")) {
+					if(!value.match(/^[+]*[(]{0,1}[0-9]{1,3}[)]{0,1}[-\s\./0-9]*$/g)) {
+						list.add([name, "is not valid phone number"]);
+					}
+				}
 
 				handle(list);
 
