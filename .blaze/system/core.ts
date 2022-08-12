@@ -274,7 +274,7 @@ export const rendering = (
 			return false;
 		}
 
-		if (error.state.open) {
+		if (error.state.data.title) {
 			error.close();
 		}
 	} catch (err) {

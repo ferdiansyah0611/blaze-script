@@ -37,6 +37,7 @@ function Errors() {
           title: "",
           message: "",
         }
+        this.$deep.trigger()
       },
     },
   }));

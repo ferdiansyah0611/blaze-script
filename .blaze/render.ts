@@ -4,6 +4,7 @@ import Lifecycle from "./system/lifecycle";
 import { diffChildren } from "./system/diff";
 import isEqualWith from "lodash.isequalwith";
 import { Store, HMR, App } from "./system/global";
+import withError from "@root/plugin/error";
 
 /**
  * @App
@@ -25,39 +26,49 @@ export class createApp implements InterfaceApp {
 		if (config.hasOwnProperty("key") === false || !(typeof config.key === "number")) {
 			this.config.key = 0;
 		}
+		this.use(withError());
 	}
 	componentProcess({ component, newComponent, key, previous }: any) {
-		let app = App.get(component.$config?.key || 0);
-		if (previous) {
-			newComponent = new newComponent(previous, app);
-		} else {
-			newComponent = new newComponent(app);
+		let error = window.$error;
+		error.close();
+		try {
+			let app = App.get(component.$config?.key || 0);
+			if (previous) {
+				newComponent = new newComponent(previous, app);
+			} else {
+				newComponent = new newComponent(app);
+			}
+
+			let old = new Lifecycle(component);
+			old.unmount();
+
+			newComponent = this.componentUpdate(component, newComponent);
+			const result = rendering(
+				newComponent,
+				component.$deep,
+				false,
+				component.props,
+				key,
+				newComponent.constructor,
+				component.children
+			);
+
+			diffChildren(component.$node, result, newComponent);
+			newComponent.$node = component.$node;
+			newComponent.$node.$children = newComponent;
+			newComponent.$deep.hasMount = false;
+
+			let now = new Lifecycle(newComponent);
+			now.created();
+			now.mount({}, false, true);
+			now.watch();
+			if (error.state.data.title) {
+				error.close();
+			}
+			return newComponent;
+		} catch (err) {
+			error.open(newComponent.constructor.name, err.stack);
 		}
-
-		let old = new Lifecycle(component);
-		old.unmount();
-
-		newComponent = this.componentUpdate(component, newComponent);
-		const result = rendering(
-			newComponent,
-			component.$deep,
-			false,
-			component.props,
-			key,
-			newComponent.constructor,
-			component.children
-		);
-
-		diffChildren(component.$node, result, newComponent);
-		newComponent.$node = component.$node;
-		newComponent.$node.$children = newComponent;
-		newComponent.$deep.hasMount = false;
-
-		let now = new Lifecycle(newComponent);
-		now.created()
-		now.mount({}, false, true);
-		now.watch();
-		return newComponent;
 	}
 	componentUpdate(component, newComponent) {
 		Object.keys(component).forEach((name) => {
@@ -66,16 +77,28 @@ export class createApp implements InterfaceApp {
 			}
 			if (name === "$deep") {
 				Object.keys(component[name]).forEach((sub) => {
-					if (["mount", "watch", "unmount", "effect", 'beforeCreate', 'created', 'beforeUpdate', 'updated'].includes(sub)) return;
+					if (
+						[
+							"mount",
+							"watch",
+							"unmount",
+							"effect",
+							"beforeCreate",
+							"created",
+							"beforeUpdate",
+							"updated",
+						].includes(sub)
+					)
+						return;
 					newComponent[name][sub] = component[name][sub];
 				});
 				return;
 			}
-			if(typeof component[name] === 'object') {
-				if(component[name]._isProxy) {
-					let check = isEqualWith(component[name], newComponent[name])
-					if(!check) {
-						Object.assign(component[name], newComponent[name])
+			if (typeof component[name] === "object") {
+				if (component[name]._isProxy) {
+					let check = isEqualWith(component[name], newComponent[name]);
+					if (!check) {
+						Object.assign(component[name], newComponent[name]);
 						return;
 					}
 				}
