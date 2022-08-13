@@ -33,7 +33,7 @@ export default class Lifecycle {
 		const { error } = this;
 		const { $deep } = this.component;
 		try {
-			$deep.unmount.forEach((item: Function) => typeof item === 'function' && item());
+			$deep.unmount.forEach((item: Function) => typeof item === "function" && item());
 		} catch (err) {
 			if (error) {
 				error.open(`Error Unmount`, err.stack);
@@ -140,13 +140,26 @@ export default class Lifecycle {
 	 */
 	effect(depend: string | boolean, value?: any) {
 		(this.component.$deep.effect || []).forEach((item) => {
-			if(typeof depend === 'boolean') return item();
+			if (typeof depend === "boolean") return item();
 
 			let fn = item.toString();
 			let checkIsTrue = fn.match(new RegExp(`this.${depend}|${depend}`, "g"));
 
 			if (checkIsTrue) {
-				let notAllowed = new RegExp(`this.${depend}=|${depend}=|this.${depend} =|${depend} =`, "g");
+				let list = [];
+				list.push(`this.${depend}=`);
+				list.push(`this.${depend} =`);
+				list.push(`this.${depend} +=`);
+				list.push(`this.${depend} -=`);
+				list.push(`this.${depend}+=`);
+				list.push(`this.${depend}-=`);
+				list.push(`${depend}=`);
+				list.push(`${depend} =`);
+				list.push(`${depend} +=`);
+				list.push(`${depend} -=`);
+				list.push(`${depend}+=`);
+				list.push(`${depend}-=`);
+				let notAllowed = new RegExp(list.join("|"), "g");
 				let isIlegal = fn.match(notAllowed);
 				if (!isIlegal) {
 					item(value);

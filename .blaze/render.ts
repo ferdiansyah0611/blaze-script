@@ -62,6 +62,7 @@ export class createApp implements InterfaceApp {
 			now.created();
 			now.mount({}, false, true);
 			now.watch();
+			now.effect(true);
 			if (error.state.data.title) {
 				error.close();
 			}

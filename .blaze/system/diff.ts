@@ -1,7 +1,7 @@
 import { removeComponentOrEl, unmountAndRemoveRegistry, mountComponentFromEl, findComponentNode } from "./dom";
-import { log } from "./utils";
 import { Component } from "../blaze.d";
 import Lifecycle from "./lifecycle";
+import { HMR } from "./global";
 
 /**
  * @diff
@@ -56,7 +56,6 @@ const diff = function (prev: HTMLElement, el: HTMLElement, component: Component)
 		const rechange = (node, i) => {
 			if (node && el.childNodes[i] !== undefined && node.data !== el.childNodes[i].data) {
 				zip.push(() => {
-					log("[text]", node.data, ">", el.childNodes[i].data);
 					node.replaceData(0, -1, el.childNodes[i].data);
 				});
 			}
@@ -187,10 +186,12 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 				mountComponentFromEl(node);
 			});
 			return;
-		} else if (oldest.children.length && newest.children.length === 0) {
-			oldestChildren.forEach((item: HTMLElement) => {
-				removeComponentOrEl(item, component);
-			});
+		} else if (oldest.children.length && !newest.children.length) {
+			if (!HMR.get().length) {
+				oldestChildren.forEach((item: HTMLElement) => {
+					unmountAndRemoveRegistry(item.$children, item.key, item.$root);
+				});
+			}
 			return;
 		}
 		// not exists, auto delete...
@@ -297,7 +298,6 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 			oldest.replaceChildren(...newest.children);
 			return;
 		} else if (newest.children.length < oldest.children.length) {
-			log("[different] newest < oldest");
 			oldestChildren.forEach((node) => {
 				if (["number", "string"].includes(typeof node.key)) {
 					let latest = findComponentNode(newest, node);
@@ -314,7 +314,6 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 			}
 			return;
 		} else if (newest.children.length > oldest.children.length) {
-			log("[different] newest > oldest");
 			newestChildren.forEach((node: HTMLElement, i: number) => {
 				if (["number", "string"].includes(typeof node.key)) {
 					let latest = findComponentNode(oldest, node);
