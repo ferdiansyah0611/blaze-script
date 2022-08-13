@@ -1,9 +1,4 @@
-import {
-	removeComponentOrEl,
-	unmountAndRemoveRegistry,
-	mountComponentFromEl,
-	findComponentNode,
-} from "./dom";
+import { removeComponentOrEl, unmountAndRemoveRegistry, mountComponentFromEl, findComponentNode } from "./dom";
 import { log } from "./utils";
 import { Component } from "../blaze.d";
 import Lifecycle from "./lifecycle";
@@ -14,26 +9,26 @@ import Lifecycle from "./lifecycle";
  * update refs
  */
 const diff = function (prev: HTMLElement, el: HTMLElement, component: Component) {
-	let batch = [];
+	let zip = [];
 	if (!prev || !el) {
-		return batch;
+		return zip;
 	}
 	if (prev.nodeName !== el.nodeName) {
-		batch.push(() => prev.replaceWith(el));
-		return batch;
+		zip.push(() => prev.replaceWith(el));
+		return zip;
 	}
 	if (prev.key !== el.key) {
-		batch.push(() => (prev.key = el.key));
+		zip.push(() => (prev.key = el.key));
 	}
 	if (!prev || ((prev.diff || el.diff) && !(el instanceof SVGElement)) || prev.nodeName === "#document-fragment") {
-		return batch;
+		return zip;
 	}
 	// different component in same node
 	if (prev.$name && el.$name && prev.$name !== el.$name) {
 		let name = prev.$name;
 		let key = prev.key;
 
-		if(prev.$root) {
+		if (prev.$root) {
 			prev.$root.$deep.registry.forEach((registry) => {
 				if (registry.component.constructor.name === name && registry.key === key) {
 					new Lifecycle(registry.component).unmount();
@@ -47,97 +42,101 @@ const diff = function (prev: HTMLElement, el: HTMLElement, component: Component)
 				}
 			});
 		}
-		batch.push(() => {
+		zip.push(() => {
 			prev.$name = el.$name;
 			prev.$children = el.$children;
 			prev.key = el.key || 0;
 			prev.replaceChildren(...Array.from(el.children));
 			mountComponentFromEl(prev);
 		});
-		return batch;
+		return zip;
 	}
 	// text/button/link/code
 	if (["SPAN", "P", "H1", "H2", "H3", "H4", "H5", "H6", "A", "BUTTON", "CODE"].includes(prev.nodeName)) {
-		let run = false;
 		const rechange = (node, i) => {
-			if (node && el.childNodes[i] !== undefined) {
-				if (node.data && node.data !== el.childNodes[i].data) {
-					batch.push(() => {
-						log("[text]", node.data, ">", el.childNodes[i].data);
-						node.replaceData(0, -1, el.childNodes[i].data);
-					});
-				}
+			if (node && el.childNodes[i] !== undefined && node.data !== el.childNodes[i].data) {
+				zip.push(() => {
+					log("[text]", node.data, ">", el.childNodes[i].data);
+					node.replaceData(0, -1, el.childNodes[i].data);
+				});
 			}
 		};
-		// same length
-		if (prev.childNodes.length === el.childNodes.length) {
+		if (!prev.childNodes.length && el.childNodes.length) {
+			el.childNodes.forEach((node: HTMLElement) => {
+				prev.appendChild(node);
+			});
+		} else if (prev.childNodes.length && !el.childNodes.length) {
+			prev.childNodes.forEach((node: HTMLElement) => {
+				node.remove();
+			});
+		} else if (prev.childNodes.length === el.childNodes.length) {
+			prev.childNodes.forEach(rechange);
+		} else if (el.childNodes.length > prev.childNodes.length) {
 			prev.childNodes.forEach((node: any, i: number) => {
-				if (node.data !== el.childNodes[i].data) {
-					run = true;
-					node.data = el.childNodes[i].data;
+				rechange(node, i);
+				if (i === prev.childNodes.length - 1) {
+					zip.push(() => {
+						el.childNodes.forEach((nodes: HTMLElement, key: number) => {
+							if (key > i) {
+								prev.appendChild(nodes);
+							}
+						});
+					});
 				}
 			});
-		}
-
-		if (!run) {
-			// prev < el
-			if (prev.childNodes.length < el.childNodes.length) {
-				prev.childNodes.forEach((node: any, i: number) => {
-					if (node.data !== prev.childNodes[i].data) {
-						run = true;
-						node.data = el.childNodes[i].data;
-					}
-					if (i === prev.childNodes.length - 1) {
-						run = true;
-						batch.push(() => {
-							el.childNodes.forEach((nodes: HTMLElement, key: number) => {
-								if (key > i) {
-									prev.appendChild(nodes);
-								}
-							});
-						});
-					}
-				});
-			}
-
-			// prev > el
-			if (prev.childNodes.length > el.childNodes.length) {
-				prev.childNodes.forEach((node: any, i: number) => {
-					if (!el.childNodes[i]) {
-						run = true;
-						return node.remove();
-					}
-					if (node.data !== el.childNodes[i].data) {
-						run = true;
-						node.data = el.childNodes[i].data;
-					}
-				});
-			}
-
-			// 0 && >= 1
-			if (!prev.childNodes.length && el.childNodes.length) {
-				batch.push(() => {
-					el.childNodes.forEach((node: HTMLElement) => {
-						prev.appendChild(node);
-					});
-				});
-			} else {
-				prev.childNodes.forEach((node: any, i: number) => {
-					rechange(node, i);
-				});
-			}
+		} else if (el.childNodes.length < prev.childNodes.length) {
+			prev.childNodes.forEach((node: any, i: number) => {
+				if (!el.childNodes[i]) {
+					return node.remove();
+				}
+				rechange(node, i);
+			});
 		}
 	}
 	// attribute
-	if (prev.attributes.length) {
-		batch.push(() => {
-			for (var i = 0; i < prev.attributes.length; i++) {
-				if (prev.attributes[i] && el.attributes[i] && prev.attributes[i].name === el.attributes[i].name) {
-					if (prev.attributes[i].value !== el.attributes[i].value) {
-						log("[different]", prev.attributes[i].value, el.attributes[i].value);
-						prev.attributes[i].value = el.attributes[i].value;
+	if (prev.attributes.length || el.attributes.length) {
+		zip.push(() => {
+			let oldAttr = prev.getAttributeNames();
+			let newAttr = el.getAttributeNames();
+			// !old new
+			if (!oldAttr.length && newAttr.length) {
+				newAttr.forEach((name) => {
+					prev.setAttribute(name, el.getAttribute(name));
+				});
+			}
+			// old !new
+			else if (oldAttr.length && !newAttr.length) {
+				oldAttr.forEach((name) => {
+					prev.removeAttribute(name);
+				});
+			}
+			// same
+			else if (oldAttr.length === newAttr.length) {
+				oldAttr.forEach((name) => {
+					let oldValue = prev.getAttribute(name);
+					let newValue = el.getAttribute(name);
+					if (oldValue !== newValue) {
+						prev.setAttribute(name, newValue);
 					}
-				}
+				});
+			}
+			// add
+			else if (newAttr.length > oldAttr.length) {
+				newAttr.forEach((name) => {
+					let check = prev.getAttribute(name);
+					if (!check) {
+						prev.setAttribute(name, el.getAttribute(name));
+					}
+				});
+			}
+			// delete
+			else if (newAttr.length < oldAttr.length) {
+				oldAttr.forEach((name) => {
+					let check = el.getAttribute(name);
+					if (!check) {
+						prev.removeAttribute(name);
+					}
+				});
 			}
 		});
 	}
@@ -155,10 +154,10 @@ const diff = function (prev: HTMLElement, el: HTMLElement, component: Component)
 	}
 	// input
 	if (prev.value !== el.value) {
-		batch.push(() => (prev.value = el.value));
+		zip.push(() => (prev.value = el.value));
 	}
 
-	return batch;
+	return zip;
 };
 
 /**
@@ -169,7 +168,7 @@ const diff = function (prev: HTMLElement, el: HTMLElement, component: Component)
  * and diff element
  */
 export const diffChildren = (oldest: any, newest: any, component: Component, first: boolean = true) => {
-	if ((!newest || !oldest) || oldest.skip) {
+	if (!newest || !oldest || oldest.skip) {
 		return;
 	}
 	if (oldest.for) {
@@ -177,7 +176,7 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 			newestChildren: HTMLElement[] = Array.from(newest.children),
 			from = (arr) => Array.from(arr);
 
-		if(!oldest.children.length && !newest.children.length) {
+		if (!oldest.children.length && !newest.children.length) {
 			return;
 		}
 		// replacing if oldest.children === 0
@@ -208,7 +207,7 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 		}
 		// new children detection
 		else if (newest.children.length > oldest.children.length) {
-			let checked = false
+			let checked = false;
 			newestChildren.forEach((item: HTMLElement, i: number) => {
 				let latest = findComponentNode(oldest, item);
 				if (!latest) {
@@ -222,11 +221,11 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 
 					// mount
 					mountComponentFromEl(item);
-					checked = true
+					checked = true;
 					return;
 				}
 			});
-			if(!checked) {
+			if (!checked) {
 				nextDiffChildren(Array.from(oldest.children), newest, component);
 			}
 			return;
@@ -244,7 +243,7 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 							node.replaceWith(newestChildren[i]);
 						} else {
 							node.dataset.i = newestChildren[i].key;
-							node.key = newestChildren[i].key
+							node.key = newestChildren[i].key;
 							let difference = diff(node, newestChildren[i], node.$children);
 							let childrenCurrent: any = Array.from(node.children);
 							difference.forEach((rechange: Function) => rechange());
@@ -268,7 +267,7 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 			return;
 		}
 	}
-	if (typeof oldest.show === 'boolean') {
+	if (typeof oldest.show === "boolean") {
 		if (!newest.show) {
 			oldest.remove();
 			return;
@@ -300,7 +299,7 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 		} else if (newest.children.length < oldest.children.length) {
 			log("[different] newest < oldest");
 			oldestChildren.forEach((node) => {
-				if (['number', 'string'].includes(typeof node.key)) {
+				if (["number", "string"].includes(typeof node.key)) {
 					let latest = findComponentNode(newest, node);
 					if (!latest) {
 						// unmount
@@ -317,7 +316,7 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 		} else if (newest.children.length > oldest.children.length) {
 			log("[different] newest > oldest");
 			newestChildren.forEach((node: HTMLElement, i: number) => {
-				if (['number', 'string'].includes(typeof node.key)) {
+				if (["number", "string"].includes(typeof node.key)) {
 					let latest = findComponentNode(oldest, node);
 					if (!latest) {
 						let check = oldest.children[i];

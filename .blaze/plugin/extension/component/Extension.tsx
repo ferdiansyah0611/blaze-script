@@ -31,8 +31,10 @@ export default function Extension(keyApp) {
 	});
 	created(() => {
 		let value = localStorage.getItem('extension')
-		if(value && value === "true") {
+		if(value && value === "1") {
 			this.state.open = true;
+		} else {
+			this.state.open = false;
 		}
 	})
 	mount(() => {
@@ -49,14 +51,12 @@ export default function Extension(keyApp) {
 					this.state.component = this.state.component.filter((item) => item.$node.isConnected);
 				}, this);
 			});
-		// more
-		this.toggleOpen();
 	});
 	computedExtension(computed, keyApp);
 
 	render(() => {
 		return (
-			<div id="extension">
+			<div id="extension" class={this.state.open ? "open" : "close"}>
 				<div class={this.state.open ? "block" : "hidden"}>
 					{/*console*/}
 					{this.state.openConsole && (
@@ -342,22 +342,12 @@ const computedExtension = (computed, keyApp) => {
 				},
 				// more
 				toggleOpen: () => {
-					let openClass = "open";
-					let closeClass = "close";
-					// on open
-					if (!this.state.open) {
-						this.$node.className = openClass;
-					}
-					// on close
-					else {
-						this.$node.className = closeClass;
-					}
 					batch(() => {
 						this.state.openConsole = false;
 						this.state.openLog = false;
 						this.state.openComponent = false;
 						this.state.open = !this.state.open;
-						localStorage.setItem('extension', this.state.open)
+						localStorage.setItem('extension', this.state.open ? "1" : "0")
 						this.resizeBody(this.state.open);
 					}, this)
 

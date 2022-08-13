@@ -39,6 +39,7 @@ if (import.meta.hot) {
           src.match('watch'),
           src.match('effect'),
           src.match('computed'),
+          src.match('defineProp'),
         ]
         let text = "";
         let first = true;

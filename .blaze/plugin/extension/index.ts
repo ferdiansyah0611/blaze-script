@@ -34,6 +34,12 @@ export const withExtension = (entry: string, enabled: boolean) => {
 		// remove !window.$extension if develop extension
 		if (query && enabled && !window.$extension) {
 			let component = new Extension(keyApp);
+			let link = document.createElement("link");
+			link.rel = "stylesheet";
+			link.href =
+				"https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200";
+			document.head.appendChild(link);
+			
 			rendering(component, null, true, {}, 0, component.constructor.name, []);
 			query.replaceChildren(component.$node);
 			component.$deep.mounted(false);
@@ -78,10 +84,10 @@ export const withExtension = (entry: string, enabled: boolean) => {
 		});
 		blaze.onReload.push((_component) => {
 			_component.forEach((component) => {
-				if(['Extension', 'InputExtension', 'ListExtension', 'Testing'].includes(component.name)) {
-					location.reload()
+				if (["Extension", "InputExtension", "ListExtension", "Testing"].includes(component.name)) {
+					location.reload();
 				}
-			})
+			});
 			batch(() => {
 				addLog(
 					{
@@ -96,7 +102,7 @@ export const withExtension = (entry: string, enabled: boolean) => {
 			router.$.error.push((msg) => {
 				addLog({
 					msg,
-					type: 'error'
+					type: "error",
 				});
 			});
 			router.$.found.push((msg) => {

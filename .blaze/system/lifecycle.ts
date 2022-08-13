@@ -33,7 +33,7 @@ export default class Lifecycle {
 		const { error } = this;
 		const { $deep } = this.component;
 		try {
-			$deep.unmount.forEach((item: Function) => item());
+			$deep.unmount.forEach((item: Function) => typeof item === 'function' && item());
 		} catch (err) {
 			if (error) {
 				error.open(`Error Unmount`, err.stack);

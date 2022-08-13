@@ -362,14 +362,13 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 				let createApp = App.get(keyApp);
 				if (createApp.isComponent(newComponent)) {
 					if (newComponent.name === component.constructor.name) {
-						createApp.componentProcess({ component, newComponent, key: 0 });
+						Object.assign(component, createApp.componentProcess({ component, newComponent, key: 0 }));
 					}
-					if (newComponent.name === loader.name) {
+					if (loader && newComponent.name === loader.name) {
 						Object.assign(app.$router, {
 							loader: newComponent,
 						});
 					}
-
 					component.$deep.registry = component.$deep.registry.map((data) => createApp.reloadRegistry(data));
 				}
 			});
