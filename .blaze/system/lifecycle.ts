@@ -119,16 +119,19 @@ export default class Lifecycle {
 	 * @watch
 	 * watch state/props/context
 	 */
-	watch(logic?: any, valueUpdate?: any) {
+	watch(logic?: any, valueUpdate?: any, voidCall?: boolean) {
 		this.component.$deep.watch.forEach((item) => {
 			item.dependencies.forEach((dependencies) => {
-				if (logic && logic(dependencies)) {
-					return item.handle(dependencies, valueUpdate);
+				if (logic) {
+					if(logic(dependencies)) {
+						return item.handle(dependencies, valueUpdate);
+					}
+					return;
 				}
 
 				let current = "this.component." + dependencies;
 				let value = eval(current);
-				if (value) {
+				if (value || voidCall) {
 					item.handle(dependencies, value);
 				}
 			});
@@ -138,7 +141,7 @@ export default class Lifecycle {
 	 * @effect
 	 * similar with watch, but effect is automatic without write dependencies
 	 */
-	effect(depend: string | boolean, value?: any) {
+	effect(depend: string | boolean, value?: any, potential?: any) {
 		(this.component.$deep.effect || []).forEach((item) => {
 			if (typeof depend === "boolean") return item();
 
@@ -162,6 +165,9 @@ export default class Lifecycle {
 				let notAllowed = new RegExp(list.join("|"), "g");
 				let isIlegal = fn.match(notAllowed);
 				if (!isIlegal) {
+					if(potential) {
+						return potential(item)
+					}
 					item(value);
 				}
 				return;

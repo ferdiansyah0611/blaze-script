@@ -31,24 +31,47 @@ export const render = (callback: () => HTMLElement, component: Component) => (co
  * state management and context on blaze
  */
 export const state = function <T>(name: State<T>["name"], initial: T, component: State<T>["component"], call?: any) {
-	// for context
-	if (typeof call === "function") {
-		let validate = (newName?: string, withSub?: string) => {
-			return {
-				get(a, b, receiver) {
-					if (typeof a[b] === "object" && !Array.isArray(a[b])) {
-						return new Proxy({ ...a[b], _isContext: true }, validate(b, b));
+	const isContext = typeof call === "function";
+	const handle = (b: string, c: any, lifecycle?: any) => {
+		// watching
+		component.$deep.watch.forEach((watch: Watch) => {
+			let find = watch.dependencies.find((item: string) => item === `${name}.${b}`);
+			if (find) {
+				watch.handle(b, c);
+			}
+		});
+		if (lifecycle && !component.$deep.batch) lifecycle.effect(`${name}.${b}`, c);
+	};
+	const validate = (newName?: string, withSub?: string) => {
+		return {
+			get(a, b, receiver) {
+				if (typeof a[b] === "object" && !Array.isArray(a[b]) && b.indexOf("$") === -1) {
+					let commit = { ...a[b] };
+					if (isContext) {
+						commit._isContext = true;
+					} else {
+						commit._isProxy = true;
 					}
-					return Reflect.get(a, b, receiver);
-				},
-				set(a: any, b: string, c: any) {
-					if (a[b] === c) return true;
+					return new Proxy(commit, validate(b, b));
+				}
+				return Reflect.get(a, b, receiver);
+			},
+			set(a: any, b: string, c: any) {
+				if (a[b] === c) return true;
+
+				if (isContext) {
 					a[b] = c;
 					let { registery, listening } = call();
 
 					registery.forEach((register: Component, i) => {
 						let disable = register.$deep.disableTrigger;
 						let lifecycle = new Lifecycle(register);
+						if (register.$deep.batch) {
+							register.$deep.queue.push({
+								name: `ctx.${newName}.${b}`,
+								value: c,
+							});
+						}
 						const disableOnNotList = () => {
 							let currentListening = listening[i];
 							if (
@@ -61,8 +84,12 @@ export const state = function <T>(name: State<T>["name"], initial: T, component:
 							}
 						};
 						const watchRun = () => {
-							lifecycle.watch((item: string) => item === `ctx.${newName}.${b}`, c);
-							lifecycle.effect(`ctx.${newName}.${b}`, c);
+							lifecycle.watch((item: string) => {
+								return item === `ctx.${newName}.${b}`;
+							}, c);
+							if (!register.$deep.batch) {
+								lifecycle.effect(`ctx.${newName}.${b}`, c);
+							}
 						};
 						disableOnNotList();
 						if (disable) {
@@ -77,58 +104,46 @@ export const state = function <T>(name: State<T>["name"], initial: T, component:
 
 						disable = false;
 					});
-					return true;
-				},
-			};
-		};
-		return new Proxy({ ...initial, _isContext: true }, validate(name));
-	}
-	// for state
-	else {
-		let validate = {
-			get(a, b, receiver) {
-				if (typeof a[b] === "object" && !Array.isArray(a[b]) && b.indexOf('$') === -1) {
-					return new Proxy({ ...a[b], _isProxy: true }, validate);
-				}
-				return Reflect.get(a, b, receiver);
-			},
-			set(a, b, c) {
-				if (a[b] === c) return true;
+				} else {
+					let allowed = !component.$deep.batch && !component.$deep.disableTrigger;
+					let lifecycle = new Lifecycle(component);
 
-				let allowed = !component.$deep.batch && !component.$deep.disableTrigger;
-				let lifecycle = new Lifecycle(component);
+					if (allowed) {
+						lifecycle.beforeUpdate();
+					}
 
-				if (allowed) {
-					lifecycle.beforeUpdate();
-				}
+					a[b] = c;
 
-				a[b] = c;
+					if (component.$deep.batch) {
+						component.$deep.queue.push({
+							name: `${name}.${b}`,
+							value: c,
+						});
+					}
 
-				if (allowed && component.$deep.hasMount) {
-					lifecycle.updated();
-					component.$deep.trigger();
-				}
-				if (!component.$deep.disableTrigger) {
-					handle(b, c, lifecycle);
+					if (allowed && component.$deep.hasMount) {
+						lifecycle.updated();
+						component.$deep.trigger();
+					}
+					if (!component.$deep.disableTrigger) {
+						handle(b, c, lifecycle);
+					}
 				}
 				return true;
 			},
 		};
-		let handle = (b: string, c: any, lifecycle?: any) => {
-			// watching
-			component.$deep.watch.forEach((watch: Watch) => {
-				let find = watch.dependencies.find((item: string) => item === `${name}.${b}`);
-				if (find) {
-					watch.handle(b, c);
-				}
-			});
-			if (lifecycle) lifecycle.effect(`${name}.${b}`, c);
-		};
-		// for update
+	};
+
+	// for context
+	if (isContext) {
+		return new Proxy({ ...initial, _isContext: true }, validate(name));
+	}
+	// for state
+	else {
 		if (!name) {
 			name = "state";
 		}
-		component[name] = new Proxy({ ...initial, _isProxy: true }, validate);
+		component[name] = new Proxy({ ...initial, _isProxy: true }, validate(name));
 		// trigger for first render
 		if (name === "props" && !component.$deep.update) {
 			component.$deep.disableTrigger = true;
@@ -345,10 +360,25 @@ export const batch = async (callback: () => any, component: Component) => {
 		let lifecycle = new Lifecycle(component);
 		lifecycle.beforeUpdate();
 		component.$deep.batch = true;
+		component.$deep.queue = [];
 
 		await callback();
 
 		component.$deep.batch = false;
+
+		// run effect
+		if (component.$deep.queue) {
+			let potential = [];
+			component.$deep.queue.forEach((queue) => {
+				lifecycle.effect(queue.name, queue.value, (data) => potential.push(data));
+			});
+			if (potential.length) {
+				let result = [...new Set(potential)];
+				result.forEach((results) => results());
+			}
+			delete component.$deep.queue;
+		}
+
 		lifecycle.updated();
 		component.$deep.trigger();
 	}

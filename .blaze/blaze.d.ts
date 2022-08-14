@@ -51,6 +51,7 @@ export interface Component {
 		time?: string;
 		disableAddUnmount?: boolean;
 		active?: boolean;
+		queue?: any[];
 		// lifecycle
 		beforeCreate?: Function[];
 		created?: Function[];
