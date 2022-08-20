@@ -32,7 +32,7 @@ export class createApp implements InterfaceApp {
 		let error = window.$error;
 		error.close();
 		try {
-			let app = App.get(component.$config?.key || 0);
+			let app = App.get(component.$config?.key || 0, 'app');
 			if (previous) {
 				newComponent = new newComponent(previous, app);
 			} else {
@@ -93,6 +93,10 @@ export class createApp implements InterfaceApp {
 						return;
 					newComponent[name][sub] = component[name][sub];
 				});
+				return;
+			}
+			if(name === "ctx") {
+				newComponent[name] = component[name];
 				return;
 			}
 			if (typeof component[name] === "object") {
@@ -162,7 +166,6 @@ export class createApp implements InterfaceApp {
 		});
 		this.app.$deep.registry = this.app.$deep.registry.map((data) => this.reloadRegistry(data));
 		this.blaze.run.onReload(hmrArray);
-		HMR.clear();
 	}
 	mount() {
 		document.addEventListener("DOMContentLoaded", () => {

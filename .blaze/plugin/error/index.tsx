@@ -30,6 +30,7 @@ function Errors() {
       open: (title, message) => {
         if (import.meta.env.DEV && title !== this.state.data.title) {
           this.state.data = { title, message };
+          console.error(message)
         }
       },
       close: () => {

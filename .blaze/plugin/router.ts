@@ -1,7 +1,7 @@
 import { EntityRender } from "@root/system/core";
 import { mount } from "@blaze";
 import { Component } from "@root/blaze.d";
-import { App, Router } from "@root/system/global";
+import { App, Router, HMR } from "@root/system/global";
 
 var firstPage = true;
 var popstate = false;
@@ -341,6 +341,16 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 				history.back();
 			},
 			push: (url: URL) => {
+				if(!url.origin && !(url === "/")) {
+					url = location.origin + url
+					url = new URL(url);
+				}
+				if(url === '/') {
+					url = location.origin
+				}
+				if(!url.origin) {
+					url = new URL(url);
+				}
 				if ((url.search && url.search !== location.search) || !(url.pathname === location.pathname)) {
 					ready(app, url);
 				}
@@ -408,14 +418,16 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 				let createApp = App.get(keyApp);
 				if (createApp.isComponent(newComponent)) {
 					if (newComponent.name === component.constructor.name) {
-						Object.assign(component, createApp.componentProcess({ component, newComponent, key: 0 }));
+						Object.assign(component, createApp.componentProcess({ component, newComponent, key: 0, previous: app }));
+						HMR.set(newComponent)
 					}
 					if (loader && newComponent.name === loader.name) {
 						Object.assign(app.$router, {
 							loader: newComponent,
 						});
+						HMR.set(newComponent)
 					}
-					component.$deep.registry = component.$deep.registry.map((data) => createApp.reloadRegistry(data));
+					component.$deep.registry = component.$deep.registry.map((data) => createApp.reloadRegistry(data, component));
 				}
 			});
 		});
@@ -472,7 +484,7 @@ function check(config: any, url: string, nested?: any) {
 		result = match.route;
 	}
 
-	if (routes.config.children) {
+	if (routes && routes.config.children) {
 		let getChildren = check({ url: routes.config.children }, "/", [...(nested || []), routes]);
 		if (getChildren) {
 			return getChildren;

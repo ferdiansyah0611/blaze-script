@@ -282,10 +282,10 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 		let oldestChildren: HTMLElement[] = Array.from(oldest.children),
 			newestChildren: HTMLElement[] = Array.from(newest.children),
 			insert: boolean = false;
-
+			
 		if (!oldest.children.length && newest.children.length) {
 			oldest.replaceChildren(...newest.children);
-			oldestChildren.forEach((node) => {
+			Array.from(oldest.children).forEach((node) => {
 				// mount
 				mountComponentFromEl(node);
 			});

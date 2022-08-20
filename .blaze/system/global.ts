@@ -1,12 +1,10 @@
 let store = {};
 let app = [];
-let hmr = [];
 let router = [];
 
 if (import.meta.env.DEV) {
 	window.store = store;
 	window.app = app;
-	window.hmr = hmr;
 }
 
 export const Store = {
@@ -43,14 +41,48 @@ export const Router = {
 	},
 };
 
-export const HMR = {
+class HMRClass {
+	constructor() {
+		this.data = [];
+		if(import.meta.env.DEV) {
+			window.hmr = this;
+		}
+	}
 	get() {
-		return hmr;
-	},
+		return this.data;
+	}
 	set(value) {
-		hmr = value;
-	},
+		let isFound
+		let call = (data) => {
+			this.data = this.data.map((hmrs) => {
+				if(hmrs.name === data.name) {
+					hmrs = data;
+					isFound = true
+				}
+				return hmrs;
+			})
+			if(!isFound) {
+				isFound = false;
+				this.data.push(data);
+			}
+		}
+
+		if(!this.data.length) {
+			return this.data = value;
+		}
+		if(Array.isArray(value)) {
+			value.forEach(call);
+		}
+		else {
+			call(value);
+		}
+	}
+	find(name) {
+		return this.data.find(data => data.name === name)
+	}
 	clear() {
-		hmr = [];
-	},
-};
+		this.data = [];
+	}
+}
+
+export const HMR = new HMRClass()

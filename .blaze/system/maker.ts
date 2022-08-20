@@ -56,7 +56,10 @@ export const makeAttribute = (data: any, el: HTMLElement, component: Component) 
 			el.addEventListener(data.live ? "keyup" : "change", (e: any) => {
 				deepObjectState(path, data, component, e.target.value);
 			});
-			el.value = deepObjectState(path, data, component);
+			let value = deepObjectState(path, data, component);
+			if(value && value.toString().indexOf("[object Object]") === -1) {
+				el.value = value;
+			}
 			return;
 		}
 		// class

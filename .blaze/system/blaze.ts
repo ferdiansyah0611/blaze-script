@@ -3,7 +3,7 @@ import { rendering, equalProps, getBlaze } from "./core";
 import { makeChildren, makeAttribute } from "./maker";
 import { Component, RegisteryComponent } from "../blaze.d";
 import { diffChildren } from "./diff";
-import { App } from "./global";
+import { App, HMR } from "./global";
 
 /**
  * @createElement
@@ -33,9 +33,7 @@ export default function e(
 				// disable trigger on update props
 				let newProps = data ? { ...data } : {};
 				checkComponent.$deep.disableTrigger = true;
-				for (const [keyProps, valueProps] of Object.entries(newProps)) {
-					checkComponent.props[keyProps] = valueProps;
-				}
+				Object.assign(checkComponent.props, newProps)
 				checkComponent.$deep.disableTrigger = false;
 				// trigger only on node.updating
 				checkComponent.$node.updating = true;
@@ -115,6 +113,11 @@ export default function e(
 			/**
 			 * @registry
 			 */
+
+			let hmr = HMR.find(nodeName.name);
+			if(hmr) {
+				nodeName = hmr;
+			}
 			if (!check) {
 				let newComponent = new nodeName(component, App.get(component.$config?.key || 0, 'app'));
 				// inject config app

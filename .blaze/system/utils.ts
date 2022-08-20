@@ -189,14 +189,15 @@ export const context = (entry: string, defaultContext: any, action: any) => {
 		let hmrArray = HMR.get();
 		if (hmrArray.length) {
 			hmrArray.forEach((hmr) => {
-				registery = registery.map((item) => {
+				registery = registery.filter((item, index) => {
 					if (item.constructor.name === hmr.name) {
 						item = Object.assign(item, item.$node.$children);
+						listening = listening.filter((_a, b) => b !== index);
+						return false;
 					}
 					return item;
 				});
 			});
-			return values;
 		}
 		let index = registery.push(component);
 		if (Array.isArray(listen)) {
