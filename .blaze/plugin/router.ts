@@ -340,7 +340,7 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 			back: () => {
 				history.back();
 			},
-			push: (url: URL) => {
+			push: (url: URL | any) => {
 				if(!url.origin && !(url === "/")) {
 					url = location.origin + url
 					url = new URL(url);

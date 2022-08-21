@@ -42,6 +42,7 @@ export const Router = {
 };
 
 class HMRClass {
+	data: any[];
 	constructor() {
 		this.data = [];
 		if(import.meta.env.DEV) {

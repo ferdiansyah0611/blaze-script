@@ -50,10 +50,10 @@ export const makeChildren = (children: HTMLElement[], el: HTMLElement) => {
  * manage attribute element, like dataset, event, etc
  */
 export const makeAttribute = (data: any, el: HTMLElement, component: Component) => {
-	let addEventVirtualToEl = (name, call, fn) => {
-		if (!el.event) el.event = [];
+	let addEventVirtualToEl = (name: string, call: (e: any) => any, fn?: any) => {
+		if (!el.events) el.events = [];
 		return (
-			el.event.push({
+			el.events.push({
 				name,
 				call,
 				fn,
@@ -145,7 +145,7 @@ export const makeAttribute = (data: any, el: HTMLElement, component: Component) 
 					name = item.split(find[0]).join("").toLowerCase().slice(2);
 					call = async (e: any) => {
 						e.preventDefault();
-						let event = e.currentTarget.event[index];
+						let event = e.currentTarget.events[index];
 						if (!event) return removeOnEmpty(e);
 						if (!data.batch) {
 							await event.fn(isValue ? e.target.value : e);
@@ -159,7 +159,7 @@ export const makeAttribute = (data: any, el: HTMLElement, component: Component) 
 				} else {
 					name = item.toLowerCase().slice(2);
 					call = async (e) => {
-						let event = e.currentTarget.event[index];
+						let event = e.currentTarget.events[index];
 						if (!event) return removeOnEmpty(e);
 						if (!data.batch) {
 							await event.fn(e);

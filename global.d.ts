@@ -17,6 +17,9 @@ declare global {
         if: boolean;
         else: any;
         value: any;
+        events?: any[];
+        model?: string;
+        toggle?: string;
         diff?: any;
         refs?: number;
         i?: any;

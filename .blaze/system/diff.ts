@@ -1,5 +1,5 @@
 import { removeComponentOrEl, unmountAndRemoveRegistry, mountComponentFromEl, findComponentNode } from "./dom";
-import { Component } from "../blaze.d";
+import { Component, VirtualEvent } from "../blaze.d";
 import Lifecycle from "./lifecycle";
 import { HMR } from "./global";
 
@@ -156,13 +156,13 @@ const diff = function (prev: HTMLElement, el: HTMLElement, component: Component)
 		zip.push(() => (prev.value = el.value));
 	}
 	// event
-	if ((prev.event || el.event) && !prev.toggle && !el.toggle && !prev.model && !el.model) {
+	if ((prev.events || el.events) && !prev.toggle && !el.toggle && !prev.model && !el.model) {
 		eventDiff(prev, el);
 	}
 	// toggle
 	if (prev.toggle || el.toggle) {
 		if (prev.toggle && !el.toggle) {
-			prev.event = prev.event.filter((event) => {
+			prev.events = prev.events.filter((event) => {
 				if (event.name === "click") {
 					prev.removeEventListener(event.name, event.call);
 					prev.toggle = "";
@@ -172,13 +172,13 @@ const diff = function (prev: HTMLElement, el: HTMLElement, component: Component)
 			});
 			eventDiff(prev, el);
 		} else if (!prev.toggle && el.toggle) {
-			el.event.forEach((event) => {
+			el.events.forEach((event) => {
 				if (event.name === "click") {
 					prev.addEventListener(event.name, event.call);
 					prev.toggle = el.toggle;
 
-					if (!prev.event) prev.event = [];
-					prev.event.push(event);
+					if (!prev.events) prev.events = [];
+					prev.events.push(event);
 				}
 			});
 			eventDiff(prev, el);
@@ -190,7 +190,7 @@ const diff = function (prev: HTMLElement, el: HTMLElement, component: Component)
 	// model
 	if (prev.model || el.model) {
 		if (prev.model && !el.model) {
-			prev.event = prev.event.filter((event) => {
+			prev.events = prev.events.filter((event) => {
 				if (event.call.toString().indexOf("model") !== -1 && ["keyup", "change"].includes(event.name)) {
 					prev.removeEventListener(event.name, event.call);
 					prev.model = "";
@@ -199,13 +199,13 @@ const diff = function (prev: HTMLElement, el: HTMLElement, component: Component)
 				return event;
 			});
 		} else if (!prev.model && el.model) {
-			el.event.forEach((event) => {
+			el.events.forEach((event) => {
 				if (event.call.toString().indexOf("model") !== -1 && ["keyup", "change"].includes(event.name)) {
 					prev.addEventListener(event.name, event.call);
 					prev.model = el.model;
 
-					if (!prev.event) prev.event = [];
-					prev.event.push(event);
+					if (!prev.events) prev.events = [];
+					prev.events.push(event);
 				}
 			});
 		} else if (prev.model !== el.model) {
@@ -342,7 +342,7 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 
 		if (!oldest.children.length && newest.children.length) {
 			oldest.replaceChildren(...newest.children);
-			Array.from(oldest.children).forEach((node) => {
+			Array.from(oldest.children).forEach((node: HTMLElement) => {
 				// mount
 				mountComponentFromEl(node);
 			});
@@ -419,38 +419,38 @@ function nextDiffChildren(children: HTMLElement[], newest: any, component: Compo
  * @eventDiff
  * diff a event listener
  */
-function eventDiff(prev, el) {
-	if (prev.event && prev.event.length && (!el.event || !el.event.length)) {
-		prev.event.forEach((event) => {
+function eventDiff(prev: HTMLElement, el: HTMLElement) {
+	if (prev.events && prev.events.length && (!el.events || !el.events.length)) {
+		prev.events.forEach((event: VirtualEvent) => {
 			prev.removeEventListener(event.name, event.call);
 		});
-		prev.event = [];
-	} else if ((!prev.event || !prev.event.length) && el.event && el.event.length) {
-		el.event.forEach((event) => {
+		prev.events = [];
+	} else if ((!prev.events || !prev.events.length) && el.events && el.events.length) {
+		el.events.forEach((event: VirtualEvent) => {
 			prev.addEventListener(event.name, event.call);
 		});
-		prev.event = el.event;
-	} else if (prev.event && el.event && prev.event.length === el.event.length) {
-		prev.event = prev.event.map((event, i) => {
-			let latest = el.event[i];
+		prev.events = el.events;
+	} else if (prev.events && el.events && prev.events.length === el.events.length) {
+		prev.events = prev.events.map((event: VirtualEvent, i: number) => {
+			let latest = el.events[i];
 			if (event.name === latest.name) {
 				event = latest;
 			}
 			return event;
 		});
-	} else if (el.event.length > prev.event.length) {
-		el.event.forEach((event, i) => {
-			let oldEvent = prev.event[i];
+	} else if (el.events.length > prev.events.length) {
+		el.events.forEach((event: VirtualEvent, i: number) => {
+			let oldEvent = prev.events[i];
 			if (!oldEvent || !(event.name === oldEvent.name)) {
 				prev.addEventListener(event.name, event.call);
-				prev.event.push(event);
+				prev.events.push(event);
 			} else {
 				oldEvent = event;
 			}
 		});
-	} else if (el.event.length < prev.event.length) {
-		prev.event = prev.event.filter((event, i) => {
-			let latest = el.event[i];
+	} else if (el.events.length < prev.events.length) {
+		prev.events = prev.events.filter((event: VirtualEvent, i: number) => {
+			let latest = el.events[i];
 			if (!latest || !(event.name === latest.name)) {
 				prev.removeEventListener(event.name, event.call);
 				return false;

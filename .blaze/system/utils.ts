@@ -163,7 +163,7 @@ export const state = function <T>(name: State<T>["name"], initial: T, component:
  * @context
  * context on blaze
  */
-export const context = (entry: string, defaultContext: any, action: any) => {
+export const context = (entry: string, defaultContext: any, action?: any) => {
 	let registery: Component[] = [];
 	let listening: any[] = [];
 	let values = state(entry, defaultContext, null, () => ({ registery, listening }));
@@ -177,7 +177,7 @@ export const context = (entry: string, defaultContext: any, action: any) => {
 			});
 		}
 	}
-	return (listen, component, reload) => {
+	return (listen, component, reload?: any) => {
 		if (reload) return { entry, registery, listening, values };
 		if (!Array.isArray(listen)) component = listen;
 		if (action) {
