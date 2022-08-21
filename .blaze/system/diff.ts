@@ -155,6 +155,63 @@ const diff = function (prev: HTMLElement, el: HTMLElement, component: Component)
 	if (prev.value !== el.value) {
 		zip.push(() => (prev.value = el.value));
 	}
+	// event
+	if ((prev.event || el.event) && !prev.toggle && !el.toggle && !prev.model && !el.model) {
+		eventDiff(prev, el);
+	}
+	// toggle
+	if (prev.toggle || el.toggle) {
+		if (prev.toggle && !el.toggle) {
+			prev.event = prev.event.filter((event) => {
+				if (event.name === "click") {
+					prev.removeEventListener(event.name, event.call);
+					prev.toggle = "";
+					return false;
+				}
+				return event;
+			});
+			eventDiff(prev, el);
+		} else if (!prev.toggle && el.toggle) {
+			el.event.forEach((event) => {
+				if (event.name === "click") {
+					prev.addEventListener(event.name, event.call);
+					prev.toggle = el.toggle;
+
+					if (!prev.event) prev.event = [];
+					prev.event.push(event);
+				}
+			});
+			eventDiff(prev, el);
+		} else if (prev.toggle !== el.toggle) {
+			prev.toggle = el.toggle;
+			eventDiff(prev, el);
+		}
+	}
+	// model
+	if (prev.model || el.model) {
+		if (prev.model && !el.model) {
+			prev.event = prev.event.filter((event) => {
+				if (event.call.toString().indexOf("model") !== -1 && ["keyup", "change"].includes(event.name)) {
+					prev.removeEventListener(event.name, event.call);
+					prev.model = "";
+					return false;
+				}
+				return event;
+			});
+		} else if (!prev.model && el.model) {
+			el.event.forEach((event) => {
+				if (event.call.toString().indexOf("model") !== -1 && ["keyup", "change"].includes(event.name)) {
+					prev.addEventListener(event.name, event.call);
+					prev.model = el.model;
+
+					if (!prev.event) prev.event = [];
+					prev.event.push(event);
+				}
+			});
+		} else if (prev.model !== el.model) {
+			prev.model = el.model;
+		}
+	}
 
 	return zip;
 };
@@ -282,7 +339,7 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 		let oldestChildren: HTMLElement[] = Array.from(oldest.children),
 			newestChildren: HTMLElement[] = Array.from(newest.children),
 			insert: boolean = false;
-			
+
 		if (!oldest.children.length && newest.children.length) {
 			oldest.replaceChildren(...newest.children);
 			Array.from(oldest.children).forEach((node) => {
@@ -346,12 +403,63 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 	}
 };
 
+/**
+ * @nextDiffChildren
+ * action to next diff a children
+ */
 function nextDiffChildren(children: HTMLElement[], newest: any, component: Component) {
 	children.forEach((item: HTMLElement, i: number) => {
 		let difference = diff(item, newest.children[i], component);
 		difference.forEach((rechange: Function) => rechange());
 		diffChildren(item, newest.children[i], component, false);
 	});
+}
+
+/**
+ * @eventDiff
+ * diff a event listener
+ */
+function eventDiff(prev, el) {
+	if (prev.event && prev.event.length && (!el.event || !el.event.length)) {
+		prev.event.forEach((event) => {
+			prev.removeEventListener(event.name, event.call);
+		});
+		prev.event = [];
+	} else if ((!prev.event || !prev.event.length) && el.event && el.event.length) {
+		el.event.forEach((event) => {
+			prev.addEventListener(event.name, event.call);
+		});
+		prev.event = el.event;
+	} else if (prev.event && el.event && prev.event.length === el.event.length) {
+		prev.event = prev.event.map((event, i) => {
+			let latest = el.event[i];
+			if (event.name === latest.name) {
+				event = latest;
+			}
+			return event;
+		});
+	} else if (el.event.length > prev.event.length) {
+		el.event.forEach((event, i) => {
+			let oldEvent = prev.event[i];
+			if (!oldEvent || !(event.name === oldEvent.name)) {
+				prev.addEventListener(event.name, event.call);
+				prev.event.push(event);
+			} else {
+				oldEvent = event;
+			}
+		});
+	} else if (el.event.length < prev.event.length) {
+		prev.event = prev.event.filter((event, i) => {
+			let latest = el.event[i];
+			if (!latest || !(event.name === latest.name)) {
+				prev.removeEventListener(event.name, event.call);
+				return false;
+			} else {
+				event = latest;
+			}
+			return event;
+		});
+	}
 }
 
 export default diff;

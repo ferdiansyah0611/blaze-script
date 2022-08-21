@@ -50,16 +50,31 @@ export const makeChildren = (children: HTMLElement[], el: HTMLElement) => {
  * manage attribute element, like dataset, event, etc
  */
 export const makeAttribute = (data: any, el: HTMLElement, component: Component) => {
+	let addEventVirtualToEl = (name, call, fn) => {
+		if (!el.event) el.event = [];
+		return (
+			el.event.push({
+				name,
+				call,
+				fn,
+			}) - 1
+		);
+	};
 	Object.keys(data).forEach((item: any) => {
 		if (item === "model") {
-			let path = data[item];
-			el.addEventListener(data.live ? "keyup" : "change", (e: any) => {
-				deepObjectState(path, data, component, e.target.value);
-			});
+			let path = data[item],
+				name = data.live ? "keyup" : "change",
+				call = (e: any) => {
+					deepObjectState(e.currentTarget.model, data, component, e.target.value);
+				};
+
+			el.addEventListener(name, call);
+			addEventVirtualToEl(name, call);
 			let value = deepObjectState(path, data, component);
-			if(value && value.toString().indexOf("[object Object]") === -1) {
+			if (value && value.toString().indexOf("[object Object]") === -1) {
 				el.value = value;
 			}
+			el[item] = data[item];
 			return;
 		}
 		// class
@@ -117,43 +132,59 @@ export const makeAttribute = (data: any, el: HTMLElement, component: Component) 
 		// event
 		if (item.match(/^on[A-Z][a-z]+/)) {
 			if (typeof data[item] === "function") {
-				let find = item.match(/Prevent|StopPropagation|Value/);
-				let name, call
+				let find = item.match(/Prevent|StopPropagation|Value/),
+					name,
+					call,
+					index = 0,
+					removeOnEmpty = (e) => {
+						el.removeEventListener(e.type, call);
+					};
+
 				if (find) {
 					let isValue = find[0] === "Value";
 					name = item.split(find[0]).join("").toLowerCase().slice(2);
 					call = async (e: any) => {
 						e.preventDefault();
+						let event = e.currentTarget.event[index];
+						if (!event) return removeOnEmpty(e);
 						if (!data.batch) {
-							await data[item](isValue ? e.target.value : e);
+							await event.fn(isValue ? e.target.value : e);
 						} else {
-							batch(async () => await data[item](isValue ? e.target.value : e), component);
+							batch(
+								async () => await event.fn(isValue ? e.target.value : e),
+								component
+							);
 						}
-					}
+					};
 				} else {
-					name = item.toLowerCase().slice(2)
+					name = item.toLowerCase().slice(2);
 					call = async (e) => {
+						let event = e.currentTarget.event[index];
+						if (!event) return removeOnEmpty(e);
 						if (!data.batch) {
-							await data[item](e);
+							await event.fn(e);
 						} else {
-							batch(async () => await data[item](e), component);
+							batch(async () => await event.fn(e), component);
 						}
-					}
+					};
 				}
 				el.addEventListener(name, call);
+				index = addEventVirtualToEl(name, call, data[item]);
 			}
 			return;
 		}
 		// magic
 		if (item === "toggle") {
-			el.addEventListener("click", (e: any) => {
+			let call = (e: any) => {
 				e.preventDefault();
-				if (data.toggle.indexOf("component.") === -1) {
-					data.toggle = "component." + data.toggle;
-					data.toggle += " = !" + data.toggle;
+				if (e.currentTarget.toggle.indexOf("component.") === -1) {
+					e.currentTarget.toggle = "component." + e.currentTarget.toggle;
+					e.currentTarget.toggle += " = !" + e.currentTarget.toggle;
 				}
-				eval(data.toggle);
-			});
+				eval(e.currentTarget.toggle);
+			};
+			el.addEventListener("click", call);
+			addEventVirtualToEl("click", call);
 		}
 		if (item === "show") {
 			if (!data[item]) {
@@ -173,10 +204,9 @@ export const makeAttribute = (data: any, el: HTMLElement, component: Component) 
 	});
 };
 
-
-function escape(html: string){
-	let div = document.createElement('div')
+function escape(html: string) {
+	let div = document.createElement("div");
 	div.innerHTML = html;
-	Array.from(div.querySelectorAll('script')).forEach((script) => script.remove())
+	Array.from(div.querySelectorAll("script")).forEach((script) => script.remove());
 	return div.innerHTML;
 }
