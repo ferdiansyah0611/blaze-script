@@ -45,15 +45,6 @@ export const state = function <T>(name: State<T>["name"], initial: T, component:
 	const validate = (newName?: string, withSub?: string) => {
 		return {
 			get(a, b, receiver) {
-				if (typeof a[b] === "object" && !Array.isArray(a[b]) && b.indexOf("$") === -1) {
-					let commit = { ...a[b] };
-					if (isContext) {
-						commit._isContext = true;
-					} else {
-						commit._isProxy = true;
-					}
-					return new Proxy(commit, validate(b, b));
-				}
 				return Reflect.get(a, b, receiver);
 			},
 			set(a: any, b: string, c: any) {
@@ -114,7 +105,7 @@ export const state = function <T>(name: State<T>["name"], initial: T, component:
 
 					a[b] = c;
 
-					if (component.$deep.batch) {
+					if ((component.$deep.batch && component.$deep.queue)) {
 						component.$deep.queue.push({
 							name: `${name}.${b}`,
 							value: c,
@@ -125,7 +116,7 @@ export const state = function <T>(name: State<T>["name"], initial: T, component:
 						lifecycle.updated();
 						component.$deep.trigger();
 					}
-					if (!component.$deep.disableTrigger) {
+					if (!component.$deep.disableTrigger || (name === 'props' && component.$deep.disableTrigger)) {
 						handle(b, c, lifecycle);
 					}
 				}
@@ -190,7 +181,7 @@ export const context = (entry: string, defaultContext: any, action?: any) => {
 		if (hmrArray.length) {
 			hmrArray.forEach((hmr) => {
 				registery = registery.filter((item, index) => {
-					if (item.constructor.name === hmr.name) {
+					if (item.constructor.name === hmr.name && item.$node) {
 						item = Object.assign(item, item.$node.$children);
 						listening = listening.filter((_a, b) => b !== index);
 						return false;

@@ -33,7 +33,7 @@ export default function e(
 				// disable trigger on update props
 				let newProps = data ? { ...data } : {};
 				checkComponent.$deep.disableTrigger = true;
-				Object.assign(checkComponent.props, newProps)
+				Object.assign(checkComponent.props, newProps);
 				checkComponent.$deep.disableTrigger = false;
 				// trigger only on node.updating
 				checkComponent.$node.updating = true;

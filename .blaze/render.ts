@@ -88,6 +88,7 @@ export class createApp implements InterfaceApp {
 							"created",
 							"beforeUpdate",
 							"updated",
+							"registry"
 						].includes(sub)
 					)
 						return;

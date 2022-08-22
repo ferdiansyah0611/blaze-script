@@ -199,6 +199,10 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 			}
 			loader.remove(true, false);
 		} else {
+			let hmr = HMR.find(component.name);
+			if(hmr) {
+				component = hmr;
+			}
 			callComponent(component);
 		}
 

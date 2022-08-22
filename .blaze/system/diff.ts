@@ -1,7 +1,6 @@
 import { removeComponentOrEl, unmountAndRemoveRegistry, mountComponentFromEl, findComponentNode } from "./dom";
 import { Component, VirtualEvent } from "../blaze.d";
 import Lifecycle from "./lifecycle";
-import { HMR } from "./global";
 
 /**
  * @diff
@@ -244,11 +243,9 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 			});
 			return;
 		} else if (oldest.children.length && !newest.children.length) {
-			if (!HMR.get().length) {
-				oldestChildren.forEach((item: HTMLElement) => {
-					unmountAndRemoveRegistry(item.$children, item.key, item.$root);
-				});
-			}
+			oldestChildren.forEach((item: HTMLElement) => {
+				unmountAndRemoveRegistry(item.$children, item.key, item.$root);
+			});
 			return;
 		}
 		// not exists, auto delete...
@@ -438,27 +435,29 @@ function eventDiff(prev: HTMLElement, el: HTMLElement) {
 			}
 			return event;
 		});
-	} else if (el.events.length > prev.events.length) {
-		el.events.forEach((event: VirtualEvent, i: number) => {
-			let oldEvent = prev.events[i];
-			if (!oldEvent || !(event.name === oldEvent.name)) {
-				prev.addEventListener(event.name, event.call);
-				prev.events.push(event);
-			} else {
-				oldEvent = event;
-			}
-		});
-	} else if (el.events.length < prev.events.length) {
-		prev.events = prev.events.filter((event: VirtualEvent, i: number) => {
-			let latest = el.events[i];
-			if (!latest || !(event.name === latest.name)) {
-				prev.removeEventListener(event.name, event.call);
-				return false;
-			} else {
-				event = latest;
-			}
-			return event;
-		});
+	} else if (el.events && prev.events) {
+		if (el.events.length > prev.events.length) {
+			el.events.forEach((event: VirtualEvent, i: number) => {
+				let oldEvent = prev.events[i];
+				if (!oldEvent || !(event.name === oldEvent.name)) {
+					prev.addEventListener(event.name, event.call);
+					prev.events.push(event);
+				} else {
+					oldEvent = event;
+				}
+			});
+		} else if (el.events.length < prev.events.length) {
+			prev.events = prev.events.filter((event: VirtualEvent, i: number) => {
+				let latest = el.events[i];
+				if (!latest || !(event.name === latest.name)) {
+					prev.removeEventListener(event.name, event.call);
+					return false;
+				} else {
+					event = latest;
+				}
+				return event;
+			});
+		}
 	}
 }
 

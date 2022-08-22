@@ -9,13 +9,15 @@ export default function hmr() {
         src += `
 if (import.meta.hot) {
     import.meta.hot.accept((modules) => {
-      let hmr = []
-      Object.keys(modules).forEach((mod) => {
-        hmr.push(modules[mod]);
-      })
-      window.app.forEach((apps) => {
-        apps.reload(hmr, true)
-      })
+      if(modules) {
+        let hmr = []
+        Object.keys(modules).forEach((mod) => {
+          hmr.push(modules[mod]);
+        })
+        window.app.forEach((apps) => {
+          apps.reload(hmr, true)
+        })
+      }
     })
 }
 `
@@ -58,6 +60,7 @@ if (import.meta.hot) {
         src += `
 if (import.meta.hot) {
     import.meta.hot.accept((modules) => {
+      if(modules) {
         let hmr = []
         Object.keys(modules).forEach((mod) => {
           hmr.push(modules[mod]);
@@ -65,6 +68,7 @@ if (import.meta.hot) {
         window.app.forEach((apps) => {
           apps.reload(hmr)
         })
+      }
     });
 }`
         return {
