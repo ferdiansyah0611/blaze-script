@@ -112,6 +112,15 @@ export class createApp implements InterfaceApp {
 					}
 				}
 			}
+			if(typeof component[name] === 'function') {
+				if(component[name].toString() === newComponent[name].toString()) {
+					return;
+				}
+				else {
+					newComponent[name] = newComponent[name].bind(component);
+					return;
+				}
+			}
 			newComponent[name] = component[name];
 		});
 		return newComponent;
