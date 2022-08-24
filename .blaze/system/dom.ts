@@ -43,10 +43,19 @@ export const unmountAndRemoveRegistry = (current: Component, key: number, compon
  * @mountComponentFromEl
  * mount from element
  */
-export const mountComponentFromEl = (el: HTMLElement) => {
+export const mountComponentFromEl = (el: HTMLElement, componentName?: string, isKey?: boolean) => {
 	if (el.$children) {
 		el.$children.$deep.mounted();
+		if(isKey && el.$children.key) {
+			el.$children.key();
+		}
+		return
 	}
+	Array.from(el.children).forEach((node: HTMLElement) => {
+		if((componentName && node.$root) && componentName === node.$root.constructor.name) {
+			return mountComponentFromEl(node);
+		}
+	})
 };
 
 /**

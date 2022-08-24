@@ -134,7 +134,20 @@ export const state = function <T>(name: State<T>["name"], initial: T, component:
 		if (!name) {
 			name = "state";
 		}
-		component[name] = new Proxy({ ...initial, _isProxy: true }, validate(name));
+		let object = new Proxy({ ...initial, _isProxy: true }, validate(name));
+
+		Object.defineProperty(component, name, {
+			get: () => {
+				return object;
+			},
+			set: (value) => {
+				if(typeof value === 'object') {
+					Object.assign(component[name], value);
+				}
+				return true;
+			}
+		});
+
 		// trigger for first render
 		if (name === "props" && !component.$deep.update) {
 			component.$deep.disableTrigger = true;

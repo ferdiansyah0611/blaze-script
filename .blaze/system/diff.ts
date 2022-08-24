@@ -299,10 +299,7 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 						} else {
 							node.dataset.i = newestChildren[i].key;
 							node.key = newestChildren[i].key;
-							let difference = diff(node, newestChildren[i], node.$children);
-							let childrenCurrent: any = Array.from(node.children);
-							difference.forEach((rechange: Function) => rechange());
-							nextDiffChildren(childrenCurrent, newestChildren[i], node.$children || component);
+							node.replaceWith(newestChildren[i]);
 						}
 						// mount
 						mountComponentFromEl(newestChildren[i]);
@@ -341,7 +338,7 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 			oldest.replaceChildren(...newest.children);
 			Array.from(oldest.children).forEach((node: HTMLElement) => {
 				// mount
-				mountComponentFromEl(node);
+				mountComponentFromEl(node, component.constructor.name, true);
 			});
 			return;
 		} else if (oldest.children.length && !newest.children.length) {
@@ -380,7 +377,7 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 							oldest.children[i - 1].insertAdjacentElement("afterend", node);
 						}
 						// mount
-						mountComponentFromEl(node);
+						mountComponentFromEl(node, component.constructor.name, true);
 						return;
 					}
 				}
