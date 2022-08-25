@@ -91,7 +91,7 @@ class EntityRouter {
  * @makeRouter
  * extension for router
  */
-export const makeRouter = (entry: string, config: any, dev: boolean = false) => {
+export const makeRouter = (entry: string, config: any) => {
 	let tool;
 	let keyApplication = 0;
 	let glob = {};
@@ -106,25 +106,16 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 	if (config.customize && config.customize.render) isCustomize = true;
 	// auto route
 	if (config.auto && !isCustomize) {
-		if (dev) {
-			Object.assign(glob, import.meta.glob("@app/test.dev/route/*.tsx"));
-			Object.assign(glob, import.meta.glob("@app/test.dev/route/**/*.tsx"));
-			Object.assign(glob, import.meta.glob("@app/test.dev/route/**/**/*.tsx"));
-			Object.assign(glob, import.meta.glob("@app/test.dev/route/**/**/**/*.tsx"));
-			Object.assign(glob, import.meta.glob("@app/test.dev/route/**/**/**/**/*.tsx"));
-			Object.assign(glob, import.meta.glob("@app/test.dev/route/**/**/**/**/**/*.tsx"));
-			Object.assign(glob, import.meta.glob("@app/test.dev/route/**/**/**/**/**/**/*.tsx"));
-		} else {
-			Object.assign(glob, import.meta.glob("@route/*.tsx"));
-			Object.assign(glob, import.meta.glob("@route/**/*.tsx"));
-			Object.assign(glob, import.meta.glob("@route/**/**/*.tsx"));
-			Object.assign(glob, import.meta.glob("@route/**/**/**/*.tsx"));
-			Object.assign(glob, import.meta.glob("@route/**/**/**/**/*.tsx"));
-			Object.assign(glob, import.meta.glob("@route/**/**/**/**/**/*.tsx"));
-			Object.assign(glob, import.meta.glob("@route/**/**/**/**/**/**/*.tsx"));
-		}
+		Object.assign(glob, import.meta.glob("@route/*.tsx"));
+		Object.assign(glob, import.meta.glob("@route/**/*.tsx"));
+		Object.assign(glob, import.meta.glob("@route/**/**/*.tsx"));
+		Object.assign(glob, import.meta.glob("@route/**/**/**/*.tsx"));
+		Object.assign(glob, import.meta.glob("@route/**/**/**/**/*.tsx"));
+		Object.assign(glob, import.meta.glob("@route/**/**/**/**/**/*.tsx"));
+		Object.assign(glob, import.meta.glob("@route/**/**/**/**/**/**/*.tsx"));
+
 		for (let modules in glob) {
-			let path = modules.split(dev ? "../../test.dev/route" : "../../src/route")[1].toLowerCase();
+			let path = modules.split("../../src/route")[1].toLowerCase();
 			if (path.match(".tsx") && !path.startsWith("/_")) {
 				let url = path.split(".tsx")[0];
 				url = url.replaceAll("[", ":").replaceAll("]", "");
@@ -443,7 +434,7 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
  * check potential match on route with url
  */
 function check(config: any, url: string, nested?: any) {
-	let result, isValid, params;
+	let result, isValid, params = {};
 	let routes = config.url.find((v: any) => v.path === url);
 	if (routes) {
 		isValid = true;
@@ -472,7 +463,7 @@ function check(config: any, url: string, nested?: any) {
 				return getChildren;
 			}
 			isValid = false;
-			return { result, isValid, nested };
+			return { result, isValid, nested, params };
 		}
 		const getParams = (match: any) => {
 			const values = match.result.slice(1);

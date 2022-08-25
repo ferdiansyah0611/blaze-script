@@ -142,12 +142,10 @@ export class createApp implements InterfaceApp {
 	};
 	reload(newHmr, isStore: any) {
 		HMR.set(newHmr);
-
-		const hmrArray = HMR.get();
 		if (isStore) {
 			let store = Store.get();
 
-			hmrArray.forEach((hmr) => {
+			newHmr.forEach((hmr) => {
 				let get = hmr("", "", true);
 				let current = store[get.entry];
 				if (current) {
@@ -168,14 +166,14 @@ export class createApp implements InterfaceApp {
 			});
 			return;
 		}
-		hmrArray.forEach((hmr) => {
+		newHmr.forEach((hmr) => {
 			if (hmr.name === this.component.name && this.isComponent(hmr)) {
 				Object.assign(this.app, this.componentProcess({ component: this.app, newComponent: hmr, key: 0 }));
 				return;
 			}
 		});
 		this.app.$deep.registry = this.app.$deep.registry.map((data) => this.reloadRegistry(data));
-		this.blaze.run.onReload(hmrArray);
+		this.blaze.run.onReload(newHmr);
 	}
 	mount() {
 		document.addEventListener("DOMContentLoaded", () => {
