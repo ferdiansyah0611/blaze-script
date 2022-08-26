@@ -97,6 +97,13 @@ export class createApp implements InterfaceApp {
 				return;
 			}
 			if(name === "ctx") {
+				let length = {
+					old: Object.keys(component[name]).length,
+					now: Object.keys(newComponent[name]).length,
+				}
+				if((!length.old && length.now) || (length.old && !length.now)) {
+					return;
+				}
 				newComponent[name] = component[name];
 				return;
 			}
