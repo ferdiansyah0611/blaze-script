@@ -245,6 +245,7 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 		} else if (oldest.children.length && !newest.children.length) {
 			oldestChildren.forEach((item: HTMLElement) => {
 				unmountAndRemoveRegistry(item.$children, item.key, item.$root);
+				item.remove();
 			});
 			return;
 		}
