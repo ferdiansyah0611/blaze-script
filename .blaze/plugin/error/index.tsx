@@ -18,7 +18,7 @@ export default function withError() {
 function Errors() {
   this.disableExtension = true;
 
-  const { render, state, computed } = init(this);
+  const { render, state, computed, batch } = init(this);
   state("", {
     data: {
       title: "",
@@ -30,14 +30,16 @@ function Errors() {
       open: (title, message) => {
         if (import.meta.env.DEV && title !== this.state.data.title) {
           this.state.data = { title, message };
+          console.error(message)
         }
       },
       close: () => {
-        this.state.data = {
-          title: "",
-          message: "",
-        }
-        this.$deep.trigger()
+        batch(() => {
+          this.state.data = {
+            title: "",
+            message: "",
+          }
+        })
       },
     },
   }));

@@ -12,7 +12,12 @@ const app = new createApp("#app", Apps, {
 });
 app.use(
     makeRouter("#route", {
-        url: [page("/", Index), page("/page", PageExample), page("/page/:id", PageExample), page("", NotFound)],
+        url: [
+            page("/", Index),
+            page("/page", PageExample),
+            page("/page/:id", PageExample),
+            page("", NotFound)
+        ],
     })
 );
 app.mount();

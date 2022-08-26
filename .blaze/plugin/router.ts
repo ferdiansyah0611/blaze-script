@@ -1,9 +1,9 @@
 import { EntityRender } from "@root/system/core";
 import { mount } from "@blaze";
 import { Component } from "@root/blaze.d";
-import { App, Router } from "@root/system/global";
+import { App, Router, HMR } from "@root/system/global";
 
-var firstPage = true
+var firstPage = true;
 var popstate = false;
 
 class EntityRouter {
@@ -32,14 +32,14 @@ class EntityRouter {
 		return;
 	}
 	handling(url: string) {
-		if(firstPage) {
-			firstPage = false
+		if (firstPage) {
+			firstPage = false;
 			return;
 		}
 		if (popstate) {
 			history.replaceState(null, "", url);
 			popstate = false;
-			return
+			return;
 		} else {
 			history.pushState(null, "", url);
 		}
@@ -91,7 +91,7 @@ class EntityRouter {
  * @makeRouter
  * extension for router
  */
-export const makeRouter = (entry: string, config: any, dev: boolean = false) => {
+export const makeRouter = (entry: string, config: any) => {
 	let tool;
 	let keyApplication = 0;
 	let glob = {};
@@ -106,26 +106,17 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 	if (config.customize && config.customize.render) isCustomize = true;
 	// auto route
 	if (config.auto && !isCustomize) {
-		if (dev) {
-			Object.assign(glob, import.meta.glob("@app/test.dev/route/*.tsx"));
-			Object.assign(glob, import.meta.glob("@app/test.dev/route/**/*.tsx"));
-			Object.assign(glob, import.meta.glob("@app/test.dev/route/**/**/*.tsx"));
-			Object.assign(glob, import.meta.glob("@app/test.dev/route/**/**/**/*.tsx"));
-			Object.assign(glob, import.meta.glob("@app/test.dev/route/**/**/**/**/*.tsx"));
-			Object.assign(glob, import.meta.glob("@app/test.dev/route/**/**/**/**/**/*.tsx"));
-			Object.assign(glob, import.meta.glob("@app/test.dev/route/**/**/**/**/**/**/*.tsx"));
-		} else {
-			Object.assign(glob, import.meta.glob("@route/*.tsx"));
-			Object.assign(glob, import.meta.glob("@route/**/*.tsx"));
-			Object.assign(glob, import.meta.glob("@route/**/**/*.tsx"));
-			Object.assign(glob, import.meta.glob("@route/**/**/**/*.tsx"));
-			Object.assign(glob, import.meta.glob("@route/**/**/**/**/*.tsx"));
-			Object.assign(glob, import.meta.glob("@route/**/**/**/**/**/*.tsx"));
-			Object.assign(glob, import.meta.glob("@route/**/**/**/**/**/**/*.tsx"));
-		}
+		Object.assign(glob, import.meta.glob("@route/*.tsx"));
+		Object.assign(glob, import.meta.glob("@route/**/*.tsx"));
+		Object.assign(glob, import.meta.glob("@route/**/**/*.tsx"));
+		Object.assign(glob, import.meta.glob("@route/**/**/**/*.tsx"));
+		Object.assign(glob, import.meta.glob("@route/**/**/**/**/*.tsx"));
+		Object.assign(glob, import.meta.glob("@route/**/**/**/**/**/*.tsx"));
+		Object.assign(glob, import.meta.glob("@route/**/**/**/**/**/**/*.tsx"));
+
 		for (let modules in glob) {
-			let path = modules.split(dev ? "../../test.dev/route" : "../../src/route")[1].toLowerCase();
-			if (path.match(".tsx")) {
+			let path = modules.split("../../src/route")[1].toLowerCase();
+			if (path.match(".tsx") && !path.startsWith("/_")) {
 				let url = path.split(".tsx")[0];
 				url = url.replaceAll("[", ":").replaceAll("]", "");
 				if (url.indexOf("index") !== -1) {
@@ -160,7 +151,8 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 		configure: any,
 		params?: any,
 		search?: any,
-		entity?: any
+		entity?: any,
+		nested?: any
 	) => {
 		if (!document.querySelector(entry)) {
 			let msg = "[Router] entry not found, query is correct?";
@@ -175,7 +167,7 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 
 		const callComponent = (request) => {
 			current = new EntityRender(request, {
-				arg: [Object.assign(app, { params }), App.get(keyApplication, 'app')],
+				arg: [Object.assign(app, { params }), App.get(keyApplication, "app")],
 				key: keyApplication,
 			});
 		};
@@ -198,26 +190,75 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 			}
 			loader.remove(true, false);
 		} else {
+			let hmr = HMR.find(component.name);
+			if(hmr) {
+				component = hmr;
+			}
 			callComponent(component);
 		}
 
-		current
-			.start()
-			.compile({
-				first: true,
-				deep: null,
-			})
-			.replaceChildren(entry)
-			.mount(app.$router.hmr)
-			.saveToExtension()
-			.done(function () {
-				if (entity) {
-					entity.removePrevious();
-					entity.add(this.component);
-					entity.inject(this.component);
-					entity.afterEach(configure);
-				}
+		if (nested) {
+			let virtualOutlet = [];
+			nested.forEach((nesteds, index) => {
+				let previous = new EntityRender(nesteds.component, {
+					arg: [App.get(keyApplication, "app")],
+					key: keyApplication,
+				});
+				previous
+					.start()
+					.compile({
+						first: true,
+						deep: null,
+					})
+					.replaceChildren(!index ? entry : virtualOutlet[index - 1].component.outlet)
+					.mount(app.$router.hmr)
+					.saveToExtension()
+					.done((instance) => {
+						virtualOutlet.push(instance);
+
+						if (instance.component.outlet && index === nested.length - 1) {
+							let outlet = instance.component.$node.querySelector(instance.component.outlet);
+							if (outlet) {
+								current
+									.start()
+									.compile({
+										first: true,
+										deep: null,
+									})
+									.appendChild(outlet)
+									.mount(app.$router.hmr)
+									.saveToExtension()
+									.done(function () {
+										if (entity) {
+											entity.removePrevious();
+											entity.add(this.component);
+											entity.inject(this.component);
+											entity.afterEach(configure);
+										}
+									});
+							}
+						}
+					});
 			});
+		} else {
+			current
+				.start()
+				.compile({
+					first: true,
+					deep: null,
+				})
+				.replaceChildren(entry)
+				.mount(app.$router.hmr)
+				.saveToExtension()
+				.done(function () {
+					if (entity) {
+						entity.removePrevious();
+						entity.add(this.component);
+						entity.inject(this.component);
+						entity.afterEach(configure);
+					}
+				});
+		}
 	};
 
 	/**
@@ -236,11 +277,11 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 				app,
 				EntityRouter,
 				tool,
-				config
+				config,
 			});
 		}
 
-		const { result, isValid, params } = check(config, url);
+		const { result, isValid, params, nested } = check(config, url);
 
 		if (isValid) {
 			// search
@@ -270,7 +311,7 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 			EntityRouter.change(app, url);
 			EntityRouter.found(app, url);
 
-			return goto(app, url, result.component, result.config, params, uri.search, entity);
+			return goto(app, url, result.component, result.config, params, uri.search, entity, nested);
 		} else {
 			return EntityRouter.gotoNotFound(app, config, url, goto);
 		}
@@ -280,7 +321,7 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 		 * inject router to current component
 		 */
 		tool = {
-			'$': {
+			$: {
 				change: [],
 				active: null,
 				error: [],
@@ -294,7 +335,17 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 			back: () => {
 				history.back();
 			},
-			push: (url: URL) => {
+			push: (url: URL | any) => {
+				if(!url.origin && !(url === "/")) {
+					url = location.origin + url
+					url = new URL(url);
+				}
+				if(url === '/') {
+					url = location.origin
+				}
+				if(!url.origin) {
+					url = new URL(url);
+				}
 				if ((url.search && url.search !== location.search) || !(url.pathname === location.pathname)) {
 					ready(app, url);
 				}
@@ -306,16 +357,16 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 				}
 			},
 			get run() {
-				return{
+				return {
 					error: (error) => this.$.error.forEach((data) => data(error)),
 					found: (message) => this.$.found.forEach((data) => data(message)),
-				}
-			}
+				};
+			},
 		};
 		app.$router = tool;
-		let current = Router.get(keyApp)
+		let current = Router.get(keyApp);
 		if (!current) {
-			Router.set(tool)
+			Router.set(tool);
 		}
 		keyApplication = keyApp;
 
@@ -362,14 +413,16 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
 				let createApp = App.get(keyApp);
 				if (createApp.isComponent(newComponent)) {
 					if (newComponent.name === component.constructor.name) {
-						Object.assign(component, createApp.componentProcess({ component, newComponent, key: 0 }));
+						Object.assign(component, createApp.componentProcess({ component, newComponent, key: 0, previous: app }));
+						HMR.set(newComponent)
 					}
 					if (loader && newComponent.name === loader.name) {
 						Object.assign(app.$router, {
 							loader: newComponent,
 						});
+						HMR.set(newComponent)
 					}
-					component.$deep.registry = component.$deep.registry.map((data) => createApp.reloadRegistry(data));
+					component.$deep.registry = component.$deep.registry.map((data) => createApp.reloadRegistry(data, component));
 				}
 			});
 		});
@@ -380,10 +433,9 @@ export const makeRouter = (entry: string, config: any, dev: boolean = false) => 
  * @check
  * check potential match on route with url
  */
-function check(config: any, url: string) {
-	let result, isValid, params;
+function check(config: any, url: string, nested?: any) {
+	let result, isValid, params = {};
 	let routes = config.url.find((v: any) => v.path === url);
-
 	if (routes) {
 		isValid = true;
 		result = routes;
@@ -397,8 +449,21 @@ function check(config: any, url: string) {
 		});
 		let match = potentialMatched.find((potentialMatch: any) => potentialMatch.result !== null);
 		if (!match) {
+			let getChildren;
+			config.url.filter((data) => {
+				let isNested = url.split("/").slice(2);
+				if (isNested.length && data.config.children) {
+					getChildren = check({ url: data.config.children }, "/" + isNested.join("/"), [
+						...(nested || []),
+						data,
+					]);
+				}
+			});
+			if (getChildren && getChildren.isValid) {
+				return getChildren;
+			}
 			isValid = false;
-			return { result, isValid };
+			return { result, isValid, nested, params };
 		}
 		const getParams = (match: any) => {
 			const values = match.result.slice(1);
@@ -414,7 +479,14 @@ function check(config: any, url: string) {
 		result = match.route;
 	}
 
-	return { result, isValid, params };
+	if (routes && routes.config.children) {
+		let getChildren = check({ url: routes.config.children }, "/", [...(nested || []), routes]);
+		if (getChildren) {
+			return getChildren;
+		}
+	}
+
+	return { result, isValid, params, nested };
 }
 
 /**
@@ -427,13 +499,13 @@ export const startIn = (component: Component, keyApp?: number, loader?: Function
 	}
 
 	mount(() => {
-		let router = Router.get(keyApp)
+		let router = Router.get(keyApp);
 		router.loader = loader;
 
 		if (!router.hmr) {
 			router.ready(component);
 			window.addEventListener("popstate", () => {
-				if(!location.hash) {
+				if (!location.hash) {
 					popstate = true;
 					router.ready(component, location);
 				}
@@ -450,3 +522,7 @@ export const page = (path: string, component: any, config: any = {}) => ({
 	component,
 	config,
 });
+
+export const outletIn = (entry, component) => {
+	component.outlet = entry;
+};

@@ -1,13 +1,11 @@
-import { render, init } from "@blaze";
+// @ts-nocheck
+import { init } from "@blaze";
 
 export default function NotFound() {
-	init(this);
+	init(this, "auto");
 	render(
 		() => (
-			<>
-				<p>404</p>
-			</>
-		),
-		this
+			<p>404</p>
+		)
 	);
 };

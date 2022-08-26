@@ -1,7 +1,6 @@
 import { removeComponentOrEl, unmountAndRemoveRegistry, mountComponentFromEl, findComponentNode } from "./dom";
-import { Component } from "../blaze.d";
+import { Component, VirtualEvent } from "../blaze.d";
 import Lifecycle from "./lifecycle";
-import { HMR } from "./global";
 
 /**
  * @diff
@@ -155,6 +154,63 @@ const diff = function (prev: HTMLElement, el: HTMLElement, component: Component)
 	if (prev.value !== el.value) {
 		zip.push(() => (prev.value = el.value));
 	}
+	// event
+	if ((prev.events || el.events) && !prev.toggle && !el.toggle && !prev.model && !el.model) {
+		eventDiff(prev, el);
+	}
+	// toggle
+	if (prev.toggle || el.toggle) {
+		if (prev.toggle && !el.toggle) {
+			prev.events = prev.events.filter((event) => {
+				if (event.name === "click") {
+					prev.removeEventListener(event.name, event.call);
+					prev.toggle = "";
+					return false;
+				}
+				return event;
+			});
+			eventDiff(prev, el);
+		} else if (!prev.toggle && el.toggle) {
+			el.events.forEach((event) => {
+				if (event.name === "click") {
+					prev.addEventListener(event.name, event.call);
+					prev.toggle = el.toggle;
+
+					if (!prev.events) prev.events = [];
+					prev.events.push(event);
+				}
+			});
+			eventDiff(prev, el);
+		} else if (prev.toggle !== el.toggle) {
+			prev.toggle = el.toggle;
+			eventDiff(prev, el);
+		}
+	}
+	// model
+	if (prev.model || el.model) {
+		if (prev.model && !el.model) {
+			prev.events = prev.events.filter((event) => {
+				if (event.call.toString().indexOf("model") !== -1 && ["keyup", "change"].includes(event.name)) {
+					prev.removeEventListener(event.name, event.call);
+					prev.model = "";
+					return false;
+				}
+				return event;
+			});
+		} else if (!prev.model && el.model) {
+			el.events.forEach((event) => {
+				if (event.call.toString().indexOf("model") !== -1 && ["keyup", "change"].includes(event.name)) {
+					prev.addEventListener(event.name, event.call);
+					prev.model = el.model;
+
+					if (!prev.events) prev.events = [];
+					prev.events.push(event);
+				}
+			});
+		} else if (prev.model !== el.model) {
+			prev.model = el.model;
+		}
+	}
 
 	return zip;
 };
@@ -187,11 +243,9 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 			});
 			return;
 		} else if (oldest.children.length && !newest.children.length) {
-			if (!HMR.get().length) {
-				oldestChildren.forEach((item: HTMLElement) => {
-					unmountAndRemoveRegistry(item.$children, item.key, item.$root);
-				});
-			}
+			oldestChildren.forEach((item: HTMLElement) => {
+				unmountAndRemoveRegistry(item.$children, item.key, item.$root);
+			});
 			return;
 		}
 		// not exists, auto delete...
@@ -245,10 +299,7 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 						} else {
 							node.dataset.i = newestChildren[i].key;
 							node.key = newestChildren[i].key;
-							let difference = diff(node, newestChildren[i], node.$children);
-							let childrenCurrent: any = Array.from(node.children);
-							difference.forEach((rechange: Function) => rechange());
-							nextDiffChildren(childrenCurrent, newestChildren[i], node.$children || component);
+							node.replaceWith(newestChildren[i]);
 						}
 						// mount
 						mountComponentFromEl(newestChildren[i]);
@@ -285,9 +336,9 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 
 		if (!oldest.children.length && newest.children.length) {
 			oldest.replaceChildren(...newest.children);
-			oldestChildren.forEach((node) => {
+			Array.from(oldest.children).forEach((node: HTMLElement) => {
 				// mount
-				mountComponentFromEl(node);
+				mountComponentFromEl(node, component.constructor.name, true);
 			});
 			return;
 		} else if (oldest.children.length && !newest.children.length) {
@@ -326,7 +377,7 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 							oldest.children[i - 1].insertAdjacentElement("afterend", node);
 						}
 						// mount
-						mountComponentFromEl(node);
+						mountComponentFromEl(node, component.constructor.name, true);
 						return;
 					}
 				}
@@ -346,12 +397,65 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 	}
 };
 
+/**
+ * @nextDiffChildren
+ * action to next diff a children
+ */
 function nextDiffChildren(children: HTMLElement[], newest: any, component: Component) {
 	children.forEach((item: HTMLElement, i: number) => {
 		let difference = diff(item, newest.children[i], component);
 		difference.forEach((rechange: Function) => rechange());
 		diffChildren(item, newest.children[i], component, false);
 	});
+}
+
+/**
+ * @eventDiff
+ * diff a event listener
+ */
+function eventDiff(prev: HTMLElement, el: HTMLElement) {
+	if (prev.events && prev.events.length && (!el.events || !el.events.length)) {
+		prev.events.forEach((event: VirtualEvent) => {
+			prev.removeEventListener(event.name, event.call);
+		});
+		prev.events = [];
+	} else if ((!prev.events || !prev.events.length) && el.events && el.events.length) {
+		el.events.forEach((event: VirtualEvent) => {
+			prev.addEventListener(event.name, event.call);
+		});
+		prev.events = el.events;
+	} else if (prev.events && el.events && prev.events.length === el.events.length) {
+		prev.events = prev.events.map((event: VirtualEvent, i: number) => {
+			let latest = el.events[i];
+			if (event.name === latest.name) {
+				event = latest;
+			}
+			return event;
+		});
+	} else if (el.events && prev.events) {
+		if (el.events.length > prev.events.length) {
+			el.events.forEach((event: VirtualEvent, i: number) => {
+				let oldEvent = prev.events[i];
+				if (!oldEvent || !(event.name === oldEvent.name)) {
+					prev.addEventListener(event.name, event.call);
+					prev.events.push(event);
+				} else {
+					oldEvent = event;
+				}
+			});
+		} else if (el.events.length < prev.events.length) {
+			prev.events = prev.events.filter((event: VirtualEvent, i: number) => {
+				let latest = el.events[i];
+				if (!latest || !(event.name === latest.name)) {
+					prev.removeEventListener(event.name, event.call);
+					return false;
+				} else {
+					event = latest;
+				}
+				return event;
+			});
+		}
+	}
 }
 
 export default diff;

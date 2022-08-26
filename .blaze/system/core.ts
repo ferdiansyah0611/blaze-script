@@ -273,10 +273,6 @@ export const rendering = (
 			}
 			return false;
 		}
-
-		if (error.state.data.title) {
-			error.close();
-		}
 	} catch (err) {
 		if (error) {
 			error.open(`Component ${component.constructor.name}`, err.stack);

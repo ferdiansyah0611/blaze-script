@@ -147,7 +147,6 @@ export default class Lifecycle {
 
 			let fn = item.toString();
 			let checkIsTrue = fn.match(new RegExp(`this.${depend}|${depend}`, "g"));
-
 			if (checkIsTrue) {
 				let list = [];
 				list.push(`this.${depend}=`);

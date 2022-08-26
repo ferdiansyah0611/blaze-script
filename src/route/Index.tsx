@@ -1,22 +1,23 @@
-import { render, init } from "@blaze";
-import "@style/index.css";
-// component
-import Counter from "@component/Counter";
+// @ts-nocheck
+import { init } from "@blaze";
 
 export default function Index() {
-	init(this);
-	render(
-		() => (
-			<div d class="index">
-				<div d class="bg-gray-900 p-2 rounded-md border border-gray-500 text-white">
-					<h2 d>Blaze Script</h2>
-					<p d>Virtual DOM For Single Page Application using Vite & Typescript.</p>
-					<div d class="mt-2">
-						<Counter/>
-					</div>
-				</div>
-			</div>
-		),
-		this
-	);
-};
+	init(this, "auto");
+	render(() => (
+		<div>
+			<p>
+				Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore
+				magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
+				consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla
+				pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est
+				laborum.
+			</p>
+			<a data-link href="/page">
+				go /page
+			</a>
+			<a data-link href="/page/1">
+				go /page/1
+			</a>
+		</div>
+	));
+}

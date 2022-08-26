@@ -19,8 +19,9 @@
 #error > div{
 	background: red;
 	width: 100%;
-	max-width: 350px;
+	max-width: 600px;
 	border-radius: 5px;
+	margin: 0px 10px;
 }
 #error > div > div{
 	padding: 5px;
@@ -40,6 +41,7 @@
 	font-size: 14px;
 	font-family: system-ui;
 	overflow-wrap: break-word;
+	white-space: break-spaces;
 }
 #error a{
 	font-size: 15px;

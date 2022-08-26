@@ -32,7 +32,7 @@ export class createApp implements InterfaceApp {
 		let error = window.$error;
 		error.close();
 		try {
-			let app = App.get(component.$config?.key || 0);
+			let app = App.get(component.$config?.key || 0, 'app');
 			if (previous) {
 				newComponent = new newComponent(previous, app);
 			} else {
@@ -88,11 +88,23 @@ export class createApp implements InterfaceApp {
 							"created",
 							"beforeUpdate",
 							"updated",
+							"registry"
 						].includes(sub)
 					)
 						return;
 					newComponent[name][sub] = component[name][sub];
 				});
+				return;
+			}
+			if(name === "ctx") {
+				let length = {
+					old: Object.keys(component[name]).length,
+					now: Object.keys(newComponent[name]).length,
+				}
+				if((!length.old && length.now) || (length.old && !length.now)) {
+					return;
+				}
+				newComponent[name] = component[name];
 				return;
 			}
 			if (typeof component[name] === "object") {
@@ -105,6 +117,15 @@ export class createApp implements InterfaceApp {
 					if (!check) {
 						Object.assign(component[name], newComponent[name]);
 					}
+				}
+			}
+			if(typeof component[name] === 'function') {
+				if(component[name].toString() === newComponent[name].toString()) {
+					return;
+				}
+				else {
+					newComponent[name] = newComponent[name].bind(component);
+					return;
 				}
 			}
 			newComponent[name] = component[name];
@@ -128,12 +149,10 @@ export class createApp implements InterfaceApp {
 	};
 	reload(newHmr, isStore: any) {
 		HMR.set(newHmr);
-
-		const hmrArray = HMR.get();
 		if (isStore) {
 			let store = Store.get();
 
-			hmrArray.forEach((hmr) => {
+			newHmr.forEach((hmr) => {
 				let get = hmr("", "", true);
 				let current = store[get.entry];
 				if (current) {
@@ -154,15 +173,14 @@ export class createApp implements InterfaceApp {
 			});
 			return;
 		}
-		hmrArray.forEach((hmr) => {
+		newHmr.forEach((hmr) => {
 			if (hmr.name === this.component.name && this.isComponent(hmr)) {
 				Object.assign(this.app, this.componentProcess({ component: this.app, newComponent: hmr, key: 0 }));
 				return;
 			}
 		});
 		this.app.$deep.registry = this.app.$deep.registry.map((data) => this.reloadRegistry(data));
-		this.blaze.run.onReload(hmrArray);
-		HMR.clear();
+		this.blaze.run.onReload(newHmr);
 	}
 	mount() {
 		document.addEventListener("DOMContentLoaded", () => {
