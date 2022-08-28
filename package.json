@@ -8,10 +8,10 @@
     "build": "tsc && vite build",
     "preview": "vite preview"
   },
-  "devDependencies": {
-    "vite": "^2.9.0"
-  },
   "dependencies": {
     "lodash.isequalwith": "^4.4.0"
+  },
+  "devDependencies": {
+    "vite": "^3.0.9"
   }
 }

@@ -1,4 +1,4 @@
-const tsx = /\.tsx$/
+const tsx = /(\.tsx|\.jsx)$/
 
 export default function hmr() {
   return {
@@ -59,14 +59,18 @@ if (import.meta.hot) {
         src = src.replaceAll('init(this, "auto");', `const { ${text} } = init(this);`)
         // transform store
         if(src.match("store\(.\)")) {
-          let store = [...src.matchAll(/store\(('\S+'|"\S+"),\s(\[.+])\);/g)];
+          let store = [...src.matchAll(/store\(('\S+'|"\S+"),\s(\[.+]|\[\])\);/g)];
           if(store.length) {
             store.forEach((stores) => {
-              let name = stores[1]
+              let path = stores[1]
               let allowed = stores[2]
-              if(name && allowed) {
-                name = name.replaceAll(`"`, '').replaceAll("'", '')
-                src = `import ${name} from "@/store/${name}";\n` + src
+              if(path && allowed) {
+                path = path.replaceAll(`"`, '').replaceAll("'", '')
+                let name = path;
+                if(path.indexOf("/")) {
+                  name = path.split("/").at(-1);
+                }
+                src = `import ${name} from "@/store/${path}";\n` + src
                 let findFunction = [...src.matchAll(/init\(this\);/g)]
                 if(findFunction.length) {
                   findFunction.forEach((matcher) => {
@@ -83,10 +87,14 @@ if (import.meta.hot) {
           let component = [...src.matchAll(/component\((.+)\);/g)];
           if(component.length) {
             component.forEach((components) => {
-              let name = components[1]
-              if(name) {
-                name = name.replaceAll(`"`, '').replaceAll("'", '')
-                src = `import ${name} from "@/component/${name}";\n` + src;
+              let path = components[1]
+              if(path) {
+                path = path.replaceAll(`"`, '').replaceAll("'", '')
+                let name = path;
+                if(path.indexOf("/")) {
+                  name = path.split("/").at(-1);
+                }
+                src = `import ${name} from "@/component/${path}";\n` + src;
                 src = src.replace(components[0], '')
               }
             })

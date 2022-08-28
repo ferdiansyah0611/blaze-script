@@ -21,6 +21,7 @@ export default defineConfig({
   esbuild: {
     jsxFactory: "this.$h.h",
     jsxFragment: "this.$h.Fragment",
+    jsxInject: `import { init } from "@blaze";`
   },
   build: {
     rollupOptions: {

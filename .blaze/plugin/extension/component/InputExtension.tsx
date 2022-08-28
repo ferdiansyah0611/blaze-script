@@ -1,7 +1,6 @@
-import { init } from "@blaze";
-
 export default function InputExtension() {
 	this.disableExtension = true;
+	// @ts-ignore
 	const { render } = init(this);
 	render(() => {
 		let { name, value, disableMargin, onChange } = this.props;

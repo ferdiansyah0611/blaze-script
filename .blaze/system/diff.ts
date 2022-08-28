@@ -1,5 +1,5 @@
 import { removeComponentOrEl, unmountAndRemoveRegistry, mountComponentFromEl, findComponentNode } from "./dom";
-import { Component, VirtualEvent } from "../blaze.d";
+import { Component, VirtualEvent, RegisteryComponent } from "../blaze.d";
 import Lifecycle from "./lifecycle";
 
 /**
@@ -28,7 +28,7 @@ const diff = function (prev: HTMLElement, el: HTMLElement, component: Component)
 		let key = prev.key;
 
 		if (prev.$root) {
-			prev.$root.$deep.registry.forEach((registry) => {
+			prev.$root.$deep.registry.forEach((registry: RegisteryComponent) => {
 				if (registry.component.constructor.name === name && registry.key === key) {
 					new Lifecycle(registry.component).unmount();
 					registry.component.$deep.mount = registry.component.$deep.mount.map((item) => {
@@ -39,6 +39,7 @@ const diff = function (prev: HTMLElement, el: HTMLElement, component: Component)
 					registry.component.$deep.disableAddUnmount = true;
 					return registry;
 				}
+				return registry;
 			});
 		}
 		zip.push(() => {
@@ -343,14 +344,14 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 			});
 			return;
 		} else if (oldest.children.length && !newest.children.length) {
-			oldestChildren.forEach((node) => {
+			oldestChildren.forEach((node: HTMLElement) => {
 				// unmount
 				unmountAndRemoveRegistry(node.$children, node.key, node.$root);
 			});
 			oldest.replaceChildren(...newest.children);
 			return;
 		} else if (newest.children.length < oldest.children.length) {
-			oldestChildren.forEach((node) => {
+			oldestChildren.forEach((node: HTMLElement) => {
 				if (["number", "string"].includes(typeof node.key)) {
 					let latest = findComponentNode(newest, node);
 					if (!latest) {

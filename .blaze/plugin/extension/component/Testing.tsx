@@ -1,7 +1,6 @@
-import { init } from "@blaze";
-
 export default function Testing() {
 	this.disableExtension = true;
+	// @ts-ignore
 	const { render } = init(this);
 	render(() => (
 		<div class="border-b border-gray-500 pl-4">

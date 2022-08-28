@@ -1,7 +1,6 @@
-import { init } from "@blaze";
-
 export default function ListExtension() {
 	this.disableExtension = true;
+	// @ts-ignore
 	const { render, defineProp } = init(this);
 	defineProp({
 		item: {

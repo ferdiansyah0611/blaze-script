@@ -33,6 +33,6 @@
     "isolatedModules": true,
     "types": ["vite/client"]
   },
-  "include": ["src", "src/*", "src/**/*", ".blaze/plugin/**.*"],
+  "include": ["src"],
   "exclude": ["node_modules"]
 }

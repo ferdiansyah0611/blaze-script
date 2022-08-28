@@ -1,8 +1,8 @@
-import { init } from "@blaze";
+// @ts-nocheck
 import { startIn } from "@root/plugin/router";
 
 export default function MyApp() {
-	const { render } = init(this);
+	init(this, "auto");
 	startIn(this);
 
 	render(

@@ -1,5 +1,4 @@
 import "./error.css";
-import { init } from "@blaze";
 import { rendering } from "@root/system/core";
 
 export default function withError() {
@@ -17,7 +16,7 @@ export default function withError() {
 
 function Errors() {
   this.disableExtension = true;
-
+  // @ts-ignore
   const { render, state, computed, batch } = init(this);
   state("", {
     data: {

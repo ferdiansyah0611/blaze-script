@@ -1,6 +1,4 @@
 // @ts-nocheck
-import { init } from "@blaze";
-
 export default function NotFound() {
 	init(this, "auto");
 	render(

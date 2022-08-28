@@ -106,16 +106,18 @@ export const makeRouter = (entry: string, config: any) => {
 	if (config.customize && config.customize.render) isCustomize = true;
 	// auto route
 	if (config.auto && !isCustomize) {
-		Object.assign(glob, import.meta.glob("@route/*.tsx"));
-		Object.assign(glob, import.meta.glob("@route/**/*.tsx"));
-		Object.assign(glob, import.meta.glob("@route/**/**/*.tsx"));
-		Object.assign(glob, import.meta.glob("@route/**/**/**/*.tsx"));
-		Object.assign(glob, import.meta.glob("@route/**/**/**/**/*.tsx"));
-		Object.assign(glob, import.meta.glob("@route/**/**/**/**/**/*.tsx"));
-		Object.assign(glob, import.meta.glob("@route/**/**/**/**/**/**/*.tsx"));
+		glob = import.meta.glob([
+			"@route/*.tsx",
+			"@route/**/*.tsx",
+			"@route/**/**/*.tsx",
+			"@route/**/**/**/*.tsx",
+			"@route/**/**/**/**/*.tsx",
+			"@route/**/**/**/**/**/*.tsx",
+			"@route/**/**/**/**/**/**/*.tsx"
+		]);
 
 		for (let modules in glob) {
-			let path = modules.split("../../src/route")[1].toLowerCase();
+			let path = modules.split("/src/route")[1].toLowerCase();
 			if (path.match(".tsx") && !path.startsWith("/_")) {
 				let url = path.split(".tsx")[0];
 				url = url.replaceAll("[", ":").replaceAll("]", "");
@@ -172,23 +174,28 @@ export const makeRouter = (entry: string, config: any) => {
 			});
 		};
 		// auto route or not
-		if (component.name.indexOf("../") !== -1) {
+		if (component.name.indexOf("/src") !== -1) {
 			// loader
-			const loader = new EntityRender(app.$router.loader, {});
-			loader
-				.start()
-				.compile({
-					first: true,
-					deep: null,
-				})
-				.appendChild(document.body)
-				.mount(app.$router.hmr);
+			let loader;
+			if(app.$router.loader) {
+				loader = new EntityRender(app.$router.loader, {});
+				loader
+					.start()
+					.compile({
+						first: true,
+						deep: null,
+					})
+					.appendChild(document.body)
+					.mount(app.$router.hmr);
+			}
 
 			let check = await component();
 			if (check.default) {
 				callComponent(check.default);
 			}
-			loader.remove(true, false);
+			if(loader) {
+				loader.remove(true, false);
+			}
 		} else {
 			let hmr = HMR.find(component.name);
 			if(hmr) {

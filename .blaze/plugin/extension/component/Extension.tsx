@@ -1,4 +1,4 @@
-import { init, batch } from "@blaze";
+import { batch } from "@blaze";
 import InputExtension from "./InputExtension";
 import ListExtension from "./ListExtension";
 import Testing from "./Testing";
@@ -7,6 +7,7 @@ import { App, Router } from "@root/system/global";
 const exception = ["$name", "$children", "$root", "$index", "_isProxy", "fallback", 'h', 'Fragment', '_isContext'];
 
 export default function Extension(keyApp) {
+	// @ts-ignore
 	const { render, state, mount, computed, created } = init(this);
 	state("state", {
 		console: [],
