@@ -123,7 +123,7 @@ export default class Lifecycle {
 		this.component.$deep.watch.forEach((item) => {
 			item.dependencies.forEach((dependencies) => {
 				if (logic) {
-					if(logic(dependencies)) {
+					if (logic(dependencies)) {
 						return item.handle(dependencies, valueUpdate);
 					}
 					return;
@@ -142,30 +142,32 @@ export default class Lifecycle {
 	 * similar with watch, but effect is automatic without write dependencies
 	 */
 	effect(depend: string | boolean, value?: any, potential?: any) {
+		let list = [];
+		if (typeof depend !== "boolean" && this.component.$deep.effect) {
+			list.push(new RegExp(`this.${depend}=`, "g"));
+			list.push(new RegExp(`${depend}=`, "g"));
+			list.push(new RegExp(`${depend}(.+)=`, "g"));
+			list.push(new RegExp(`Object.assign.this.${depend}`, "g"));
+			list.push(new RegExp(`Object.assign.${depend}`, "g"));
+		}
+
 		(this.component.$deep.effect || []).forEach((item) => {
 			if (typeof depend === "boolean") return item();
 
 			let fn = item.toString();
 			let checkIsTrue = fn.match(new RegExp(`this.${depend}|${depend}`, "g"));
 			if (checkIsTrue) {
-				let list = [];
-				list.push(`this.${depend}=`);
-				list.push(`this.${depend} =`);
-				list.push(`this.${depend} +=`);
-				list.push(`this.${depend} -=`);
-				list.push(`this.${depend}+=`);
-				list.push(`this.${depend}-=`);
-				list.push(`${depend}=`);
-				list.push(`${depend} =`);
-				list.push(`${depend} +=`);
-				list.push(`${depend} -=`);
-				list.push(`${depend}+=`);
-				list.push(`${depend}-=`);
-				let notAllowed = new RegExp(list.join("|"), "g");
-				let isIlegal = fn.match(notAllowed);
+				let isIlegal = false;
+				list.find((lists) => {
+					if (fn.match(lists)) {
+						isIlegal = true;
+						return true;
+					}
+					return false;
+				});
 				if (!isIlegal) {
-					if(potential) {
-						return potential(item)
+					if (potential) {
+						return potential(item);
 					}
 					item(value);
 				}

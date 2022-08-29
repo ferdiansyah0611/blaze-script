@@ -15,20 +15,24 @@ class EntityRouter {
 		this.config = config;
 		this.tool = tool;
 	}
-	static change(app: any, request: string) {
-		app.$router.$.change.forEach((item) => item(request));
+	static change(request: string, tool) {
+		tool.$.change.forEach((item) => item(request));
 	}
-	static found(app, url) {
+	static found(url, tool) {
 		let msg = `[Router] GET 200 ${url}`;
-		app.$router.run.found(msg);
+		tool.run.found(msg);
 	}
-	static gotoNotFound(app, config, url, goto) {
+	static gotoNotFound(app, config, url, goto, tool) {
 		let current = config.url.find(
 			(path) => path.path.length === 0 || (config.auto && path.path.indexOf("/404") !== -1)
 		);
 		let msg = `[Router] Not Found 404 ${url}`;
-		app.$router.run.error(msg);
-		goto(app, url, current.component, {});
+		tool.run.error(msg);
+		if(current) {
+			goto(app, url, current.component, {});
+		} else {
+			console.warn('[notice] component for 404 pages is empty.');
+		}
 		return;
 	}
 	handling(url: string) {
@@ -46,7 +50,7 @@ class EntityRouter {
 	}
 	beforeEach(config: any): boolean {
 		if (config && config.beforeEach) {
-			if (!config.beforeEach(this.app.$router)) {
+			if (!config.beforeEach(this.tool)) {
 				return false;
 			}
 			return true;
@@ -55,8 +59,8 @@ class EntityRouter {
 	}
 	afterEach(config: any): boolean {
 		if (config && config.afterEach) {
-			if (!config.afterEach(this.app.$router)) {
-				return this.app.$router.back();
+			if (!config.afterEach(this.tool)) {
+				return this.tool.back();
 			}
 		}
 		return true;
@@ -75,15 +79,17 @@ class EntityRouter {
 		}
 	}
 	removePrevious() {
-		let check = this.app.$router.$.active;
+		let check = this.tool.$.active;
 		if (check && check.$deep) check.$deep.remove();
-		this.app.$router.$.active = null;
+		this.tool.$.active = null;
 	}
 	add(component: Component) {
-		this.app.$router.$.active = component;
+		this.tool.$.active = component;
 	}
 	inject(component: Component) {
-		component.$router = this.tool;
+		if(!component.$router) {
+			component.$router = this.tool;
+		}
 	}
 }
 
@@ -158,7 +164,7 @@ export const makeRouter = (entry: string, config: any) => {
 	) => {
 		if (!document.querySelector(entry)) {
 			let msg = "[Router] entry not found, query is correct?";
-			app.$router.run.error(msg);
+			tool.run.error(msg);
 			return console.error(msg);
 		}
 		let current;
@@ -177,8 +183,8 @@ export const makeRouter = (entry: string, config: any) => {
 		if (component.name.indexOf("/src") !== -1) {
 			// loader
 			let loader;
-			if(app.$router.loader) {
-				loader = new EntityRender(app.$router.loader, {});
+			if(tool.loader) {
+				loader = new EntityRender(tool.loader, {});
 				loader
 					.start()
 					.compile({
@@ -186,7 +192,7 @@ export const makeRouter = (entry: string, config: any) => {
 						deep: null,
 					})
 					.appendChild(document.body)
-					.mount(app.$router.hmr);
+					.mount(tool.hmr);
 			}
 
 			let check = await component();
@@ -218,7 +224,7 @@ export const makeRouter = (entry: string, config: any) => {
 						deep: null,
 					})
 					.replaceChildren(!index ? entry : virtualOutlet[index - 1].component.outlet)
-					.mount(app.$router.hmr)
+					.mount(tool.hmr)
 					.saveToExtension()
 					.done((instance) => {
 						virtualOutlet.push(instance);
@@ -233,7 +239,7 @@ export const makeRouter = (entry: string, config: any) => {
 										deep: null,
 									})
 									.appendChild(outlet)
-									.mount(app.$router.hmr)
+									.mount(tool.hmr)
 									.saveToExtension()
 									.done(function () {
 										if (entity) {
@@ -255,7 +261,7 @@ export const makeRouter = (entry: string, config: any) => {
 					deep: null,
 				})
 				.replaceChildren(entry)
-				.mount(app.$router.hmr)
+				.mount(tool.hmr)
 				.saveToExtension()
 				.done(function () {
 					if (entity) {
@@ -303,24 +309,24 @@ export const makeRouter = (entry: string, config: any) => {
 				});
 
 				if (searchNotEqual) {
-					EntityRouter.gotoNotFound(app, config, url, goto);
+					EntityRouter.gotoNotFound(app, config, url, goto, tool);
 					return false;
 				}
 			}
 			if ((!result.config.search && uri.search) || (result.config.search && !uri.search)) {
-				return EntityRouter.gotoNotFound(app, config, url, goto);
+				return EntityRouter.gotoNotFound(app, config, url, goto, tool);
 			}
 
 			const entity = new EntityRouter(app, config, tool);
 
 			if (!entity.beforeEach(result.config)) return false;
 
-			EntityRouter.change(app, url);
-			EntityRouter.found(app, url);
+			EntityRouter.change(url, tool);
+			EntityRouter.found(url, tool);
 
 			return goto(app, url, result.component, result.config, params, uri.search, entity, nested);
 		} else {
-			return EntityRouter.gotoNotFound(app, config, url, goto);
+			return EntityRouter.gotoNotFound(app, config, url, goto, tool);
 		}
 	};
 	return (app: Component, blaze, hmr, keyApp) => {
@@ -370,7 +376,6 @@ export const makeRouter = (entry: string, config: any) => {
 				};
 			},
 		};
-		app.$router = tool;
 		let current = Router.get(keyApp);
 		if (!current) {
 			Router.set(tool);
@@ -406,7 +411,11 @@ export const makeRouter = (entry: string, config: any) => {
 		 * inject router to always component
 		 */
 		blaze.onMakeComponent.push((component) => {
-			component.$router = tool;
+			Object.defineProperty(component, "$router", {
+				get: () => {
+					return tool;
+				},
+			});
 		});
 
 		/**
@@ -415,8 +424,8 @@ export const makeRouter = (entry: string, config: any) => {
 		 */
 		blaze.onReload.push((updateComponent: any[]) => {
 			updateComponent.forEach((newComponent) => {
-				let component = app.$router.$.active;
-				let loader = app.$router.loader;
+				let component = tool.$.active;
+				let loader = tool.loader;
 				let createApp = App.get(keyApp);
 				if (createApp.isComponent(newComponent)) {
 					if (newComponent.name === component.constructor.name) {
@@ -424,7 +433,7 @@ export const makeRouter = (entry: string, config: any) => {
 						HMR.set(newComponent)
 					}
 					if (loader && newComponent.name === loader.name) {
-						Object.assign(app.$router, {
+						Object.assign(tool, {
 							loader: newComponent,
 						});
 						HMR.set(newComponent)

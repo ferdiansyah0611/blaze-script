@@ -205,7 +205,11 @@ export const context = (entry: string, defaultContext: any, action?: any) => {
 			listening = listening.filter((_a, b) => b !== index - 1);
 		});
 
-		return values;
+		return{
+			get values(){
+				return values;
+			}
+		}
 	};
 };
 

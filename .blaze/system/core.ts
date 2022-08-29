@@ -15,7 +15,7 @@ import {
 	updated,
 	computed,
 	effect,
-	defineProp
+	defineProp,
 } from "./utils";
 import e from "./blaze";
 import { diffChildren } from "./diff";
@@ -29,7 +29,7 @@ import { App } from "./global";
  */
 export const init = (component: Component, _auto?: string) => {
 	if (!component.$deep) {
-		component.$deep = {
+		let deep = {
 			update: 0,
 			batch: false,
 			disableTrigger: false,
@@ -85,8 +85,24 @@ export const init = (component: Component, _auto?: string) => {
 				}
 			},
 		};
+		let context = {};
+		Object.defineProperty(component, "$deep", {
+			get: () => {
+				return deep;
+			},
+		});
+		Object.defineProperty(component, "ctx", {
+			get: () => {
+				return context;
+			},
+			set: (value) => {
+				if (typeof value === "object") {
+					Object.assign(context, value);
+				}
+				return true;
+			},
+		});
 
-		component.ctx = {};
 		component.props = {};
 		component.$h = jsx(component);
 	}
@@ -189,7 +205,7 @@ export const rendering = (
 	let blaze = getBlaze(component.$config?.key || 0);
 	let error = window.$error;
 	try {
-		const lifecycle = new Lifecycle(component)
+		const lifecycle = new Lifecycle(component);
 		const renderComponent = () => {
 			render = component.render();
 			render.key = data.key || key || 0;
@@ -291,7 +307,6 @@ export const equalProps = (oldProps, newProps) => {
 	});
 };
 
-
 /**
  * @EntityRender
  * utilites for render
@@ -324,8 +339,8 @@ export class EntityRender {
 			Object.assign(this.component, inject);
 		}
 		// inject config
-		let root = App.get(key || 0, 'config');
-		if(root) this.component.$config = root;
+		let root = App.get(key || 0, "config");
+		if (root) this.component.$config = root;
 		return this;
 	};
 	done = (callback: (current: any) => any) => {
@@ -367,7 +382,6 @@ export class EntityRender {
 		return this;
 	}
 }
-
 
 export const getBlaze = (key) => {
 	let app = App.get(key);

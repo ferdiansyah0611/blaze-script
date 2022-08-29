@@ -62,8 +62,8 @@ export const makeAttribute = (data: any, el: HTMLElement, component: Component) 
 	};
 	Object.keys(data).forEach((item: any) => {
 		if (item === "model") {
-			let error = window.$error
-			try{
+			let error = window.$error;
+			try {
 				let path = data[item],
 					name = data.live ? "keyup" : "change",
 					call = (e: any) => {
@@ -78,9 +78,12 @@ export const makeAttribute = (data: any, el: HTMLElement, component: Component) 
 				}
 				el[item] = data[item];
 				return;
-			}catch(err){
+			} catch (err) {
 				if (error) {
-					error.open(`Error Model`, `State on path ${data[item]} is undefined. Please check the state!\nCall Stack:\n${err.stack}`);
+					error.open(
+						`Error Model`,
+						`State on path ${data[item]} is undefined. Please check the state!\nCall Stack:\n${err.stack}`
+					);
 				}
 			}
 		}
@@ -114,7 +117,7 @@ export const makeAttribute = (data: any, el: HTMLElement, component: Component) 
 			return;
 		}
 		// refs
-		if (item === "refs" && !component.$deep.update) {
+		if (item === "refs" && !component.$deep.update && data[item]) {
 			if (typeof data.i === "number") {
 				if (!component[data[item]]) {
 					component[data[item]] = [];
@@ -144,7 +147,7 @@ export const makeAttribute = (data: any, el: HTMLElement, component: Component) 
 					call,
 					index = 0,
 					removeOnEmpty = (e) => {
-						el.removeEventListener(e.type, call);
+						e.currentTarget.removeEventListener(e.type, call);
 					};
 
 				if (find) {
@@ -157,10 +160,7 @@ export const makeAttribute = (data: any, el: HTMLElement, component: Component) 
 						if (!data.batch) {
 							await event.fn(isValue ? e.target.value : e);
 						} else {
-							batch(
-								async () => await event.fn(isValue ? e.target.value : e),
-								component
-							);
+							batch(async () => await event.fn(isValue ? e.target.value : e), component);
 						}
 					};
 				} else {
@@ -180,31 +180,29 @@ export const makeAttribute = (data: any, el: HTMLElement, component: Component) 
 			}
 			return;
 		}
-		// magic
-		if (item === "toggle") {
+		// directive
+		if (item === "on:toggle") {
 			let call = (e: any) => {
 				e.preventDefault();
-				if (e.currentTarget.toggle.indexOf("component.") === -1) {
-					e.currentTarget.toggle = "component." + e.currentTarget.toggle;
-					e.currentTarget.toggle += " = !" + e.currentTarget.toggle;
+				if (e.currentTarget['on:toggle'].indexOf("component.") === -1) {
+					e.currentTarget['on:toggle'] = "component." + e.currentTarget['on:toggle'];
+					e.currentTarget['on:toggle'] += " = !" + e.currentTarget['on:toggle'];
 				}
-				eval(e.currentTarget.toggle);
+				eval(e.currentTarget['on:toggle']);
 			};
 			el.addEventListener("click", call);
 			addEventVirtualToEl("click", call);
 		}
-		if (item === "show") {
+		if (item === "on:show") {
 			if (!data[item]) {
 				el.style.display = "none";
-				if (el.children.length) {
-					Array.from(el.children).forEach((value) => {
-						value.remove();
-					});
-				} else {
-					Array.from(el.childNodes).forEach((value) => {
-						value.remove();
-					});
-				}
+			}
+		}
+		if (item === "on:active") {
+			if (data[item]) {
+				el.classList.add("active");
+			} else {
+				el.classList.remove("active");
 			}
 		}
 		el[item] = data[item];

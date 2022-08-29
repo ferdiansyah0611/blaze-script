@@ -21,7 +21,7 @@ declare global {
         model?: string;
         toggle?: string;
         diff?: any;
-        refs?: number;
+        refs?: string;
         i?: any;
         key?: any;
         $index?: number;

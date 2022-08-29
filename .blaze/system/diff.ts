@@ -7,7 +7,7 @@ import Lifecycle from "./lifecycle";
  * diff attribute, skip, textNode, input element
  * update refs
  */
-const diff = function (prev: HTMLElement, el: HTMLElement, component: Component) {
+const diff = function (prev: HTMLElement, el: HTMLElement, component: Component, hmr: Component) {
 	let zip = [];
 	if (!prev || !el) {
 		return zip;
@@ -61,12 +61,16 @@ const diff = function (prev: HTMLElement, el: HTMLElement, component: Component)
 			}
 		};
 		if (!prev.childNodes.length && el.childNodes.length) {
-			el.childNodes.forEach((node: HTMLElement) => {
-				prev.appendChild(node);
+			zip.push(() => {
+				el.childNodes.forEach((node: HTMLElement) => {
+					prev.appendChild(node);
+				});
 			});
 		} else if (prev.childNodes.length && !el.childNodes.length) {
-			prev.childNodes.forEach((node: HTMLElement) => {
-				node.remove();
+			zip.push(() => {
+				prev.childNodes.forEach((node: HTMLElement) => {
+					node.remove();
+				});
 			});
 		} else if (prev.childNodes.length === el.childNodes.length) {
 			prev.childNodes.forEach(rechange);
@@ -94,61 +98,101 @@ const diff = function (prev: HTMLElement, el: HTMLElement, component: Component)
 	}
 	// attribute
 	if (prev.attributes.length || el.attributes.length) {
-		zip.push(() => {
-			let oldAttr = prev.getAttributeNames();
-			let newAttr = el.getAttributeNames();
-			// !old new
-			if (!oldAttr.length && newAttr.length) {
-				newAttr.forEach((name) => {
+		// zip.push(() => {
+		let oldAttr = prev.getAttributeNames();
+		let newAttr = el.getAttributeNames();
+		// !old new
+		if (!oldAttr.length && newAttr.length) {
+			newAttr.forEach((name) => {
+				zip.push(() => {
 					prev.setAttribute(name, el.getAttribute(name));
 				});
-			}
-			// old !new
-			else if (oldAttr.length && !newAttr.length) {
-				oldAttr.forEach((name) => {
+			});
+		}
+		// old !new
+		else if (oldAttr.length && !newAttr.length) {
+			oldAttr.forEach((name) => {
+				zip.push(() => {
 					prev.removeAttribute(name);
 				});
-			}
-			// same
-			else if (oldAttr.length === newAttr.length) {
-				oldAttr.forEach((name) => {
-					let oldValue = prev.getAttribute(name);
-					let newValue = el.getAttribute(name);
-					if (oldValue !== newValue) {
+			});
+		}
+		// same
+		else if (oldAttr.length === newAttr.length) {
+			oldAttr.forEach((name) => {
+				let oldValue = prev.getAttribute(name);
+				let newValue = el.getAttribute(name);
+				if (oldValue !== newValue) {
+					zip.push(() => {
 						prev.setAttribute(name, newValue);
-					}
-				});
-			}
-			// add
-			else if (newAttr.length > oldAttr.length) {
-				newAttr.forEach((name) => {
-					let check = prev.getAttribute(name);
-					if (!check) {
+					});
+				}
+			});
+		}
+		// add
+		else if (newAttr.length > oldAttr.length) {
+			newAttr.forEach((name) => {
+				let check = prev.getAttribute(name);
+				if (!check) {
+					zip.push(() => {
 						prev.setAttribute(name, el.getAttribute(name));
-					}
-				});
-			}
-			// delete
-			else if (newAttr.length < oldAttr.length) {
-				oldAttr.forEach((name) => {
-					let check = el.getAttribute(name);
-					if (!check) {
+					});
+				}
+			});
+		}
+		// delete
+		else if (newAttr.length < oldAttr.length) {
+			oldAttr.forEach((name) => {
+				let check = el.getAttribute(name);
+				if (!check) {
+					zip.push(() => {
 						prev.removeAttribute(name);
-					}
-				});
-			}
-		});
+					});
+				}
+			});
+		}
+		// });
 	}
-	// update refs if updated
-	if (prev.refs) {
-		let isConnected = prev.isConnected ? prev : el;
-		if (typeof prev.i === "number") {
-			if (!component[prev.refs[prev.i]]) {
-				component[prev.refs[prev.i]] = [];
+	// refs
+	if (prev.refs || el.refs) {
+		let lifecycle = new Lifecycle(component);
+		let updateRefs = (name, value) => {
+			if (typeof prev.i === "number") {
+				if (!component[name]) {
+					component[name] = [];
+				}
+				component[name][prev.i] = prev;
+			} else {
+				if ((name && component[name] && !component[name].isSameNode(value)) || !component[name]) {
+					component[name] = value;
+				}
 			}
-			component[prev.refs][prev.i] = isConnected;
-		} else {
-			component[prev.refs] = isConnected;
+		};
+		if (!prev.refs && el.refs) {
+			zip.push(() => {
+				updateRefs(el.refs, prev);
+				prev.refs = el.refs;
+
+				lifecycle.effect(el.refs);
+			});
+		} else if (prev.refs && !el.refs) {
+			zip.push(() => {
+				let refs = prev.refs;
+				delete component[prev.refs];
+				delete prev.refs;
+
+				lifecycle.effect(refs);
+			});
+		} else if (prev.refs !== el.refs) {
+			zip.push(() => {
+				delete component[prev.refs];
+				delete prev.refs;
+
+				updateRefs(el.refs, prev);
+				prev.refs = el.refs;
+
+				lifecycle.effect(el.refs);
+			});
 		}
 	}
 	// input
@@ -156,35 +200,43 @@ const diff = function (prev: HTMLElement, el: HTMLElement, component: Component)
 		zip.push(() => (prev.value = el.value));
 	}
 	// event
-	if ((prev.events || el.events) && !prev.toggle && !el.toggle && !prev.model && !el.model) {
-		eventDiff(prev, el);
+	if ((prev.events || el.events) && !prev['on:toggle'] && !el['on:toggle'] && !prev.model && !el.model) {
+		zip.push(() => {
+			eventDiff(prev, el, hmr);
+		});
 	}
-	// toggle
-	if (prev.toggle || el.toggle) {
-		if (prev.toggle && !el.toggle) {
-			prev.events = prev.events.filter((event) => {
-				if (event.name === "click") {
-					prev.removeEventListener(event.name, event.call);
-					prev.toggle = "";
-					return false;
-				}
-				return event;
+	// on:toggle
+	if (prev['on:toggle'] || el['on:toggle']) {
+		if (prev['on:toggle'] && !el['on:toggle']) {
+			zip.push(() => {
+				prev.events = prev.events.filter((event) => {
+					if (event.name === "click") {
+						prev.removeEventListener(event.name, event.call);
+						prev['on:toggle'] = "";
+						return false;
+					}
+					return event;
+				});
+				eventDiff(prev, el, hmr);
 			});
-			eventDiff(prev, el);
-		} else if (!prev.toggle && el.toggle) {
-			el.events.forEach((event) => {
-				if (event.name === "click") {
-					prev.addEventListener(event.name, event.call);
-					prev.toggle = el.toggle;
+		} else if (!prev['on:toggle'] && el['on:toggle']) {
+			zip.push(() => {
+				el.events.forEach((event) => {
+					if (event.name === "click") {
+						prev.addEventListener(event.name, event.call);
+						prev['on:toggle'] = el['on:toggle'];
 
-					if (!prev.events) prev.events = [];
-					prev.events.push(event);
-				}
+						if (!prev.events) prev.events = [];
+						prev.events.push(event);
+					}
+				});
+				eventDiff(prev, el, hmr);
 			});
-			eventDiff(prev, el);
-		} else if (prev.toggle !== el.toggle) {
-			prev.toggle = el.toggle;
-			eventDiff(prev, el);
+		} else if (prev['on:toggle'] !== el['on:toggle']) {
+			zip.push(() => {
+				prev['on:toggle'] = el['on:toggle'];
+				eventDiff(prev, el, hmr);
+			});
 		}
 	}
 	// model
@@ -192,8 +244,10 @@ const diff = function (prev: HTMLElement, el: HTMLElement, component: Component)
 		if (prev.model && !el.model) {
 			prev.events = prev.events.filter((event) => {
 				if (event.call.toString().indexOf("model") !== -1 && ["keyup", "change"].includes(event.name)) {
-					prev.removeEventListener(event.name, event.call);
-					prev.model = "";
+					zip.push(() => {
+						prev.removeEventListener(event.name, event.call);
+						prev.model = "";
+					});
 					return false;
 				}
 				return event;
@@ -201,15 +255,43 @@ const diff = function (prev: HTMLElement, el: HTMLElement, component: Component)
 		} else if (!prev.model && el.model) {
 			el.events.forEach((event) => {
 				if (event.call.toString().indexOf("model") !== -1 && ["keyup", "change"].includes(event.name)) {
-					prev.addEventListener(event.name, event.call);
-					prev.model = el.model;
+					zip.push(() => {
+						prev.addEventListener(event.name, event.call);
+						prev.model = el.model;
 
-					if (!prev.events) prev.events = [];
-					prev.events.push(event);
+						if (!prev.events) prev.events = [];
+						prev.events.push(event);
+					});
 				}
 			});
 		} else if (prev.model !== el.model) {
-			prev.model = el.model;
+			zip.push(() => {
+				prev.model = el.model;
+			});
+		}
+	}
+	// on:active
+	if (prev["on:active"] || el["on:active"]) {
+		if (!prev["on:active"] && el["on:active"]) {
+			zip.push(() => {
+				prev["on:active"] = el["on:active"];
+				prev.classList.add("active");
+			});
+		}
+		if (prev["on:active"] && !el["on:active"]) {
+			zip.push(() => {
+				delete prev["on:active"];
+				prev.classList.remove("active");
+			});
+		}
+	}
+	// batch
+	if(prev.batch || el.batch) {
+		if(!prev.batch && el.batch) {
+			prev.batch = el.batch
+		}
+		if(prev.batch && !el.batch) {
+			delete prev.batch
 		}
 	}
 
@@ -223,14 +305,19 @@ const diff = function (prev: HTMLElement, el: HTMLElement, component: Component)
  * skip diff if el not different with current component
  * and diff element
  */
-export const diffChildren = (oldest: any, newest: any, component: Component, first: boolean = true) => {
+export const diffChildren = (
+	oldest: any,
+	newest: any,
+	component: Component,
+	first: boolean = true,
+	hmr?: Component
+) => {
 	if (!newest || !oldest || oldest.skip) {
 		return;
 	}
 	if (oldest.for) {
 		let oldestChildren: HTMLElement[] = Array.from(oldest.children),
-			newestChildren: HTMLElement[] = Array.from(newest.children),
-			from = (arr) => Array.from(arr);
+			newestChildren: HTMLElement[] = Array.from(newest.children);
 
 		if (!oldest.children.length && !newest.children.length) {
 			return;
@@ -238,24 +325,24 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 		// replacing if oldest.children === 0
 		else if (!oldest.children.length && newest.children.length) {
 			oldest.replaceChildren(...newest.children);
-			from(oldest.children).forEach((node: HTMLElement) => {
+			oldestChildren.forEach((node: HTMLElement) => {
 				// mount
 				mountComponentFromEl(node);
 			});
 			return;
 		} else if (oldest.children.length && !newest.children.length) {
-			oldestChildren.forEach((item: HTMLElement) => {
-				unmountAndRemoveRegistry(item.$children, item.key, item.$root);
-				item.remove();
+			oldestChildren.forEach((node: HTMLElement) => {
+				unmountAndRemoveRegistry({ oldest, newest }, node);
+				node.remove();
 			});
 			return;
 		}
 		// not exists, auto delete...
 		else if (newest.children.length < oldest.children.length) {
-			oldestChildren.forEach((item: HTMLElement) => {
-				let latest = findComponentNode(newest, item);
+			oldestChildren.forEach((node: HTMLElement) => {
+				let latest = findComponentNode(newest, node);
 				if (!latest) {
-					removeComponentOrEl(item, component);
+					removeComponentOrEl(node, component);
 					return;
 				}
 			});
@@ -265,19 +352,19 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 		// new children detection
 		else if (newest.children.length > oldest.children.length) {
 			let checked = false;
-			newestChildren.forEach((item: HTMLElement, i: number) => {
-				let latest = findComponentNode(oldest, item);
+			newestChildren.forEach((node: HTMLElement, i: number) => {
+				let latest = findComponentNode(oldest, node);
 				if (!latest) {
 					let check = oldest.children[i];
 					if (check) {
-						check.insertAdjacentElement("beforebegin", item);
+						check.insertAdjacentElement("beforebegin", node);
 					} else {
 						let oldChild: HTMLElement[] = Array.from(oldest.children);
-						oldChild[i - 1].insertAdjacentElement("afterend", item);
+						oldChild[i - 1].insertAdjacentElement("afterend", node);
 					}
 
 					// mount
-					mountComponentFromEl(item);
+					mountComponentFromEl(node);
 					checked = true;
 					return;
 				}
@@ -295,7 +382,7 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 				oldestChildren.forEach((node: HTMLElement, i: number) => {
 					if (newestChildren[i] && node.key !== newestChildren[i].key) {
 						// unmount
-						unmountAndRemoveRegistry(node.$children, node.key, node.$root);
+						unmountAndRemoveRegistry({ oldest, newest }, node);
 						if (node.$name !== newestChildren[i].$name) {
 							node.replaceWith(newestChildren[i]);
 						} else {
@@ -308,7 +395,7 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 					} else {
 						if (node.updating) {
 							node.updating = false;
-							let difference = diff(node, newestChildren[i], node.$children);
+							let difference = diff(node, newestChildren[i], node.$children, hmr);
 							let childrenCurrent: any = Array.from(node.children);
 							difference.forEach((rechange: Function) => rechange());
 							nextDiffChildren(childrenCurrent, newestChildren[i], node.$children || component);
@@ -346,21 +433,16 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 		} else if (oldest.children.length && !newest.children.length) {
 			oldestChildren.forEach((node: HTMLElement) => {
 				// unmount
-				unmountAndRemoveRegistry(node.$children, node.key, node.$root);
+				unmountAndRemoveRegistry({ oldest, newest }, node, true);
 			});
 			oldest.replaceChildren(...newest.children);
 			return;
 		} else if (newest.children.length < oldest.children.length) {
 			oldestChildren.forEach((node: HTMLElement) => {
-				if (["number", "string"].includes(typeof node.key)) {
-					let latest = findComponentNode(newest, node);
-					if (!latest) {
-						// unmount
-						unmountAndRemoveRegistry(node.$children, node.key, node.$root);
-						insert = true;
-						node.remove();
-					}
-				}
+				unmountAndRemoveRegistry({ oldest, newest }, node, true, () => {
+					insert = true;
+					node.remove();
+				});
 			});
 			if (!insert) {
 				oldest.replaceChildren(...newest.children);
@@ -392,10 +474,10 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
 		}
 	} else {
 		if (first) {
-			let difference = diff(oldest, newest, component);
+			let difference = diff(oldest, newest, component, hmr);
 			difference.forEach((rechange: Function) => rechange());
 		}
-		nextDiffChildren(Array.from(oldest.children), newest, component);
+		nextDiffChildren(Array.from(oldest.children), newest, component, hmr);
 	}
 };
 
@@ -403,9 +485,9 @@ export const diffChildren = (oldest: any, newest: any, component: Component, fir
  * @nextDiffChildren
  * action to next diff a children
  */
-function nextDiffChildren(children: HTMLElement[], newest: any, component: Component) {
+function nextDiffChildren(children: HTMLElement[], newest: any, component: Component, hmr?: Component) {
 	children.forEach((item: HTMLElement, i: number) => {
-		let difference = diff(item, newest.children[i], component);
+		let difference = diff(item, newest.children[i], component, hmr);
 		difference.forEach((rechange: Function) => rechange());
 		diffChildren(item, newest.children[i], component, false);
 	});
@@ -415,7 +497,7 @@ function nextDiffChildren(children: HTMLElement[], newest: any, component: Compo
  * @eventDiff
  * diff a event listener
  */
-function eventDiff(prev: HTMLElement, el: HTMLElement) {
+function eventDiff(prev: HTMLElement, el: HTMLElement, hmr: Component) {
 	if (prev.events && prev.events.length && (!el.events || !el.events.length)) {
 		prev.events.forEach((event: VirtualEvent) => {
 			prev.removeEventListener(event.name, event.call);
@@ -423,6 +505,9 @@ function eventDiff(prev: HTMLElement, el: HTMLElement) {
 		prev.events = [];
 	} else if ((!prev.events || !prev.events.length) && el.events && el.events.length) {
 		el.events.forEach((event: VirtualEvent) => {
+			if (hmr) {
+				event.fn = event.fn.bind(hmr);
+			}
 			prev.addEventListener(event.name, event.call);
 		});
 		prev.events = el.events;
@@ -432,6 +517,9 @@ function eventDiff(prev: HTMLElement, el: HTMLElement) {
 			if (event.name === latest.name) {
 				event = latest;
 			}
+			if (hmr && event.fn) {
+				event.fn = event.fn.bind(hmr);
+			}
 			return event;
 		});
 	} else if (el.events && prev.events) {
@@ -439,10 +527,16 @@ function eventDiff(prev: HTMLElement, el: HTMLElement) {
 			el.events.forEach((event: VirtualEvent, i: number) => {
 				let oldEvent = prev.events[i];
 				if (!oldEvent || !(event.name === oldEvent.name)) {
+					if (hmr && event.fn) {
+						event.fn = event.fn.bind(hmr);
+					}
 					prev.addEventListener(event.name, event.call);
 					prev.events.push(event);
 				} else {
 					oldEvent = event;
+					if (hmr && oldEvent.fn) {
+						oldEvent.fn = oldEvent.fn.bind(hmr);
+					}
 				}
 			});
 		} else if (el.events.length < prev.events.length) {
@@ -453,6 +547,9 @@ function eventDiff(prev: HTMLElement, el: HTMLElement) {
 					return false;
 				} else {
 					event = latest;
+					if (hmr && event.fn) {
+						event.fn = event.fn.bind(hmr);
+					}
 				}
 				return event;
 			});

@@ -53,7 +53,7 @@ export class createApp implements InterfaceApp {
 				component.children
 			);
 
-			diffChildren(component.$node, result, newComponent);
+			diffChildren(component.$node, result, newComponent, true, component);
 			newComponent.$node = component.$node;
 			newComponent.$node.$children = newComponent;
 			newComponent.$deep.hasMount = false;
@@ -127,6 +127,9 @@ export class createApp implements InterfaceApp {
 					newComponent[name] = newComponent[name].bind(component);
 					return;
 				}
+			}
+			if(newComponent[name] && !component[name]) {
+				return component[name] = newComponent[name];
 			}
 			newComponent[name] = component[name];
 		});
