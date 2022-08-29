@@ -19,7 +19,7 @@ declare global {
         value: any;
         events?: any[];
         model?: string;
-        toggle?: string;
+        batch?: boolean;
         diff?: any;
         refs?: string;
         i?: any;

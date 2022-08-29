@@ -67,15 +67,25 @@ export const makeAttribute = (data: any, el: HTMLElement, component: Component) 
 				let path = data[item],
 					name = data.live ? "keyup" : "change",
 					call = (e: any) => {
-						deepObjectState(e.currentTarget.model, data, component, e.target.value);
+						if(el.type === 'checkbox') {
+							deepObjectState(e.currentTarget.model, data, component, e.target.checked);
+						}
+						else {
+							deepObjectState(e.currentTarget.model, data, component, e.target.value);
+						}
 					};
 
 				el.addEventListener(name, call);
 				addEventVirtualToEl(name, call);
+
 				let value = deepObjectState(path, data, component);
-				if (value && value.toString().indexOf("[object Object]") === -1) {
+				if(el.type === 'checkbox') {
+					el.checked = Boolean(value);
+				}
+				else if (value && value.toString().indexOf("[object Object]") === -1) {
 					el.value = value;
 				}
+
 				el[item] = data[item];
 				return;
 			} catch (err) {

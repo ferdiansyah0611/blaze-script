@@ -146,7 +146,7 @@ export const deepObjectState = (path: string, data: any, component: Component, i
 	let value;
 	let split = path.split(".");
 
-	if (!(typeof isValue === "string")) {
+	if (!(["string", "boolean"].includes(typeof isValue))) {
 		if (split.length <= 5 && split.length > 0) {
 			split.forEach((name: string, i: number) => {
 				if (!i) {
