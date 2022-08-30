@@ -7,7 +7,7 @@ import Lifecycle from "./lifecycle";
  * diff attribute, skip, textNode, input element
  * update refs
  */
-const diff = function (prev: HTMLElement, el: HTMLElement, component: Component, hmr: Component) {
+const diff = function (prev: Element, el: Element, component: Component, hmr: Component) {
 	let zip = [];
 	if (!prev || !el) {
 		return zip;
@@ -62,13 +62,13 @@ const diff = function (prev: HTMLElement, el: HTMLElement, component: Component,
 		};
 		if (!prev.childNodes.length && el.childNodes.length) {
 			zip.push(() => {
-				el.childNodes.forEach((node: HTMLElement) => {
+				el.childNodes.forEach((node: Element) => {
 					prev.appendChild(node);
 				});
 			});
 		} else if (prev.childNodes.length && !el.childNodes.length) {
 			zip.push(() => {
-				prev.childNodes.forEach((node: HTMLElement) => {
+				prev.childNodes.forEach((node: Element) => {
 					node.remove();
 				});
 			});
@@ -79,7 +79,7 @@ const diff = function (prev: HTMLElement, el: HTMLElement, component: Component,
 				rechange(node, i);
 				if (i === prev.childNodes.length - 1) {
 					zip.push(() => {
-						el.childNodes.forEach((nodes: HTMLElement, key: number) => {
+						el.childNodes.forEach((nodes: Element, key: number) => {
 							if (key > i) {
 								prev.appendChild(nodes);
 							}
@@ -194,8 +194,8 @@ const diff = function (prev: HTMLElement, el: HTMLElement, component: Component,
 		}
 	}
 	// input
-	if (prev.value !== el.value) {
-		zip.push(() => (prev.value = el.value));
+	if (prev['value'] !== el['value']) {
+		zip.push(() => (prev['value'] = el['value']));
 	}
 	// event
 	if ((prev.events || el.events) && !prev["on:toggle"] && !el["on:toggle"] && !prev.model && !el.model) {
@@ -313,32 +313,32 @@ const diff = function (prev: HTMLElement, el: HTMLElement, component: Component,
  * and diff element
  */
 export const diffChildren = (
-	oldest: any,
-	newest: any,
+	oldest: Element,
+	newest: Element,
 	component: Component,
 	first: boolean = true,
 	hmr?: Component
 ) => {
-	if (!newest || !oldest || oldest.skip) {
+	if (!newest || !oldest || oldest["skip"]) {
 		return;
 	}
-	if (oldest.for) {
-		let oldestChildren: HTMLElement[] = Array.from(oldest.children),
-			newestChildren: HTMLElement[] = Array.from(newest.children);
+	if (oldest["for"]) {
+		let oldestChildren: Element[] = Array.from(oldest.children),
+			newestChildren: Element[] = Array.from(newest.children);
 
 		if (!oldest.children.length && !newest.children.length) {
 			return;
 		}
 		// replacing if oldest.children === 0
 		else if (!oldest.children.length && newest.children.length) {
-			oldest.replaceChildren(...newest.children);
-			oldestChildren.forEach((node: HTMLElement) => {
+			oldest.replaceChildren(...newestChildren);
+			oldestChildren.forEach((node: Element) => {
 				// mount
 				mountComponentFromEl(node);
 			});
 			return;
 		} else if (oldest.children.length && !newest.children.length) {
-			oldestChildren.forEach((node: HTMLElement) => {
+			oldestChildren.forEach((node: Element) => {
 				unmountAndRemoveRegistry({ oldest, newest }, node);
 				node.remove();
 			});
@@ -346,7 +346,7 @@ export const diffChildren = (
 		}
 		// not exists, auto delete...
 		else if (newest.children.length < oldest.children.length) {
-			oldestChildren.forEach((node: HTMLElement) => {
+			oldestChildren.forEach((node: Element) => {
 				let latest = findComponentNode(newest, node);
 				if (!latest) {
 					removeComponentOrEl(node, component);
@@ -359,14 +359,14 @@ export const diffChildren = (
 		// new children detection
 		else if (newest.children.length > oldest.children.length) {
 			let checked = false;
-			newestChildren.forEach((node: HTMLElement, i: number) => {
+			newestChildren.forEach((node: Element, i: number) => {
 				let latest = findComponentNode(oldest, node);
 				if (!latest) {
 					let check = oldest.children[i];
 					if (check) {
 						check.insertAdjacentElement("beforebegin", node);
 					} else {
-						let oldChild: HTMLElement[] = Array.from(oldest.children);
+						let oldChild: Element[] = Array.from(oldest.children);
 						oldChild[i - 1].insertAdjacentElement("afterend", node);
 					}
 
@@ -385,23 +385,23 @@ export const diffChildren = (
 		else {
 			// updating data in children
 			// if component
-			if (oldestChildren.length && oldestChildren[0].dataset.n) {
-				oldestChildren.forEach((node: HTMLElement, i: number) => {
+			if (oldestChildren.length && oldestChildren[0]["dataset"].n) {
+				oldestChildren.forEach((node: Element, i: number) => {
 					if (newestChildren[i] && node.key !== newestChildren[i].key) {
 						// unmount
 						unmountAndRemoveRegistry({ oldest, newest }, node);
 						if (node.$name !== newestChildren[i].$name) {
 							node.replaceWith(newestChildren[i]);
 						} else {
-							node.dataset.i = newestChildren[i].key;
+							node["dataset"].i = newestChildren[i].key;
 							node.key = newestChildren[i].key;
 							node.replaceWith(newestChildren[i]);
 						}
 						// mount
 						mountComponentFromEl(newestChildren[i]);
 					} else {
-						if (node.updating) {
-							node.updating = false;
+						if (node["updating"]) {
+							node["updating"] = false;
 							let difference = diff(node, newestChildren[i], node.$children, hmr);
 							let childrenCurrent: any = Array.from(node.children);
 							difference.forEach((rechange: Function) => rechange());
@@ -415,8 +415,8 @@ export const diffChildren = (
 			return;
 		}
 	}
-	if (typeof oldest.show === "boolean") {
-		if (!newest.show) {
+	if (typeof oldest["show"] === "boolean") {
+		if (!newest["show"]) {
 			oldest.remove();
 			return;
 		}
@@ -426,39 +426,39 @@ export const diffChildren = (
 		return;
 	}
 	if (oldest.children.length !== newest.children.length) {
-		let oldestChildren: HTMLElement[] = Array.from(oldest.children),
-			newestChildren: HTMLElement[] = Array.from(newest.children),
+		let oldestChildren: Element[] = Array.from(oldest.children),
+			newestChildren: Element[] = Array.from(newest.children),
 			insert: boolean = false;
 
 		if (!oldest.children.length && newest.children.length) {
-			oldest.replaceChildren(...newest.children);
-			Array.from(oldest.children).forEach((node: HTMLElement) => {
+			oldest.replaceChildren(...newestChildren);
+			Array.from(oldest.children).forEach((node: Element) => {
 				// mount
 				mountComponentFromEl(node, component.constructor.name, true);
 			});
 			return;
 		} else if (oldest.children.length && !newest.children.length) {
-			oldestChildren.forEach((node: HTMLElement) => {
+			oldestChildren.forEach((node: Element) => {
 				// unmount
 				unmountAndRemoveRegistry({ oldest, newest }, node, true, () => {
 					node.remove();
 				});
 			});
-			oldest.replaceChildren(...newest.children);
+			oldest.replaceChildren(...newestChildren);
 			return;
 		} else if (newest.children.length < oldest.children.length) {
-			oldestChildren.forEach((node: HTMLElement) => {
+			oldestChildren.forEach((node: Element) => {
 				unmountAndRemoveRegistry({ oldest, newest }, node, true, () => {
 					insert = true;
 					node.remove();
 				});
 			});
 			if (!insert) {
-				oldest.replaceChildren(...newest.children);
+				oldest.replaceChildren(...newestChildren);
 			}
 			return;
 		} else if (newest.children.length > oldest.children.length) {
-			newestChildren.forEach((node: HTMLElement, i: number) => {
+			newestChildren.forEach((node: Element, i: number) => {
 				if (["number", "string"].includes(typeof node.key)) {
 					let latest = findComponentNode(oldest, node);
 					if (!latest) {
@@ -494,8 +494,8 @@ export const diffChildren = (
  * @nextDiffChildren
  * action to next diff a children
  */
-function nextDiffChildren(children: HTMLElement[], newest: any, component: Component, hmr?: Component) {
-	children.forEach((item: HTMLElement, i: number) => {
+function nextDiffChildren(children: Element[], newest: any, component: Component, hmr?: Component) {
+	children.forEach((item: Element, i: number) => {
 		let difference = diff(item, newest.children[i], component, hmr);
 		difference.forEach((rechange: Function) => rechange());
 		diffChildren(item, newest.children[i], component, false);
@@ -506,7 +506,7 @@ function nextDiffChildren(children: HTMLElement[], newest: any, component: Compo
  * @eventDiff
  * diff a event listener
  */
-function eventDiff(prev: HTMLElement, el: HTMLElement, hmr: Component) {
+function eventDiff(prev: Element, el: Element, hmr: Component) {
 	if (prev.events && prev.events.length && (!el.events || !el.events.length)) {
 		prev.events.forEach((event: VirtualEvent) => {
 			prev.removeEventListener(event.name, event.call);

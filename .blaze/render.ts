@@ -32,7 +32,7 @@ export class createApp implements InterfaceApp {
 		let error = window.$error;
 		error.close();
 		try {
-			let app = App.get(component.$config?.key || 0, 'app');
+			let app = App.get(component.$config?.key || 0, "app");
 			if (previous) {
 				newComponent = new newComponent(previous, app);
 			} else {
@@ -58,6 +58,16 @@ export class createApp implements InterfaceApp {
 			newComponent.$node.$children = newComponent;
 			newComponent.$deep.hasMount = false;
 
+			let allow = ["mount", "watch", "unmount", "effect", "beforeCreate", "created", "beforeUpdate", "updated"];
+			allow.forEach((name) => {
+				if (newComponent.$deep[name]) {
+					if (newComponent.$deep[name].length) {
+						component.$deep[name] = newComponent.$deep[name];
+					} else {
+						component.$deep[name] = [];
+					}
+				}
+			});
 			let now = new Lifecycle(newComponent);
 			now.created();
 			now.mount({}, false, true);
@@ -96,19 +106,19 @@ export class createApp implements InterfaceApp {
 				});
 				return;
 			}
-			if(name === "ctx") {
+			if (name === "ctx") {
 				let length = {
 					old: Object.keys(component[name]).length,
 					now: Object.keys(newComponent[name]).length,
-				}
-				if((!length.old && length.now) || (length.old && !length.now)) {
+				};
+				if ((!length.old && length.now) || (length.old && !length.now)) {
 					return;
 				}
 				newComponent[name] = component[name];
 				return;
 			}
 			if (typeof component[name] === "object") {
-				if (name === 'props') {
+				if (name === "props" || component[name].nodeType) {
 					newComponent[name] = component[name];
 					return;
 				}
@@ -119,20 +129,20 @@ export class createApp implements InterfaceApp {
 					}
 				}
 			}
-			if(typeof component[name] === 'function') {
-				if(component[name].toString() === newComponent[name].toString()) {
+			if (typeof component[name] === "function") {
+				if (component[name].toString() === newComponent[name].toString()) {
 					return;
-				}
-				else {
+				} else {
 					newComponent[name] = newComponent[name].bind(component);
 					return;
 				}
 			}
-			if(newComponent[name] && !component[name]) {
-				return component[name] = newComponent[name];
+			if (newComponent[name] && !component[name]) {
+				return (component[name] = newComponent[name]);
 			}
 			newComponent[name] = component[name];
 		});
+
 		return newComponent;
 	}
 	isComponent = (component) => component.toString().indexOf("init(this)") !== -1;

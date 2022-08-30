@@ -427,7 +427,7 @@ export const makeRouter = (entry: string, config: any) => {
 				let component = tool.$.active;
 				let loader = tool.loader;
 				let createApp = App.get(keyApp);
-				if (createApp.isComponent(newComponent)) {
+				if (createApp.isComponent(newComponent) && component) {
 					if (newComponent.name === component.constructor.name) {
 						Object.assign(component, createApp.componentProcess({ component, newComponent, key: 0, previous: app }));
 						HMR.set(newComponent)

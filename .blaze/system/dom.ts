@@ -5,7 +5,7 @@ import Lifecycle from "./lifecycle";
  * @removeComponentOrEl
  * remove a subcomponent or element
  */
-export const removeComponentOrEl = function (item: HTMLElement, component: Component) {
+export const removeComponentOrEl = function (item: Element, component: Component) {
 	if (item.$children) {
 		component.$deep.registry = component.$deep.registry.filter((registry) => {
 			if (
@@ -28,15 +28,15 @@ export const removeComponentOrEl = function (item: HTMLElement, component: Compo
  */
 
 type parentType = {
-	oldest: HTMLElement;
-	newest: HTMLElement;
+	oldest: Element;
+	newest: Element;
 }
 
-export const unmountAndRemoveRegistry = ({oldest, newest}: parentType, node: HTMLElement, checkingSub?: boolean, foundCallback?: Function) => {
+export const unmountAndRemoveRegistry = ({oldest, newest}: parentType, node: Element, checkingSub?: boolean, foundCallback?: Function) => {
 	if(node) {
 		// not component
 		if(!node.$children && checkingSub) {
-			Array.from(Array.from(node.children)).forEach((nodes: HTMLElement) => {
+			Array.from(Array.from(node.children)).forEach((nodes: Element) => {
 				unmountAndRemoveRegistry({oldest, newest}, nodes, true, foundCallback)
 			})
 			return;
@@ -58,7 +58,7 @@ export const unmountAndRemoveRegistry = ({oldest, newest}: parentType, node: HTM
  * @mountComponentFromEl
  * mount from element
  */
-export const mountComponentFromEl = (el: HTMLElement, componentName?: string, isKey?: boolean) => {
+export const mountComponentFromEl = (el: Element, componentName?: string, isKey?: boolean) => {
 	if (el.$children) {
 		el.$children.$deep.mounted();
 		if(isKey && el.$children.key) {
@@ -66,7 +66,7 @@ export const mountComponentFromEl = (el: HTMLElement, componentName?: string, is
 		}
 		return
 	}
-	Array.from(el.children).forEach((node: HTMLElement) => {
+	Array.from(el.children).forEach((node: Element) => {
 		if((componentName && node.$root) && componentName === node.$root.constructor.name) {
 			return mountComponentFromEl(node);
 		}
@@ -77,7 +77,7 @@ export const mountComponentFromEl = (el: HTMLElement, componentName?: string, is
  * @findComponentNode
  * find component with node
  */
-export const findComponentNode = (parent: HTMLElement, item: HTMLElement) => {
+export const findComponentNode = (parent: Element, item: Element) => {
 	return parent.querySelector(`[data-n="${item.$name}"][data-i="${item.key}"]`);
 };
 

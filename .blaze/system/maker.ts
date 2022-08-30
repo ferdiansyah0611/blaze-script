@@ -6,7 +6,7 @@ import { Component } from "../blaze.d";
  * @makeChildren
  * manage children element, like appendChild a node/string/number
  */
-export const makeChildren = (children: HTMLElement[], el: HTMLElement) => {
+export const makeChildren = (children: Element[], el: Element) => {
 	if (children.length === 1 && typeof children[0] === "string") {
 		el.append(document.createTextNode(children[0]));
 	} else if (children.length) {
@@ -67,7 +67,7 @@ export const makeAttribute = (data: any, el: HTMLElement, component: Component) 
 				let path = data[item],
 					name = data.live ? "keyup" : "change",
 					call = (e: any) => {
-						if (el.type === "checkbox") {
+						if (el['type'] === "checkbox") {
 							deepObjectState(e.currentTarget.model, e.currentTarget, component, e.currentTarget.checked);
 						} else {
 							deepObjectState(e.currentTarget.model, e.currentTarget, component, e.currentTarget.value);
@@ -78,10 +78,10 @@ export const makeAttribute = (data: any, el: HTMLElement, component: Component) 
 				addEventVirtualToEl(name, call);
 
 				let value = deepObjectState(path, data, component);
-				if (el.type === "checkbox") {
-					el.checked = Boolean(value);
+				if (el['type'] === "checkbox") {
+					el['checked'] = Boolean(value);
 				} else if (value && value.toString().indexOf("[object Object]") === -1) {
-					el.value = value;
+					el['value'] = value;
 				}
 
 				el[item] = data[item];

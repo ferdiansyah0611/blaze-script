@@ -198,7 +198,7 @@ export const rendering = (
 	data: any,
 	key: number,
 	nodeName: string | any,
-	children: HTMLElement[],
+	children: Element[],
 	root?: Component
 ) => {
 	let render, endPerformStartComponent;
@@ -236,7 +236,7 @@ export const rendering = (
 					key,
 					component: component,
 				});
-				component.$node.$index = index;
+				component.$node["$index"] = index;
 			}
 			// mount
 			blaze.run.onMakeComponent(component);

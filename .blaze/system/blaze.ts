@@ -14,14 +14,14 @@ export default function e(
 	component: Component,
 	nodeName: string | Function | any,
 	data: any,
-	...children: HTMLElement[]
-) {
+	...children: Element[]
+): Element {
 	/**
 	 * @delcaration
 	 */
 	const $deep = component.$deep;
 
-	let el, isFragment;
+	let el: Element | any, isFragment: boolean;
 
 	if (!data) {
 		data = {};
@@ -36,7 +36,7 @@ export default function e(
 				Object.assign(checkComponent.props, newProps);
 				checkComponent.$deep.disableTrigger = false;
 				// trigger only on node.updating
-				checkComponent.$node.updating = true;
+				checkComponent.$node["updating"] = true;
 			}
 		};
 		if (nodeName.lazy) {

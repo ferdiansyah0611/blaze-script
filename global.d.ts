@@ -10,23 +10,30 @@ declare global {
         $extension: any;
         $test: any;
     }
-    interface HTMLElement {
+    interface Element {
+        // root component
+        $root: any;
+        // current component
         $children: any;
-        $commit: any[];
         $name: string;
+        // logical optional
         if: boolean;
         else: any;
-        value: any;
-        events?: any[];
-        model?: string;
-        batch?: boolean;
-        diff?: any;
-        refs?: string;
-        i?: any;
-        key?: any;
-        $index?: number;
-        $root?: any;
-        updating?: boolean;
+        // events virtual
+        events: any[];
+        // input
+        model: string;
+        // auto batch
+        batch: boolean;
+        // skip different attribute
+        diff: any;
+        // refs of element
+        refs: string;
+        // auto trigger
+        trigger: any;
+        // key
+        i: any;
+        key: any;
     }
     interface ChildNode {
         data: any;
