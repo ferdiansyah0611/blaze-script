@@ -98,7 +98,6 @@ const diff = function (prev: HTMLElement, el: HTMLElement, component: Component,
 	}
 	// attribute
 	if (prev.attributes.length || el.attributes.length) {
-		// zip.push(() => {
 		let oldAttr = prev.getAttributeNames();
 		let newAttr = el.getAttributeNames();
 		// !old new
@@ -151,7 +150,6 @@ const diff = function (prev: HTMLElement, el: HTMLElement, component: Component,
 				}
 			});
 		}
-		// });
 	}
 	// refs
 	if (prev.refs || el.refs) {
@@ -200,31 +198,31 @@ const diff = function (prev: HTMLElement, el: HTMLElement, component: Component,
 		zip.push(() => (prev.value = el.value));
 	}
 	// event
-	if ((prev.events || el.events) && !prev['on:toggle'] && !el['on:toggle'] && !prev.model && !el.model) {
+	if ((prev.events || el.events) && !prev["on:toggle"] && !el["on:toggle"] && !prev.model && !el.model) {
 		zip.push(() => {
 			eventDiff(prev, el, hmr);
 		});
 	}
 	// on:toggle
-	if (prev['on:toggle'] || el['on:toggle']) {
-		if (prev['on:toggle'] && !el['on:toggle']) {
+	if (prev["on:toggle"] || el["on:toggle"]) {
+		if (prev["on:toggle"] && !el["on:toggle"]) {
 			zip.push(() => {
 				prev.events = prev.events.filter((event) => {
 					if (event.name === "click") {
 						prev.removeEventListener(event.name, event.call);
-						prev['on:toggle'] = "";
+						prev["on:toggle"] = "";
 						return false;
 					}
 					return event;
 				});
 				eventDiff(prev, el, hmr);
 			});
-		} else if (!prev['on:toggle'] && el['on:toggle']) {
+		} else if (!prev["on:toggle"] && el["on:toggle"]) {
 			zip.push(() => {
 				el.events.forEach((event) => {
 					if (event.name === "click") {
 						prev.addEventListener(event.name, event.call);
-						prev['on:toggle'] = el['on:toggle'];
+						prev["on:toggle"] = el["on:toggle"];
 
 						if (!prev.events) prev.events = [];
 						prev.events.push(event);
@@ -232,9 +230,9 @@ const diff = function (prev: HTMLElement, el: HTMLElement, component: Component,
 				});
 				eventDiff(prev, el, hmr);
 			});
-		} else if (prev['on:toggle'] !== el['on:toggle']) {
+		} else if (prev["on:toggle"] !== el["on:toggle"]) {
 			zip.push(() => {
-				prev['on:toggle'] = el['on:toggle'];
+				prev["on:toggle"] = el["on:toggle"];
 				eventDiff(prev, el, hmr);
 			});
 		}
@@ -286,12 +284,21 @@ const diff = function (prev: HTMLElement, el: HTMLElement, component: Component,
 		}
 	}
 	// batch
-	if(prev.batch || el.batch) {
-		if(!prev.batch && el.batch) {
-			prev.batch = el.batch
+	if (prev.batch || el.batch) {
+		if (!prev.batch && el.batch) {
+			prev.batch = el.batch;
 		}
-		if(prev.batch && !el.batch) {
-			delete prev.batch
+		if (prev.batch && !el.batch) {
+			delete prev.batch;
+		}
+	}
+	// trigger
+	if (prev.trigger || el.trigger) {
+		if (!prev.trigger && el.trigger) {
+			prev.trigger = el.trigger;
+		}
+		if (prev.trigger && !el.trigger) {
+			delete prev.trigger;
 		}
 	}
 
@@ -433,7 +440,9 @@ export const diffChildren = (
 		} else if (oldest.children.length && !newest.children.length) {
 			oldestChildren.forEach((node: HTMLElement) => {
 				// unmount
-				unmountAndRemoveRegistry({ oldest, newest }, node, true);
+				unmountAndRemoveRegistry({ oldest, newest }, node, true, () => {
+					node.remove();
+				});
 			});
 			oldest.replaceChildren(...newest.children);
 			return;

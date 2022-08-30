@@ -43,7 +43,7 @@ export const unmountAndRemoveRegistry = ({oldest, newest}: parentType, node: HTM
 		}
 		// component
 		else {
-			if(node.key) {
+			if(node.$root) {
 				let check = findComponentNode(newest, node)
 				if(!check) {
 					removeRegistry(node.$root, node.$children, foundCallback)
@@ -78,8 +78,7 @@ export const mountComponentFromEl = (el: HTMLElement, componentName?: string, is
  * find component with node
  */
 export const findComponentNode = (parent: HTMLElement, item: HTMLElement) => {
-	if(item.key) return parent.querySelector(`[data-n="${item.$name}"][data-i="${item.key}"]`);
-	return null;
+	return parent.querySelector(`[data-n="${item.$name}"][data-i="${item.key}"]`);
 };
 
 /**
@@ -87,17 +86,15 @@ export const findComponentNode = (parent: HTMLElement, item: HTMLElement) => {
  * remove registry and call unmount
  */
 function removeRegistry(component: Component, current: Component, foundCallback?: Function) {
-	if(component) {
-		component.$deep.registry = component.$deep.registry.filter((registry) => {
-			if (!(registry.component.constructor.name === current.constructor.name && registry.key === current.props.key)) {
-				return registry;
-			} else {
-				new Lifecycle(registry.component).unmount();
-				if(foundCallback) {
-					foundCallback()
-				}
-				return false;
+	component.$deep.registry = component.$deep.registry.filter((registry) => {
+		if (registry.component.constructor.name === current.constructor.name && registry.key === current.$node.key) {
+			new Lifecycle(registry.component).unmount();
+			if(foundCallback) {
+				foundCallback()
 			}
-		});
-	}
+			return false;
+		} else {
+			return registry;
+		}
+	})
 }

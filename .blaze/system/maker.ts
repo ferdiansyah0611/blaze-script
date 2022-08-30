@@ -67,11 +67,10 @@ export const makeAttribute = (data: any, el: HTMLElement, component: Component) 
 				let path = data[item],
 					name = data.live ? "keyup" : "change",
 					call = (e: any) => {
-						if(el.type === 'checkbox') {
-							deepObjectState(e.currentTarget.model, data, component, e.target.checked);
-						}
-						else {
-							deepObjectState(e.currentTarget.model, data, component, e.target.value);
+						if (el.type === "checkbox") {
+							deepObjectState(e.currentTarget.model, e.currentTarget, component, e.currentTarget.checked);
+						} else {
+							deepObjectState(e.currentTarget.model, e.currentTarget, component, e.currentTarget.value);
 						}
 					};
 
@@ -79,10 +78,9 @@ export const makeAttribute = (data: any, el: HTMLElement, component: Component) 
 				addEventVirtualToEl(name, call);
 
 				let value = deepObjectState(path, data, component);
-				if(el.type === 'checkbox') {
+				if (el.type === "checkbox") {
 					el.checked = Boolean(value);
-				}
-				else if (value && value.toString().indexOf("[object Object]") === -1) {
+				} else if (value && value.toString().indexOf("[object Object]") === -1) {
 					el.value = value;
 				}
 
@@ -194,11 +192,11 @@ export const makeAttribute = (data: any, el: HTMLElement, component: Component) 
 		if (item === "on:toggle") {
 			let call = (e: any) => {
 				e.preventDefault();
-				if (e.currentTarget['on:toggle'].indexOf("component.") === -1) {
-					e.currentTarget['on:toggle'] = "component." + e.currentTarget['on:toggle'];
-					e.currentTarget['on:toggle'] += " = !" + e.currentTarget['on:toggle'];
+				if (e.currentTarget["on:toggle"].indexOf("component.") === -1) {
+					e.currentTarget["on:toggle"] = "component." + e.currentTarget["on:toggle"];
+					e.currentTarget["on:toggle"] += " = !" + e.currentTarget["on:toggle"];
 				}
-				eval(e.currentTarget['on:toggle']);
+				eval(e.currentTarget["on:toggle"]);
 			};
 			el.addEventListener("click", call);
 			addEventVirtualToEl("click", call);
