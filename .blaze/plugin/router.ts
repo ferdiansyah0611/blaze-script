@@ -377,6 +377,7 @@ export const makeRouter = (entry: string, config: any) => {
 			},
 		};
 		let current = Router.get(keyApp);
+		app.$router = tool;
 		if (!current) {
 			Router.set(tool);
 		}
@@ -415,6 +416,9 @@ export const makeRouter = (entry: string, config: any) => {
 				get: () => {
 					return tool;
 				},
+				set: () => {
+					return true;
+				}
 			});
 		});
 
@@ -517,19 +521,13 @@ export const startIn = (component: Component, keyApp?: number, loader?: Function
 	mount(() => {
 		let router = Router.get(keyApp);
 		router.loader = loader;
-
-		if (!router.hmr) {
-			router.ready(component);
-			window.addEventListener("popstate", () => {
-				if (!location.hash) {
-					popstate = true;
-					router.ready(component, location);
-				}
-			});
-		} else {
-			popstate = false;
-			router.ready(component, location);
-		}
+		router.ready(component);
+		window.addEventListener("popstate", () => {
+			if (!location.hash) {
+				popstate = true;
+				router.ready(component, location);
+			}
+		});
 	}, component);
 };
 

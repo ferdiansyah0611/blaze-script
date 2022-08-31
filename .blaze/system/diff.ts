@@ -332,7 +332,7 @@ export const diffChildren = (
 		// replacing if oldest.children === 0
 		else if (!oldest.children.length && newest.children.length) {
 			oldest.replaceChildren(...newestChildren);
-			oldestChildren.forEach((node: Element) => {
+			newestChildren.forEach((node: Element) => {
 				// mount
 				mountComponentFromEl(node);
 			});
