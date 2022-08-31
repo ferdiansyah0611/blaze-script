@@ -60,6 +60,8 @@ export const makeAttribute = (data: any, el: HTMLElement, component: Component) 
 			}) - 1
 		);
 	};
+	let changeObject = (item) => el[item] = data[item];
+
 	Object.keys(data).forEach((item: any) => {
 		if (item === "model") {
 			let error = window.$error;
@@ -84,7 +86,7 @@ export const makeAttribute = (data: any, el: HTMLElement, component: Component) 
 					el['value'] = value;
 				}
 
-				el[item] = data[item];
+				changeObject(item);
 				return;
 			} catch (err) {
 				if (error) {
@@ -93,6 +95,7 @@ export const makeAttribute = (data: any, el: HTMLElement, component: Component) 
 						`State on path ${data[item]} is undefined. Please check the state!\nCall Stack:\n${err.stack}`
 					);
 				}
+				return;
 			}
 		}
 		// class
@@ -200,11 +203,16 @@ export const makeAttribute = (data: any, el: HTMLElement, component: Component) 
 			};
 			el.addEventListener("click", call);
 			addEventVirtualToEl("click", call);
+
+			changeObject(item);
+			return;
 		}
 		if (item === "on:show") {
 			if (!data[item]) {
 				el.style.display = "none";
 			}
+			changeObject(item);
+			return;
 		}
 		if (item === "on:active") {
 			if (data[item]) {
@@ -212,6 +220,8 @@ export const makeAttribute = (data: any, el: HTMLElement, component: Component) 
 			} else {
 				el.classList.remove("active");
 			}
+			changeObject(item);
+			return;
 		}
 		el[item] = data[item];
 	});

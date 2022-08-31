@@ -1,4 +1,4 @@
-import { removeComponentOrEl, unmountAndRemoveRegistry, mountComponentFromEl, findComponentNode } from "./dom";
+import { removeComponentOrEl, unmountAndRemoveRegistry, mountComponentFromEl, findComponentNode, mountSomeComponentFromEl } from "./dom";
 import { Component, VirtualEvent, RegisteryComponent } from "../blaze.d";
 import Lifecycle from "./lifecycle";
 
@@ -52,7 +52,11 @@ const diff = function (prev: Element, el: Element, component: Component, hmr: Co
 		return zip;
 	}
 	// text/button/link/code
-	if (["SPAN", "P", "H1", "H2", "H3", "H4", "H5", "H6", "A", "BUTTON", "CODE"].includes(prev.nodeName)) {
+	if (["SPAN", "P", "H1", "H2", "H3", "H4", "H5", "H6", "A", "BUTTON", "CODE"].includes(prev.nodeName) || (prev.text || el.text)) {
+		if(prev.text || el.text) {
+			prev.text = el.text;
+		}
+
 		const rechange = (node, i) => {
 			if (node && el.childNodes[i] !== undefined && node.data !== el.childNodes[i].data) {
 				zip.push(() => {
@@ -283,6 +287,13 @@ const diff = function (prev: Element, el: Element, component: Component, hmr: Co
 			});
 		}
 	}
+	// on:show
+	if(prev["on:show"] || el["on:show"]) {
+		if(prev["on:show"] && !el["on:show"]) {
+			zip.push(() => prev.style.display = "none");
+		}
+		prev["on:show"] = el["on:show"];
+	}
 	// batch
 	if (prev.batch || el.batch) {
 		if (!prev.batch && el.batch) {
@@ -459,21 +470,15 @@ export const diffChildren = (
 			return;
 		} else if (newest.children.length > oldest.children.length) {
 			newestChildren.forEach((node: Element, i: number) => {
-				if (["number", "string"].includes(typeof node.key)) {
-					let latest = findComponentNode(oldest, node);
-					if (!latest) {
-						let check = oldest.children[i];
-						insert = true;
-						if (check) {
-							check.insertAdjacentElement("beforebegin", node);
-						} else {
-							oldest.children[i - 1].insertAdjacentElement("afterend", node);
-						}
-						// mount
-						mountComponentFromEl(node, component.constructor.name, true);
-						return;
+				let check = oldest.children[i];
+				mountSomeComponentFromEl({ oldest, newest }, node, check, component.constructor.name, () => {
+					insert = true;
+					if (check) {
+						check.insertAdjacentElement("beforebegin", node);
+					} else {
+						oldest.children[i - 1].insertAdjacentElement("afterend", node);
 					}
-				}
+				})
 			});
 
 			if (!insert) {
