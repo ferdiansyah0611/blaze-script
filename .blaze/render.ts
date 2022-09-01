@@ -69,6 +69,7 @@ export class createApp implements InterfaceApp {
 				}
 			});
 			let now = new Lifecycle(newComponent);
+			now.beforeCreate();
 			now.created();
 			now.mount({}, false, true);
 			now.watch();
