@@ -52,9 +52,9 @@ const diff = function (prev: Element, el: Element, component: Component, hmr: Co
 		return zip;
 	}
 	// text/button/link/code
-	if (["SPAN", "P", "H1", "H2", "H3", "H4", "H5", "H6", "A", "BUTTON", "CODE"].includes(prev.nodeName) || (prev["text"] || el["text"])) {
-		if(prev["text"] || el["text"]) {
-			prev["text"] = el["text"];
+	if (["SPAN", "P", "H1", "H2", "H3", "H4", "H5", "H6", "A", "BUTTON", "CODE"].includes(prev.nodeName) || (prev["content"] || el["content"])) {
+		if(prev["content"] || el["content"]) {
+			prev["content"] = el["content"];
 		}
 
 		const rechange = (node, i) => {
