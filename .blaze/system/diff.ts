@@ -1,4 +1,10 @@
-import { removeComponentOrEl, unmountAndRemoveRegistry, mountComponentFromEl, findComponentNode, mountSomeComponentFromEl } from "./dom";
+import {
+	removeComponentOrEl,
+	unmountAndRemoveRegistry,
+	mountComponentFromEl,
+	findComponentNode,
+	mountSomeComponentFromEl,
+} from "./dom";
 import { Component, VirtualEvent, RegisteryComponent } from "../blaze.d";
 import Lifecycle from "./lifecycle";
 
@@ -52,8 +58,12 @@ const diff = function (prev: Element, el: Element, component: Component, hmr: Co
 		return zip;
 	}
 	// text/button/link/code
-	if (["SPAN", "P", "H1", "H2", "H3", "H4", "H5", "H6", "A", "BUTTON", "CODE"].includes(prev.nodeName) || (prev["content"] || el["content"])) {
-		if(prev["content"] || el["content"]) {
+	if (
+		["SPAN", "P", "H1", "H2", "H3", "H4", "H5", "H6", "A", "BUTTON", "CODE"].includes(prev.nodeName) ||
+		prev["content"] ||
+		el["content"]
+	) {
+		if (prev["content"] || el["content"]) {
 			prev["content"] = el["content"];
 		}
 
@@ -198,8 +208,8 @@ const diff = function (prev: Element, el: Element, component: Component, hmr: Co
 		}
 	}
 	// input
-	if (prev['value'] !== el['value']) {
-		zip.push(() => (prev['value'] = el['value']));
+	if (prev["value"] !== el["value"]) {
+		zip.push(() => (prev["value"] = el["value"]));
 	}
 	// event
 	if ((prev.events || el.events) && !prev["on:toggle"] && !el["on:toggle"] && !prev.model && !el.model) {
@@ -288,9 +298,9 @@ const diff = function (prev: Element, el: Element, component: Component, hmr: Co
 		}
 	}
 	// on:show
-	if(prev["on:show"] || el["on:show"]) {
-		if(prev["on:show"] && !el["on:show"]) {
-			zip.push(() => prev["style"].display = "none");
+	if (prev["on:show"] || el["on:show"]) {
+		if (prev["on:show"] && !el["on:show"]) {
+			zip.push(() => (prev["style"].display = "none"));
 		}
 		prev["on:show"] = el["on:show"];
 	}
@@ -350,7 +360,7 @@ export const diffChildren = (
 			return;
 		} else if (oldest.children.length && !newest.children.length) {
 			oldestChildren.forEach((node: Element) => {
-				unmountAndRemoveRegistry({ oldest, newest }, node);
+				unmountAndRemoveRegistry(newest, node);
 				node.remove();
 			});
 			return;
@@ -400,7 +410,7 @@ export const diffChildren = (
 				oldestChildren.forEach((node: Element, i: number) => {
 					if (newestChildren[i] && node.key !== newestChildren[i].key) {
 						// unmount
-						unmountAndRemoveRegistry({ oldest, newest }, node);
+						unmountAndRemoveRegistry(newest, node);
 						if (node.$name !== newestChildren[i].$name) {
 							node.replaceWith(newestChildren[i]);
 						} else {
@@ -438,52 +448,37 @@ export const diffChildren = (
 	}
 	if (oldest.children.length !== newest.children.length) {
 		let oldestChildren: Element[] = Array.from(oldest.children),
-			newestChildren: Element[] = Array.from(newest.children),
-			insert: boolean = false;
+			newestChildren: Element[] = Array.from(newest.children);
 
 		if (!oldest.children.length && newest.children.length) {
 			oldest.replaceChildren(...newestChildren);
 			Array.from(oldest.children).forEach((node: Element) => {
-				// mount
 				mountComponentFromEl(node, component.constructor.name, true);
 			});
 			return;
 		} else if (oldest.children.length && !newest.children.length) {
 			oldestChildren.forEach((node: Element) => {
-				// unmount
-				unmountAndRemoveRegistry({ oldest, newest }, node, true, () => {
-					node.remove();
-				});
+				unmountAndRemoveRegistry(newest, node, true);
+				node.remove();
 			});
 			oldest.replaceChildren(...newestChildren);
 			return;
 		} else if (newest.children.length < oldest.children.length) {
-			oldestChildren.forEach((node: Element) => {
-				unmountAndRemoveRegistry({ oldest, newest }, node, true, () => {
-					insert = true;
+			oldestChildren.forEach((node: Element, i: number) => {
+				let check = newest.children[i];
+				unmountAndRemoveRegistry(newest, node, true);
+				if(!check) {
 					node.remove();
-				});
+				}
 			});
-			if (!insert) {
-				oldest.replaceChildren(...newestChildren);
-			}
 			return;
 		} else if (newest.children.length > oldest.children.length) {
 			newestChildren.forEach((node: Element, i: number) => {
-				let check = oldest.children[i];
-				mountSomeComponentFromEl({ oldest, newest }, node, check, component.constructor.name, () => {
-					insert = true;
-					if (check) {
-						check.insertAdjacentElement("beforebegin", node);
-					} else {
-						oldest.children[i - 1].insertAdjacentElement("afterend", node);
-					}
-				})
+				mountSomeComponentFromEl(oldest, node, component.constructor.name);
+				if (!oldest.children[i]) {
+					oldest.children[i - 1].insertAdjacentElement("afterend", node);
+				}
 			});
-
-			if (!insert) {
-				oldest.replaceChildren(...newestChildren);
-			}
 			return;
 		}
 	} else {

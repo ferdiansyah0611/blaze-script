@@ -118,6 +118,10 @@ export class createApp implements InterfaceApp {
 				newComponent[name] = component[name];
 				return;
 			}
+			if(Array.isArray(component[name])) {
+				newComponent[name] = component[name];
+				return;
+			}
 			if (typeof component[name] === "object") {
 				if (name === "props" || component[name].nodeType) {
 					newComponent[name] = component[name];
