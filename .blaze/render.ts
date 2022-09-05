@@ -63,8 +63,6 @@ export class createApp implements InterfaceApp {
 				if (newComponent.$deep[name]) {
 					if (newComponent.$deep[name].length) {
 						component.$deep[name] = newComponent.$deep[name];
-					} else {
-						component.$deep[name] = [];
 					}
 				}
 			});
@@ -99,7 +97,7 @@ export class createApp implements InterfaceApp {
 							"created",
 							"beforeUpdate",
 							"updated",
-							"registry"
+							"registry",
 						].includes(sub)
 					)
 						return;
@@ -118,7 +116,7 @@ export class createApp implements InterfaceApp {
 				newComponent[name] = component[name];
 				return;
 			}
-			if(Array.isArray(component[name])) {
+			if (Array.isArray(component[name])) {
 				newComponent[name] = component[name];
 				return;
 			}
@@ -151,18 +149,18 @@ export class createApp implements InterfaceApp {
 		return newComponent;
 	}
 	isComponent = (component) => component.toString().indexOf("init(this)") !== -1;
+	isSameName = (component, newComponent) => newComponent.name === component.constructor.name;
 	reloadRegistry = (sub: any, previous?: Component) => {
 		let component = sub.component;
 		let hmrArray = HMR.get();
+		let newComponent = hmrArray.find(
+			(newComponents) => this.isSameName(component, newComponents) && this.isComponent(newComponents)
+		);
+		if (newComponent) {
+			Object.assign(component, this.componentProcess({ component, newComponent, key: sub.key, previous }));
+			component.__proto__.constructor = newComponent;
+		}
 		component.$deep.registry = component.$deep.registry.map((data) => this.reloadRegistry(data, component));
-		hmrArray.forEach((hmr) => {
-			if (component.constructor.name === hmr.name && this.isComponent(hmr)) {
-				Object.assign(
-					component,
-					this.componentProcess({ component, newComponent: hmr, key: sub.key, previous })
-				);
-			}
-		});
 		return sub;
 	};
 	reload(newHmr, isStore: any) {
@@ -191,12 +189,14 @@ export class createApp implements InterfaceApp {
 			});
 			return;
 		}
-		newHmr.forEach((hmr) => {
-			if (hmr.name === this.component.name && this.isComponent(hmr)) {
-				Object.assign(this.app, this.componentProcess({ component: this.app, newComponent: hmr, key: 0 }));
-				return;
-			}
-		});
+
+		let newComponent = newHmr.find(
+			(newComponents) => this.isSameName(this.app, newComponents) && this.isComponent(newComponents)
+		);
+		if (newComponent) {
+			Object.assign(this.app, this.componentProcess({ component: this.app, newComponent, key: 0 }));
+			return;
+		}
 		this.app.$deep.registry = this.app.$deep.registry.map((data) => this.reloadRegistry(data));
 		this.blaze.run.onReload(newHmr);
 	}

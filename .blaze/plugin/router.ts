@@ -28,10 +28,10 @@ class EntityRouter {
 		);
 		let msg = `[Router] Not Found 404 ${url}`;
 		tool.run.error(msg);
-		if(current) {
+		if (current) {
 			goto(app, url, current.component, {});
 		} else {
-			console.warn('[notice] component for 404 pages is empty.');
+			console.warn("[notice] component for 404 pages is empty.");
 		}
 		return;
 	}
@@ -87,7 +87,7 @@ class EntityRouter {
 		this.tool.$.active = component;
 	}
 	inject(component: Component) {
-		if(!component.$router) {
+		if (!component.$router) {
 			component.$router = this.tool;
 		}
 	}
@@ -119,7 +119,7 @@ export const makeRouter = (entry: string, config: any) => {
 			"@route/**/**/**/*.tsx",
 			"@route/**/**/**/**/*.tsx",
 			"@route/**/**/**/**/**/*.tsx",
-			"@route/**/**/**/**/**/**/*.tsx"
+			"@route/**/**/**/**/**/**/*.tsx",
 		]);
 
 		for (let modules in glob) {
@@ -183,7 +183,7 @@ export const makeRouter = (entry: string, config: any) => {
 		if (component.name.indexOf("/src") !== -1) {
 			// loader
 			let loader;
-			if(tool.loader) {
+			if (tool.loader) {
 				loader = new EntityRender(tool.loader, {});
 				loader
 					.start()
@@ -199,12 +199,12 @@ export const makeRouter = (entry: string, config: any) => {
 			if (check.default) {
 				callComponent(check.default);
 			}
-			if(loader) {
+			if (loader) {
 				loader.remove(true, false);
 			}
 		} else {
 			let hmr = HMR.find(component.name);
-			if(hmr) {
+			if (hmr) {
 				component = hmr;
 			}
 			callComponent(component);
@@ -242,6 +242,7 @@ export const makeRouter = (entry: string, config: any) => {
 									.mount(tool.hmr)
 									.saveToExtension()
 									.done(function () {
+										this.component.$node["dataset"]["keep"] = true;
 										if (entity) {
 											entity.removePrevious();
 											entity.add(this.component);
@@ -264,6 +265,7 @@ export const makeRouter = (entry: string, config: any) => {
 				.mount(tool.hmr)
 				.saveToExtension()
 				.done(function () {
+					this.component.$node["dataset"]["keep"] = true;
 					if (entity) {
 						entity.removePrevious();
 						entity.add(this.component);
@@ -349,14 +351,14 @@ export const makeRouter = (entry: string, config: any) => {
 				history.back();
 			},
 			push: (url: URL | any) => {
-				if(!url.origin && !(url === "/")) {
-					url = location.origin + url
+				if (!url.origin && !(url === "/")) {
+					url = location.origin + url;
 					url = new URL(url);
 				}
-				if(url === '/') {
-					url = location.origin
+				if (url === "/") {
+					url = location.origin;
 				}
-				if(!url.origin) {
+				if (!url.origin) {
 					url = new URL(url);
 				}
 				if ((url.search && url.search !== location.search) || !(url.pathname === location.pathname)) {
@@ -418,7 +420,7 @@ export const makeRouter = (entry: string, config: any) => {
 				},
 				set: () => {
 					return true;
-				}
+				},
 			});
 		});
 
@@ -427,24 +429,38 @@ export const makeRouter = (entry: string, config: any) => {
 		 * hot reload
 		 */
 		blaze.onReload.push((updateComponent: any[]) => {
-			updateComponent.forEach((newComponent) => {
-				let component = tool.$.active;
-				let loader = tool.loader;
-				let createApp = App.get(keyApp);
-				if (createApp.isComponent(newComponent) && component) {
-					if (newComponent.name === component.constructor.name) {
-						Object.assign(component, createApp.componentProcess({ component, newComponent, key: 0, previous: app }));
-						HMR.set(newComponent)
-					}
-					if (loader && newComponent.name === loader.name) {
-						Object.assign(tool, {
-							loader: newComponent,
-						});
-						HMR.set(newComponent)
-					}
-					component.$deep.registry = component.$deep.registry.map((data) => createApp.reloadRegistry(data, component));
+			let component = tool.$.active;
+			let loader = tool.loader;
+			let createApp = App.get(keyApp);
+			let newComponent = updateComponent.find(
+				(newComponents) =>
+					createApp.isSameName(component, newComponents) && createApp.isComponent(newComponents)
+			);
+			if(loader) {
+				let findLoader = updateComponent.find(
+					(newComponents) =>
+						createApp.isSameName(loader, newComponents) && createApp.isComponent(newComponents)
+				);
+				if (findLoader) {
+					Object.assign(tool, {
+						loader: newComponent,
+					});
+					HMR.set(newComponent);
 				}
-			});
+			}
+			if (component) {
+				if (newComponent) {
+					component.__proto__.constructor = newComponent;
+					Object.assign(
+						component,
+						createApp.componentProcess({ component, newComponent, key: 0, previous: app })
+					);
+					HMR.set(newComponent);
+				}
+				component.$deep.registry = component.$deep.registry.map((data) =>
+					createApp.reloadRegistry(data, component)
+				);
+			}
 		});
 	};
 };
@@ -454,7 +470,9 @@ export const makeRouter = (entry: string, config: any) => {
  * check potential match on route with url
  */
 function check(config: any, url: string, nested?: any) {
-	let result, isValid, params = {};
+	let result,
+		isValid,
+		params = {};
 	let routes = config.url.find((v: any) => v.path === url);
 	if (routes) {
 		isValid = true;

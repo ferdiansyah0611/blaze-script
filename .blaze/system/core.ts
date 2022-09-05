@@ -139,55 +139,6 @@ export const jsx = (component: Component) => {
 };
 
 /**
- * @deepObjectState
- * get value state/context with dot
- */
-export const deepObjectState = (path: string, data: any, component: Component, isValue?: any) => {
-	let value;
-	let split = path.split(".");
-
-	if (!["string", "boolean"].includes(typeof isValue)) {
-		if (split.length <= 5 && split.length > 0) {
-			split.forEach((name: string, i: number) => {
-				if (!i) {
-					value = component[name];
-				} else {
-					value = value[name];
-				}
-			});
-		}
-	} else {
-		if (data.trigger === 0 && data.trigger !== undefined) {
-			component.$deep.disableTrigger = true;
-		}
-
-		if (split.length === 1) {
-			component[split[0]] = isValue;
-		}
-		if (split.length === 2) {
-			component[split[0]][split[1]] = isValue;
-		}
-		if (split.length === 3) {
-			component[split[0]][split[1]][split[2]] = isValue;
-		}
-		if (split.length === 4) {
-			component[split[0]][split[1]][split[2]][split[3]] = isValue;
-		}
-		if (split.length === 5) {
-			component[split[0]][split[1]][split[2]][split[3]][split[4]] = isValue;
-		}
-
-		if (data.trigger === 0 && data.trigger !== undefined) {
-			component.$deep.disableTrigger = false;
-		}
-		if (data.trigger) {
-			component.$deep.trigger();
-		}
-	}
-	return value;
-};
-
-/**
  * @rendering
  * Uitilites for rendering component
  */
@@ -265,7 +216,7 @@ export const rendering = (
 		}
 
 		// portal component
-		if (component.$portal && component.$node.dataset) {
+		if (component.$portal && component.$node) {
 			let query = document.body.querySelector(`[data-portal="${component.$portal}"]`);
 			let handle = () => {
 				if (data && data.hasOwnProperty("show")) {

@@ -388,7 +388,7 @@ const computedExtension = (computed, keyApp) => {
 				runConsole: () => {
 					try {
 						this.state.console.push({
-							data: eval(this.$node.querySelector("#console").value),
+							data: Function(`return arguments[0].$node.querySelector("#console").value`)(this),
 							at: new Date(),
 						});
 						this.$deep.trigger();

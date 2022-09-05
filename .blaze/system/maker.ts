@@ -1,4 +1,3 @@
-import { deepObjectState } from "./core";
 import { batch } from "./utils";
 import { Component } from "../blaze.d";
 
@@ -60,7 +59,7 @@ export const makeAttribute = (data: any, el: HTMLElement, component: Component) 
 			}) - 1
 		);
 	};
-	let changeObject = (item) => el[item] = data[item];
+	let changeObject = (item) => (el[item] = data[item]);
 
 	Object.keys(data).forEach((item: any) => {
 		if (item === "model") {
@@ -69,21 +68,29 @@ export const makeAttribute = (data: any, el: HTMLElement, component: Component) 
 				let path = data[item],
 					name = data.live ? "keyup" : "change",
 					call = (e: any) => {
-						if (el['type'] === "checkbox") {
-							deepObjectState(e.currentTarget.model, e.currentTarget, component, e.currentTarget.checked);
-						} else {
-							deepObjectState(e.currentTarget.model, e.currentTarget, component, e.currentTarget.value);
+						if (e.currentTarget.trigger === 0 && e.currentTarget.trigger !== undefined) {
+							component.$deep.disableTrigger = true;
+						}
+						Function(`return arguments[0].${e.currentTarget.model} = arguments[1]`)(
+							component,
+							el["type"] === "checkbox" ? e.currentTarget.checked : e.currentTarget.value
+						);
+						if (e.currentTarget.trigger === 0 && e.currentTarget.trigger !== undefined) {
+							component.$deep.disableTrigger = false;
+						}
+						if (e.currentTarget.trigger) {
+							component.$deep.trigger();
 						}
 					};
 
 				el.addEventListener(name, call);
 				addEventVirtualToEl(name, call);
 
-				let value = deepObjectState(path, data, component);
-				if (el['type'] === "checkbox") {
-					el['checked'] = Boolean(value);
+				let value = Function(`return arguments[0].${path}`)(component);
+				if (el["type"] === "checkbox") {
+					el["checked"] = Boolean(value);
 				} else if (value && value.toString().indexOf("[object Object]") === -1) {
-					el['value'] = value;
+					el["value"] = value;
 				}
 
 				changeObject(item);
@@ -195,11 +202,11 @@ export const makeAttribute = (data: any, el: HTMLElement, component: Component) 
 		if (item === "on:toggle") {
 			let call = (e: any) => {
 				e.preventDefault();
-				if (e.currentTarget["on:toggle"].indexOf("component.") === -1) {
-					e.currentTarget["on:toggle"] = "component." + e.currentTarget["on:toggle"];
+				if (e.currentTarget["on:toggle"].indexOf("arguments[0].") === -1) {
+					e.currentTarget["on:toggle"] = "arguments[0]." + e.currentTarget["on:toggle"];
 					e.currentTarget["on:toggle"] += " = !" + e.currentTarget["on:toggle"];
 				}
-				eval(e.currentTarget["on:toggle"]);
+				Function(`return ${e.currentTarget["on:toggle"]}`)(component);
 			};
 			el.addEventListener("click", call);
 			addEventVirtualToEl("click", call);

@@ -1,9 +1,9 @@
 import {
-	removeComponentOrEl,
 	unmountAndRemoveRegistry,
 	mountComponentFromEl,
 	findComponentNode,
 	mountSomeComponentFromEl,
+	removeRegistry,
 } from "./dom";
 import { Component, VirtualEvent, RegisteryComponent } from "../blaze.d";
 import Lifecycle from "./lifecycle";
@@ -15,15 +15,40 @@ import Lifecycle from "./lifecycle";
  */
 const diff = function (prev: Element, el: Element, component: Component, hmr: Component) {
 	let zip = [];
+	// null
 	if (!prev || !el) {
 		return zip;
 	}
+	// different nodename
 	if (prev.nodeName !== el.nodeName) {
 		zip.push(() => prev.replaceWith(el));
 		return zip;
 	}
-	if (prev.key !== el.key) {
-		zip.push(() => (prev.key = el.key));
+	// different key
+	if (prev["dataset"]["i"] && el["dataset"]["i"] && prev["dataset"]["i"] !== el["dataset"]["i"]) {
+		// if component
+		if (prev["dataset"]["n"] && el["dataset"]["n"] && prev["$root"] && el["$root"]) {
+			removeRegistry(prev.$root, prev.$children);
+			if (prev.$name !== el.$name) {
+				prev.replaceWith(el);
+			} else {
+				prev["dataset"].i = el.key;
+				prev.key = el.key;
+
+				let difference = diff(prev, el, prev.$children || component, hmr);
+				difference.forEach((rechange: Function) => rechange());
+				nextDiffChildren(Array.from(prev.children), el, prev.$children || component);
+			}
+			mountComponentFromEl(el);
+		} else {
+			prev["dataset"].i = el.key;
+			prev.key = el.key;
+
+			let difference = diff(prev, el, prev.$children || component, hmr);
+			difference.forEach((rechange: Function) => rechange());
+			nextDiffChildren(Array.from(prev.children), el, prev.$children || component);
+		}
+		// return zip;
 	}
 	if (!prev || ((prev.diff || el.diff) && !(el instanceof SVGElement)) || prev.nodeName === "#document-fragment") {
 		return zip;
@@ -53,9 +78,10 @@ const diff = function (prev: Element, el: Element, component: Component, hmr: Co
 			prev.$children = el.$children;
 			prev.key = el.key || 0;
 			prev.replaceChildren(...Array.from(el.children));
+			prev.$children.$node = prev
+			// console.log('prev', prev);
 			mountComponentFromEl(prev);
 		});
-		return zip;
 	}
 	// text/button/link/code
 	if (
@@ -322,6 +348,15 @@ const diff = function (prev: Element, el: Element, component: Component, hmr: Co
 			delete prev.trigger;
 		}
 	}
+	// for
+	if (prev["for"] || el["for"]) {
+		if (!prev["for"] && el["for"]) {
+			prev["for"] = el["for"];
+		}
+		if (prev["for"] && !el["for"]) {
+			delete prev["for"];
+		}
+	}
 
 	return zip;
 };
@@ -342,99 +377,6 @@ export const diffChildren = (
 ) => {
 	if (!newest || !oldest || oldest["skip"]) {
 		return;
-	}
-	if (oldest["for"]) {
-		let oldestChildren: Element[] = Array.from(oldest.children),
-			newestChildren: Element[] = Array.from(newest.children);
-
-		if (!oldest.children.length && !newest.children.length) {
-			return;
-		}
-		// replacing if oldest.children === 0
-		else if (!oldest.children.length && newest.children.length) {
-			oldest.replaceChildren(...newestChildren);
-			newestChildren.forEach((node: Element) => {
-				// mount
-				mountComponentFromEl(node);
-			});
-			return;
-		} else if (oldest.children.length && !newest.children.length) {
-			oldestChildren.forEach((node: Element) => {
-				unmountAndRemoveRegistry(newest, node);
-				node.remove();
-			});
-			return;
-		}
-		// not exists, auto delete...
-		else if (newest.children.length < oldest.children.length) {
-			oldestChildren.forEach((node: Element) => {
-				let latest = findComponentNode(newest, node);
-				if (!latest) {
-					removeComponentOrEl(node, component);
-					return;
-				}
-			});
-			nextDiffChildren(Array.from(oldest.children), newest, component);
-			return;
-		}
-		// new children detection
-		else if (newest.children.length > oldest.children.length) {
-			let checked = false;
-			newestChildren.forEach((node: Element, i: number) => {
-				let latest = findComponentNode(oldest, node);
-				if (!latest) {
-					let check = oldest.children[i];
-					if (check) {
-						check.insertAdjacentElement("beforebegin", node);
-					} else {
-						let oldChild: Element[] = Array.from(oldest.children);
-						oldChild[i - 1].insertAdjacentElement("afterend", node);
-					}
-
-					// mount
-					mountComponentFromEl(node);
-					checked = true;
-					return;
-				}
-			});
-			if (!checked) {
-				nextDiffChildren(Array.from(oldest.children), newest, component);
-			}
-			return;
-		}
-		// same length children
-		else {
-			// updating data in children
-			// if component
-			if (oldestChildren.length && oldestChildren[0]["dataset"].n) {
-				oldestChildren.forEach((node: Element, i: number) => {
-					if (newestChildren[i] && node.key !== newestChildren[i].key) {
-						// unmount
-						unmountAndRemoveRegistry(newest, node);
-						if (node.$name !== newestChildren[i].$name) {
-							node.replaceWith(newestChildren[i]);
-						} else {
-							node["dataset"].i = newestChildren[i].key;
-							node.key = newestChildren[i].key;
-							node.replaceWith(newestChildren[i]);
-						}
-						// mount
-						mountComponentFromEl(newestChildren[i]);
-					} else {
-						if (node["updating"]) {
-							node["updating"] = false;
-							let difference = diff(node, newestChildren[i], node.$children, hmr);
-							let childrenCurrent: any = Array.from(node.children);
-							difference.forEach((rechange: Function) => rechange());
-							nextDiffChildren(childrenCurrent, newestChildren[i], node.$children || component);
-						}
-					}
-				});
-			} else {
-				nextDiffChildren(Array.from(oldest.children), newest, component);
-			}
-			return;
-		}
 	}
 	if (typeof oldest["show"] === "boolean") {
 		if (!newest["show"]) {
@@ -465,16 +407,55 @@ export const diffChildren = (
 			return;
 		} else if (newest.children.length < oldest.children.length) {
 			oldestChildren.forEach((node: Element, i: number) => {
-				let check = newest.children[i];
-				unmountAndRemoveRegistry(newest, node, true);
-				if(!check) {
+				let check = newestChildren[i];
+				let isComponent = false;
+				let withoutKey = false;
+				let recursive = (real, fake) => {
+					if (real.$children || real["dataset"]["i"]) {
+						let find = real.$children ? findComponentNode(newest, real) : newest.querySelector(`[data-i="${real["dataset"]["i"]}"]`);
+						isComponent = true;
+						withoutKey = false;
+						if (!find && !real["dataset"]["keep"]) {
+							real.$children && removeRegistry(real.$root, real.$children);
+							if(oldest["for"]) {
+								node.remove();
+							} else {
+								real.remove();
+							}
+						}
+						return;
+					} else {
+						withoutKey = true;
+					}
+
+					if(real.$name === component.constructor.name) {
+						Array.from(real.children).forEach((reals, i) => {
+							recursive(reals, fake?.children[i]);
+						});
+					}
+				};
+				recursive(node, check);
+				if (!isComponent && !check && node) {
 					node.remove();
+					return;
+				}
+				if (!isComponent && withoutKey && node) {
+					nextDiffChildren(Array.from(node.children), check, component, hmr);
 				}
 			});
 			return;
 		} else if (newest.children.length > oldest.children.length) {
-			newestChildren.forEach((node: Element, i: number) => {
-				mountSomeComponentFromEl(oldest, node, component.constructor.name);
+			Array.from(newest.children).forEach((node: Element, i: number) => {
+				let isComponent = false;
+				mountSomeComponentFromEl(oldest, node, oldest.children[i], component.constructor.name, () => {
+					oldest.children[i].insertAdjacentElement("beforebegin", node);
+				}, () => {
+					isComponent = true;
+				});
+				if(!isComponent && oldest.children[i]) {
+					nextDiffChildren(Array.from(oldest.children[i].children), node, component, hmr);
+					return;
+				}
 				if (!oldest.children[i]) {
 					oldest.children[i - 1].insertAdjacentElement("afterend", node);
 				}

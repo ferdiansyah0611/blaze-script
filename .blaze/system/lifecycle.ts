@@ -129,8 +129,8 @@ export default class Lifecycle {
 					return;
 				}
 
-				let current = "this.component." + dependencies;
-				let value = eval(current);
+				let current = "arguments[0]." + dependencies;
+				let value = Function(`return ${current}`)(this.component);
 				if (value || voidCall) {
 					item.handle(dependencies, value);
 				}
