@@ -86,6 +86,8 @@ export const init = (component: Component, _auto?: string) => {
 			},
 		};
 		let context = {};
+		let $h = jsx(component);
+		
 		Object.defineProperty(component, "$deep", {
 			get: () => {
 				return deep;
@@ -102,9 +104,13 @@ export const init = (component: Component, _auto?: string) => {
 				return true;
 			},
 		});
+		Object.defineProperty(component, "$h", {
+			get: () => {
+				return $h;
+			},
+		});
 
 		component.props = {};
-		component.$h = jsx(component);
 	}
 
 	return {

@@ -122,8 +122,17 @@ export default function e(
 				let newComponent = new nodeName(component, App.get(component.$config?.key || 0, 'app'));
 				// inject config app
 				if (component.$config) {
-					newComponent.$config = component.$config;
+					Object.defineProperty(newComponent, "$config", {
+						get: () => {
+							return component.$config;
+						}
+					});
 				}
+				Object.defineProperty(newComponent, "$root", {
+					get: () => {
+						return component;
+					}
+				});
 				// props registery
 				state("props", data ? { ...data } : {}, newComponent);
 				const result = rendering(newComponent, $deep, true, data, key, nodeName, children, component);

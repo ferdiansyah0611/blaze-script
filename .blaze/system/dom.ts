@@ -9,7 +9,7 @@ export const unmountAndRemoveRegistry = (newest: Element, old: Element, checking
 		if (old.$children) {
 			let check = findComponentNode(newest, old);
 			if (!check) {
-				removeRegistry(old.$root, old.$children);
+				removeRegistry(old.$children.$root, old.$children);
 			}
 			return;
 		}
@@ -26,7 +26,7 @@ export const unmountAndRemoveRegistry = (newest: Element, old: Element, checking
 		if (old.$children) {
 			let check = findComponentNode(newest, old);
 			if (!check) {
-				removeRegistry(old.$root, old.$children);
+				removeRegistry(old.$children.$root, old.$children);
 			}
 		}
 	}
@@ -45,7 +45,7 @@ export const mountComponentFromEl = (el: Element, componentName?: string, isKey?
 		}
 		return;
 	}
-	if(el.$name === componentName) {
+	if (el.$name === componentName) {
 		Array.from(el.children).forEach((node: Element) => {
 			return mountComponentFromEl(node, componentName, isKey);
 		});
@@ -62,7 +62,7 @@ export const mountSomeComponentFromEl = (
 	old: Element,
 	componentName: string,
 	callback: () => any,
-	callbackComponent: () => any,
+	callbackComponent: () => any
 ) => {
 	if (el.$children) {
 		let latest = findComponentNode(oldest, el);
@@ -72,14 +72,21 @@ export const mountSomeComponentFromEl = (
 		if (old && !old.$children) {
 			callback();
 		}
-		if(callbackComponent) {
+		if (callbackComponent) {
 			callbackComponent();
 		}
 		return;
 	}
-	if(el.$name === componentName) {
+	if (el.$name === componentName) {
 		Array.from(el.children).forEach((node: Element, i: number) => {
-			return mountSomeComponentFromEl(oldest, node, old ? old.children[i] : null, componentName, callback, callbackComponent);
+			return mountSomeComponentFromEl(
+				oldest,
+				node,
+				old ? old.children[i] : null,
+				componentName,
+				callback,
+				callbackComponent
+			);
 		});
 	}
 };
@@ -96,17 +103,36 @@ export const findComponentNode = (parent: Element, item: Element) => {
  * @removeRegistry
  * remove registry and call unmount
  */
-export function removeRegistry(component: Component, current: Component) {
-	if (!component) {
-		console.error("[bug] component is undefined.", current);
-		return;
-	}
+export function removeRegistry(component: Component, current: Component, disableRemoveEl?: boolean) {
 	component.$deep.registry = component.$deep.registry.filter((registry) => {
 		if (registry.component.constructor.name === current.constructor.name && registry.key === current.$node.key) {
-			registry.component.$deep.remove();
+			registry.component.$deep.remove(false, disableRemoveEl);
 			return false;
 		} else {
 			return registry;
 		}
 	});
+}
+
+export function makeRefs(component: Component, name: string, el: Element, initial?: boolean) {
+	let isArray = name.indexOf("[]") !== -1;
+	let names = isArray ? name.slice(0, name.length - 2) : name;
+	el.setAttribute("refs", names);
+	el["refs"] = name;
+	if (initial) {
+		Object.defineProperty(component, names, {
+			get: () => {
+				if (isArray) {
+					return component.$node?.querySelectorAll(`[refs="${names}"]`) || el;
+				} else {
+					let find = component.$node?.querySelector(`[refs="${names}"]`) || el;
+					if(find && find.isConnected) {
+						return find;
+					}
+				}
+				return null;
+			},
+			configurable: true,
+		});
+	}
 }

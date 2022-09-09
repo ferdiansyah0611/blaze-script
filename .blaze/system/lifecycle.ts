@@ -144,9 +144,8 @@ export default class Lifecycle {
 	effect(depend: string | boolean, value?: any, potential?: any) {
 		let list = [];
 		if (typeof depend !== "boolean" && this.component.$deep.effect) {
-			list.push(new RegExp(`this.${depend}=`, "g"));
-			list.push(new RegExp(`${depend}=`, "g"));
-			list.push(new RegExp(`${depend}(.+)=`, "g"));
+			list.push(new RegExp(`(this.${depend}=|this.${depend} =|this.${depend}\t=)`, "g"));
+			list.push(new RegExp(`(${depend}=|${depend} =|${depend}\t=)`, "g"));
 			list.push(new RegExp(`Object.assign.this.${depend}`, "g"));
 			list.push(new RegExp(`Object.assign.${depend}`, "g"));
 		}

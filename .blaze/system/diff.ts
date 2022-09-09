@@ -7,6 +7,7 @@ import {
 } from "./dom";
 import { Component, VirtualEvent, RegisteryComponent } from "../blaze.d";
 import Lifecycle from "./lifecycle";
+import { makeRefs } from "./dom";
 
 /**
  * @diff
@@ -27,19 +28,12 @@ const diff = function (prev: Element, el: Element, component: Component, hmr: Co
 	// different key
 	if (prev["dataset"]["i"] && el["dataset"]["i"] && prev["dataset"]["i"] !== el["dataset"]["i"]) {
 		// if component
-		if (prev["dataset"]["n"] && el["dataset"]["n"] && prev["$root"] && el["$root"]) {
-			removeRegistry(prev.$root, prev.$children);
-			if (prev.$name !== el.$name) {
-				prev.replaceWith(el);
-			} else {
-				prev["dataset"].i = el.key;
-				prev.key = el.key;
-
-				let difference = diff(prev, el, prev.$children || component, hmr);
-				difference.forEach((rechange: Function) => rechange());
-				nextDiffChildren(Array.from(prev.children), el, prev.$children || component);
+		if (prev["dataset"]["n"] && el["dataset"]["n"] && prev["$root"]) {
+			removeRegistry(prev.$children.$root, prev.$children, true);
+			prev.replaceWith(el.$children.$node);
+			if (!el.$children.$deep.hasMount) {
+				mountComponentFromEl(el);
 			}
-			mountComponentFromEl(el);
 		} else {
 			prev["dataset"].i = el.key;
 			prev.key = el.key;
@@ -48,7 +42,6 @@ const diff = function (prev: Element, el: Element, component: Component, hmr: Co
 			difference.forEach((rechange: Function) => rechange());
 			nextDiffChildren(Array.from(prev.children), el, prev.$children || component);
 		}
-		// return zip;
 	}
 	if (!prev || ((prev.diff || el.diff) && !(el instanceof SVGElement)) || prev.nodeName === "#document-fragment") {
 		return zip;
@@ -58,8 +51,8 @@ const diff = function (prev: Element, el: Element, component: Component, hmr: Co
 		let name = prev.$name;
 		let key = prev.key;
 
-		if (prev.$root) {
-			prev.$root.$deep.registry.forEach((registry: RegisteryComponent) => {
+		if (prev.$children.$root) {
+			prev.$children.$root.$deep.registry.forEach((registry: RegisteryComponent) => {
 				if (registry.component.constructor.name === name && registry.key === key) {
 					new Lifecycle(registry.component).unmount();
 					registry.component.$deep.mount = registry.component.$deep.mount.map((item) => {
@@ -78,8 +71,7 @@ const diff = function (prev: Element, el: Element, component: Component, hmr: Co
 			prev.$children = el.$children;
 			prev.key = el.key || 0;
 			prev.replaceChildren(...Array.from(el.children));
-			prev.$children.$node = prev
-			// console.log('prev', prev);
+			prev.$children.$node = prev;
 			mountComponentFromEl(prev);
 		});
 	}
@@ -136,6 +128,27 @@ const diff = function (prev: Element, el: Element, component: Component, hmr: Co
 			});
 		}
 	}
+	// refs
+	if (prev.refs || el.refs) {
+		let lifecycle = new Lifecycle(component);
+		if (!prev.refs && el.refs) {
+			zip.push(() => {
+				makeRefs(component, el.refs, prev);
+				lifecycle.effect(el.refs);
+			});
+		} else if (prev.refs && !el.refs) {
+			zip.push(() => {
+				prev.removeAttribute("refs");
+				lifecycle.effect(prev.refs);
+			});
+		} else if (prev.refs !== el.refs) {
+			zip.push(() => {
+				prev.removeAttribute("refs");
+				makeRefs(component, el.refs, prev);
+				lifecycle.effect(el.refs);
+			});
+		}
+	}
 	// attribute
 	if (prev.attributes.length || el.attributes.length) {
 		let oldAttr = prev.getAttributeNames();
@@ -188,48 +201,6 @@ const diff = function (prev: Element, el: Element, component: Component, hmr: Co
 						prev.removeAttribute(name);
 					});
 				}
-			});
-		}
-	}
-	// refs
-	if (prev.refs || el.refs) {
-		let lifecycle = new Lifecycle(component);
-		let updateRefs = (name, value) => {
-			if (typeof prev.i === "number") {
-				if (!component[name]) {
-					component[name] = [];
-				}
-				component[name][prev.i] = prev;
-			} else {
-				if ((name && component[name] && !component[name].isSameNode(value)) || !component[name]) {
-					component[name] = value;
-				}
-			}
-		};
-		if (!prev.refs && el.refs) {
-			zip.push(() => {
-				updateRefs(el.refs, prev);
-				prev.refs = el.refs;
-
-				lifecycle.effect(el.refs);
-			});
-		} else if (prev.refs && !el.refs) {
-			zip.push(() => {
-				let refs = prev.refs;
-				delete component[prev.refs];
-				delete prev.refs;
-
-				lifecycle.effect(refs);
-			});
-		} else if (prev.refs !== el.refs) {
-			zip.push(() => {
-				delete component[prev.refs];
-				delete prev.refs;
-
-				updateRefs(el.refs, prev);
-				prev.refs = el.refs;
-
-				lifecycle.effect(el.refs);
 			});
 		}
 	}
@@ -406,21 +377,48 @@ export const diffChildren = (
 			oldest.replaceChildren(...newestChildren);
 			return;
 		} else if (newest.children.length < oldest.children.length) {
+			let action = [];
 			oldestChildren.forEach((node: Element, i: number) => {
 				let check = newestChildren[i];
 				let isComponent = false;
 				let withoutKey = false;
-				let recursive = (real, fake) => {
+				let unmounted = (real: Element) => {
+					real.$children && removeRegistry(real.$children.$root, real.$children, true);
+				};
+				let recursive = (real: Element, fake: Element) => {
 					if (real.$children || real["dataset"]["i"]) {
-						let find = real.$children ? findComponentNode(newest, real) : newest.querySelector(`[data-i="${real["dataset"]["i"]}"]`);
+						let defineNode = oldest["for"] ? node : real;
+						let find = real.$children
+							? findComponentNode(newest, real)
+							: newest.querySelector(`[data-i="${real["dataset"]["i"]}"]`);
 						isComponent = true;
 						withoutKey = false;
-						if (!find && !real["dataset"]["keep"]) {
-							real.$children && removeRegistry(real.$root, real.$children);
-							if(oldest["for"]) {
-								node.remove();
-							} else {
-								real.remove();
+
+						if (!real["dataset"]["keep"]) {
+							if (
+								(!find && (fake && real["dataset"]["i"] !== fake["dataset"]["i"]) === false) ||
+								(!fake && !find)
+							) {
+								action.push(() => defineNode.remove());
+								unmounted(real);
+							} else if (fake && real["dataset"]["i"] !== fake["dataset"]["i"]) {
+								if (!find) {
+									unmounted(real);
+									if (real.$children) {
+										action.push(() => real.replaceWith(fake.$children?.$node ?? fake));
+										if (fake.$children && !fake.$children.$deep.hasMount) {
+											mountComponentFromEl(fake);
+										}
+									} else {
+										action.push(() => defineNode.remove());
+									}
+								}
+							} else if (!real.$children && fake) {
+								nextDiffChildren(Array.from(node.children), real, component, hmr);
+							} else if (!real.$children) {
+								if (!find) {
+									action.push(() => defineNode.remove());
+								}
 							}
 						}
 						return;
@@ -428,7 +426,7 @@ export const diffChildren = (
 						withoutKey = true;
 					}
 
-					if(real.$name === component.constructor.name) {
+					if (real.$name === component.constructor.name) {
 						Array.from(real.children).forEach((reals, i) => {
 							recursive(reals, fake?.children[i]);
 						});
@@ -443,16 +441,24 @@ export const diffChildren = (
 					nextDiffChildren(Array.from(node.children), check, component, hmr);
 				}
 			});
+			action.forEach((fn) => fn());
 			return;
 		} else if (newest.children.length > oldest.children.length) {
 			Array.from(newest.children).forEach((node: Element, i: number) => {
 				let isComponent = false;
-				mountSomeComponentFromEl(oldest, node, oldest.children[i], component.constructor.name, () => {
-					oldest.children[i].insertAdjacentElement("beforebegin", node);
-				}, () => {
-					isComponent = true;
-				});
-				if(!isComponent && oldest.children[i]) {
+				mountSomeComponentFromEl(
+					oldest,
+					node,
+					oldest.children[i],
+					component.constructor.name,
+					() => {
+						oldest.children[i].insertAdjacentElement("beforebegin", node);
+					},
+					() => {
+						isComponent = true;
+					}
+				);
+				if (!isComponent && oldest.children[i]) {
 					nextDiffChildren(Array.from(oldest.children[i].children), node, component, hmr);
 					return;
 				}
