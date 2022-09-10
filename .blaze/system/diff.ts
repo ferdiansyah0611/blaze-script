@@ -404,7 +404,7 @@ export const diffChildren = (
 							} else if (fake && real["dataset"]["i"] !== fake["dataset"]["i"]) {
 								if (!find) {
 									unmounted(real);
-									if (real.$children) {
+									if (real.$children && fake.$children || !real.$children && fake.$children) {
 										action.push(() => real.replaceWith(fake.$children?.$node ?? fake));
 										if (fake.$children && !fake.$children.$deep.hasMount) {
 											mountComponentFromEl(fake);
