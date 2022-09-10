@@ -1,4 +1,5 @@
 import "../global.d";
+import "./style/main.css";
 import Apps from "@/Apps";
 import { createApp } from "@root/render";
 import { makeRouter, page } from "@root/plugin/router";
