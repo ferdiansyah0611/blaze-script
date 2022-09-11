@@ -41,6 +41,7 @@ export class createApp implements InterfaceApp {
 
 			let old = new Lifecycle(component);
 			old.unmount();
+			newComponent.$root = component.$root
 
 			newComponent = this.componentUpdate(component, newComponent);
 			const result = rendering(
@@ -149,19 +150,18 @@ export class createApp implements InterfaceApp {
 		return newComponent;
 	}
 	isComponent = (component) => component.toString().indexOf("init(this)") !== -1;
-	isSameName = (component, newComponent) => newComponent.name === component.constructor.name;
-	reloadRegistry = (sub: any, previous?: Component) => {
-		let component = sub.component;
+	isSameName = (component, newComponent) => newComponent && component && newComponent.name === component.constructor.name;
+	reloadRegistry = (component: Component, previous?: Component) => {
 		let hmrArray = HMR.get();
 		let newComponent = hmrArray.find(
 			(newComponents) => this.isSameName(component, newComponents) && this.isComponent(newComponents)
 		);
 		if (newComponent) {
-			Object.assign(component, this.componentProcess({ component, newComponent, key: sub.key, previous }));
+			Object.assign(component, this.componentProcess({ component, newComponent, key: component.props.key, previous }));
 			component.__proto__.constructor = newComponent;
 		}
-		component.$deep.registry = component.$deep.registry.map((data) => this.reloadRegistry(data, component));
-		return sub;
+		component.$deep.registry.map((data) => this.reloadRegistry(data, component));
+		return component;
 	};
 	reload(newHmr, isStore: any) {
 		HMR.set(newHmr);
@@ -197,7 +197,7 @@ export class createApp implements InterfaceApp {
 			Object.assign(this.app, this.componentProcess({ component: this.app, newComponent, key: 0 }));
 			return;
 		}
-		this.app.$deep.registry = this.app.$deep.registry.map((data) => this.reloadRegistry(data));
+		this.app.$deep.registry.map((data) => this.reloadRegistry(data));
 		this.blaze.run.onReload(newHmr);
 	}
 	mount() {

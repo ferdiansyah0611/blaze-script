@@ -23,13 +23,13 @@ export default function ListExtension() {
 				>
 					{"<"}{this.props.item?.$node?.$name}{this.props.item?.props?.key ? ` key="${this.props.item?.props?.key}"` : ""}{"/>"}
 				</button>
-				{this.props.item.$deep.registry.map((item, i) => (
+				{this.props.item.$deep.registry.each((item, i) => (
 					<ListExtension
 						current={this.props.current + 1}
 						style={`margin-left: ${(this.props.current + 1) * 20}px;`}
 						key={i + 1}
 						setSelectComponent={this.props.setSelectComponent}
-						item={item.component}
+						item={item}
 					/>
 				))}
 			</div>

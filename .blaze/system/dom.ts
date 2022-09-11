@@ -104,14 +104,12 @@ export const findComponentNode = (parent: Element, item: Element) => {
  * remove registry and call unmount
  */
 export function removeRegistry(component: Component, current: Component, disableRemoveEl?: boolean) {
-	component.$deep.registry = component.$deep.registry.filter((registry) => {
-		if (registry.component.constructor.name === current.constructor.name && registry.key === current.$node.key) {
-			registry.component.$deep.remove(false, disableRemoveEl);
-			return false;
-		} else {
-			return registry;
-		}
-	});
+	let name = current.constructor.name + current.$node.key;
+	let find = component.$deep.registry.value[name]
+	if(find) {
+		find.$deep.remove(disableRemoveEl);
+		component.$deep.registry.delete(name);
+	}
 }
 
 export function makeRefs(component: Component, name: string, el: Element, initial?: boolean) {

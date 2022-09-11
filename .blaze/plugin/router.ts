@@ -200,7 +200,7 @@ export const makeRouter = (entry: string, config: any) => {
 				callComponent(check.default);
 			}
 			if (loader) {
-				loader.remove(true, false);
+				loader.remove(false);
 			}
 		} else {
 			let hmr = HMR.find(component.name);
@@ -457,7 +457,7 @@ export const makeRouter = (entry: string, config: any) => {
 					);
 					HMR.set(newComponent);
 				}
-				component.$deep.registry = component.$deep.registry.map((data) =>
+				component.$deep.registry.map((data) =>
 					createApp.reloadRegistry(data, component)
 				);
 			}

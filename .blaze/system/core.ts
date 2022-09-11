@@ -1,4 +1,4 @@
-import { Component, RegisteryComponent } from "../blaze.d";
+import { Component } from "../blaze.d";
 import type { ConfigEntityRender, EntityCompile } from "../blaze.d";
 import isEqualWith from "lodash.isequalwith";
 import {
@@ -34,7 +34,7 @@ export const init = (component: Component, _auto?: string) => {
 			batch: false,
 			disableTrigger: false,
 			hasMount: false,
-			registry: [],
+			// registry: [],
 			watch: [],
 			mount: [],
 			unmount: [],
@@ -58,34 +58,23 @@ export const init = (component: Component, _auto?: string) => {
 				lifecycle.mount(update ? component.props : {}, update);
 				lifecycle.watch();
 				lifecycle.effect(true);
-				component.$deep.registry.forEach((item: RegisteryComponent) => {
-					item.component.$deep.mounted(update);
+				component.$deep.registry.each((item: Component) => {
+					item.$deep.mounted(update);
 				});
 			},
-			remove: (notClear = false, notNode = false) => {
-				component.$deep.registry.forEach((item: RegisteryComponent) => {
-					item.component.$deep.remove(notClear, notNode);
+			remove: (notNode = false) => {
+				component.$deep.registry.each((item: Component) => {
+					item.$deep.remove(notNode);
 				});
 				new Lifecycle(component).unmount();
 
 				if (component.$node && !notNode) {
 					component.$node.remove && component.$node.remove();
 				}
-
-				if (!notClear) {
-					component.$deep.registry = [];
-					component.$deep.watch = [];
-					component.$deep.mount = [];
-					component.$deep.unmount = [];
-					component.$deep.layout = [];
-					component.$deep.created = [];
-					component.$deep.beforeCreate = [];
-					component.$deep.updated = [];
-					component.$deep.beforeUpdate = [];
-				}
 			},
 		};
 		let context = {};
+		let registry = {};
 		let $h = jsx(component);
 		
 		Object.defineProperty(component, "$deep", {
@@ -108,6 +97,32 @@ export const init = (component: Component, _auto?: string) => {
 			get: () => {
 				return $h;
 			},
+		});
+
+		Object.defineProperty(component.$deep, "registry", {
+			get: () => {
+				return {
+					value: registry,
+					add: (key, value) => {
+						registry[key] = value
+					},
+					delete: (key) => {
+						delete registry[key];
+					},
+					each: (callback) => {
+						for(let [key, value] of Object.entries(registry)){
+						    callback(value, key)
+						}
+					},
+					map: (callback) => {
+						for(let [key, value] of Object.entries(registry)){
+						    let newValue = callback(value);
+						    registry[key] = newValue;
+						}
+					},
+				};
+			},
+			configurable: true,
 		});
 
 		component.props = {};
@@ -189,11 +204,7 @@ export const rendering = (
 			component.children = children ? children : false;
 			component.$node = render;
 			if ($deep) {
-				let index = $deep.registry.push({
-					key,
-					component: component,
-				});
-				component.$node["$index"] = index;
+				$deep.registry.add(component.constructor.name + render.key, component);
 			}
 			// mount
 			blaze.run.onMakeComponent(component);
@@ -324,8 +335,8 @@ export class EntityRender {
 		this.component.$deep.mounted(update);
 		return this;
 	}
-	remove(notClear?: boolean, notNode?: boolean) {
-		this.component.$deep.remove(notClear, notNode);
+	remove(notNode?: boolean) {
+		this.component.$deep.remove(notNode);
 		return this;
 	}
 	replaceChildren(entry: string) {

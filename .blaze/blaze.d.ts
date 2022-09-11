@@ -48,7 +48,13 @@ export interface Component {
 		disableExtension?: boolean;
 		hasMount: boolean;
 		update: number;
-		registry: RegisteryComponent[];
+		registry: {
+			value: any;
+			add: (key, value) => any;
+			delete: (key) => any;
+			each: (callback) => any;
+			map: (callback) => any;
+		};
 		watch: Watch[];
 		trigger();
 		remove(notClear?: boolean, notNode?: boolean);
@@ -72,6 +78,7 @@ export interface Component {
 		dev: boolean;
 		key?: number;
 	};
+	__proto__: any;
 }
 
 export type ConfigEntityRender = {

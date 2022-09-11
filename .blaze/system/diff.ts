@@ -5,7 +5,7 @@ import {
 	mountSomeComponentFromEl,
 	removeRegistry,
 } from "./dom";
-import { Component, VirtualEvent, RegisteryComponent } from "../blaze.d";
+import { Component, VirtualEvent } from "../blaze.d";
 import Lifecycle from "./lifecycle";
 import { makeRefs } from "./dom";
 
@@ -52,19 +52,16 @@ const diff = function (prev: Element, el: Element, component: Component, hmr: Co
 		let key = prev.key;
 
 		if (prev.$children.$root) {
-			prev.$children.$root.$deep.registry.forEach((registry: RegisteryComponent) => {
-				if (registry.component.constructor.name === name && registry.key === key) {
-					new Lifecycle(registry.component).unmount();
-					registry.component.$deep.mount = registry.component.$deep.mount.map((item) => {
-						item.run = false;
-						return item;
-					});
-					registry.component.$deep.hasMount = false;
-					registry.component.$deep.disableAddUnmount = true;
-					return registry;
-				}
-				return registry;
-			});
+			let find = prev.$children.$root.$deep.registry.value[name + key];
+			if(find) {
+				new Lifecycle(find).unmount();
+				find.$deep.mount = find.$deep.mount.map((item) => {
+					item.run = false;
+					return item;
+				});
+				find.$deep.hasMount = false;
+				find.$deep.disableAddUnmount = true;
+			}
 		}
 		zip.push(() => {
 			prev.$name = el.$name;

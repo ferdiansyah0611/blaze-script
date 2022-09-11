@@ -1,10 +1,11 @@
 let store = {};
 let app = [];
 let router = [];
+let windows = globalThis || window;
 
 if (import.meta.env.DEV) {
-	window.store = store;
-	window.app = app;
+	windows.store = store;
+	windows.app = app;
 }
 
 export const Store = {
@@ -46,7 +47,7 @@ class HMRClass {
 	constructor() {
 		this.data = [];
 		if(import.meta.env.DEV) {
-			window.hmr = this;
+			windows.hmr = this;
 		}
 	}
 	get() {

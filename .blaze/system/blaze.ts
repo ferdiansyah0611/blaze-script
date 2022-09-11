@@ -1,7 +1,7 @@
 import { state } from "./utils";
 import { rendering, equalProps, getBlaze } from "./core";
 import { makeChildren, makeAttribute } from "./maker";
-import { Component, RegisteryComponent } from "../blaze.d";
+import { Component } from "../blaze.d";
 import { diffChildren } from "./diff";
 import { App, HMR } from "./global";
 
@@ -61,10 +61,7 @@ export default function e(
 
 					if (result.default) {
 						let key = data.key ?? 0;
-						let check = $deep.registry.find(
-							(item: RegisteryComponent) =>
-								item.component.constructor.name === result.default.name && item.key === key
-						);
+						let check = $deep.registry.value[result.default.name + key];
 						if (!check) {
 							newComponent = new result.default(component, App.get(component.$config?.key || 0, 'app'));
 							if (component.$config) {
@@ -107,9 +104,7 @@ export default function e(
 			 * check component if not exist add to registery $deep, rendering, and lifecycle. if exists and props has changed are will trigger
 			 */
 			let key = data.key ?? 0;
-			let check = $deep.registry.find(
-				(item: RegisteryComponent) => item.component.constructor.name === nodeName.name && item.key === key
-			);
+			let check = $deep.registry.value[nodeName.name + key];
 			/**
 			 * @registry
 			 */
@@ -131,6 +126,10 @@ export default function e(
 				Object.defineProperty(newComponent, "$root", {
 					get: () => {
 						return component;
+					},
+					set: (value) => {
+						if(value) component = value;
+						return true;
 					}
 				});
 				// props registery
@@ -139,10 +138,10 @@ export default function e(
 				return result;
 			}
 
-			diffProps(check.component);
+			diffProps(check);
 
-			const result = rendering(check.component, $deep, false, data, key, nodeName, children);
-			diffChildren(check.component.$node, result, check.component);
+			const result = rendering(check, $deep, false, data, key, nodeName, children);
+			diffChildren(check.$node, result, check);
 			return result;
 		}
 	}
