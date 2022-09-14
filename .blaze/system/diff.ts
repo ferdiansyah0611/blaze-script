@@ -20,6 +20,15 @@ const diff = function (prev: Element, el: Element, component: Component, hmr: Co
 	if (!prev || !el) {
 		return zip;
 	}
+	if (prev.diff || el.diff) {
+		prev.diff = el.diff;
+		if (prev.diff) {
+			return zip;
+		}
+	}
+	if (el instanceof SVGElement || prev.nodeName === "#document-fragment") {
+		return zip;
+	}
 	// different nodename
 	if (prev.nodeName !== el.nodeName) {
 		zip.push(() => prev.replaceWith(el));
@@ -43,9 +52,6 @@ const diff = function (prev: Element, el: Element, component: Component, hmr: Co
 			nextDiffChildren(Array.from(prev.children), el, prev.$children || component);
 		}
 	}
-	if (!prev || ((prev.diff || el.diff) && !(el instanceof SVGElement)) || prev.nodeName === "#document-fragment") {
-		return zip;
-	}
 	// different component in same node
 	if (prev.$name && el.$name && prev.$name !== el.$name) {
 		let name = prev.$name;
@@ -53,7 +59,7 @@ const diff = function (prev: Element, el: Element, component: Component, hmr: Co
 
 		if (prev.$children.$root) {
 			let find = prev.$children.$root.$deep.registry.value[name + key];
-			if(find) {
+			if (find) {
 				new Lifecycle(find).unmount();
 				find.$deep.mount = find.$deep.mount.map((item) => {
 					item.run = false;
@@ -401,7 +407,7 @@ export const diffChildren = (
 							} else if (fake && real["dataset"]["i"] !== fake["dataset"]["i"]) {
 								if (!find) {
 									unmounted(real);
-									if (real.$children && fake.$children || !real.$children && fake.$children) {
+									if ((real.$children && fake.$children) || (!real.$children && fake.$children)) {
 										action.push(() => real.replaceWith(fake.$children?.$node ?? fake));
 										if (fake.$children && !fake.$children.$deep.hasMount) {
 											mountComponentFromEl(fake);

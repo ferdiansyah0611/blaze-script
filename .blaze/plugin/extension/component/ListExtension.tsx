@@ -1,7 +1,7 @@
+// @ts-ignore
 export default function ListExtension() {
 	this.disableExtension = true;
-	// @ts-ignore
-	const { render, defineProp } = init(this);
+	const { render, defineProp, mount } = init(this);
 	defineProp({
 		item: {
 			$node: {
@@ -13,6 +13,7 @@ export default function ListExtension() {
 		},
 	})
 	render(() => {
+		let registry = this.props.item.$deep.registry.value;
 		return (
 			<div style={this.props.style || ""} class="flex-1">
 				<button
@@ -23,13 +24,13 @@ export default function ListExtension() {
 				>
 					{"<"}{this.props.item?.$node?.$name}{this.props.item?.props?.key ? ` key="${this.props.item?.props?.key}"` : ""}{"/>"}
 				</button>
-				{this.props.item.$deep.registry.each((item, i) => (
+				{Object.keys(registry).map((item, i) => (
 					<ListExtension
 						current={this.props.current + 1}
 						style={`margin-left: ${(this.props.current + 1) * 20}px;`}
 						key={i + 1}
 						setSelectComponent={this.props.setSelectComponent}
-						item={item}
+						item={registry[item]}
 					/>
 				))}
 			</div>

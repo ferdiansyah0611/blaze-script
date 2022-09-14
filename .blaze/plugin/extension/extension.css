@@ -12,8 +12,24 @@
 
 #extension .close {
 	right: 0px;
-    left: unset;
-    width: auto;
+	left: unset;
+	width: auto;
+}
+
+#extension ::-webkit-scrollbar {
+	width: 8px;
+}
+
+#extension ::-webkit-scrollbar-track {
+	background: #000000ab;
+}
+
+#extension ::-webkit-scrollbar-thumb {
+	background: #484848;
+}
+
+#extension ::-webkit-scrollbar-thumb:hover {
+	background: #555;
 }
 
 #extension a {
@@ -45,6 +61,10 @@
 }
 #extension textarea {
 	width: 100%;
+	max-width: -webkit-fill-available;
+	border: 0px !important;
+	max-height: 200px;
+	height: 100%;
 }
 
 #extension input {
@@ -121,11 +141,13 @@
 
 #extension #list-log {
 	display: flex;
-    flex-direction: column;
-    gap: 4px;
+	flex-direction: column;
+	gap: 4px;
 }
 
-#extension p, h5, h6 {
+#extension p,
+h5,
+h6 {
 	margin-bottom: 4px;
 	margin-top: 4px;
 	font-size: 14px;

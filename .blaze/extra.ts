@@ -9,3 +9,5 @@ export const useTransition = (name: string, component) => {
 		component.$deep.trigger();
 	};
 };
+
+export const useId = () => crypto.randomUUID();

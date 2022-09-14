@@ -62,7 +62,7 @@ export default function Extension(keyApp) {
 					{/*console*/}
 					{this.state.openConsole && (
 						<div>
-							<div class="flex text-white">
+							<div class="flex text-white" style="border-bottom: 1px solid #7c7c7c;">
 								<h5 class="p-2 flex-1 font-bold">Console</h5>
 								<button onClick={() => (this.state.console = [])} class="bg-gray-800 p-2">
 									Clear
@@ -85,7 +85,7 @@ export default function Extension(keyApp) {
 									</div>
 								</div>
 							</div>
-							<div>
+							<div style="padding: 10px;">
 								<textarea
 									placeholder="Write code!"
 									class="bg-black text-white p-2 focus:border-gray-600 w-full focus:outline-none"
@@ -98,7 +98,7 @@ export default function Extension(keyApp) {
 					{/*log*/}
 					{this.state.openLog && (
 						<div>
-							<div class="flex text-white">
+							<div class="flex text-white" style="border-bottom: 1px solid #7c7c7c;">
 								<h5 class="p-2 flex-1 font-bold">Logger</h5>
 								<button onClick={this.clearLog} class="bg-gray-800 p-2">
 									Clear
@@ -123,18 +123,17 @@ export default function Extension(keyApp) {
 					{/*component*/}
 					{this.state.openComponent && (
 						<div>
-							<div class="flex text-white">
+							<div class="flex text-white" style="border-bottom: 1px solid #7c7c7c;">
 								<h5 class="p-2 flex-1 font-bold">Component</h5>
 							</div>
 							<div class="flex">
-								<div refs="bodyComponent" style={"max-height: 50vh;overflow: auto;flex: 1;"}>
+								<div refs="bodyComponent" style={"max-height: 50vh;overflow: auto;flex: 1;border-right: 1px solid #7c7c7c;"}>
 									<div class="sticky top-0 z-10 bg-black">
 										<input
 											onChangeValue={this.handleSearchComponent}
 											placeholder="Search component..."
 											class="bg-black text-sm w-full text-white p-2 focus:border-gray-600 flex-1 focus:outline-none"
 											type="text"
-											style="margin: 6px;"
 										/>
 									</div>
 									<div id="list-component" class="flex flex-col text-white p-2">
@@ -159,8 +158,8 @@ export default function Extension(keyApp) {
 															: "w-4 h-4 rounded-full bg-red-500"
 													}
 												></span>
-												<h5 class="font-bold">{this.state.selectComponent.constructor.name}</h5>
-												<p class="text-gray-300">{this.state.selectComponent.$deep.time + "ms"}</p>
+												<h5 class="font-bold p-2 ml-2">{this.state.selectComponent.constructor.name}</h5>
+												<p class="text-gray-300 p-2 ml-2">{this.state.selectComponent.$deep.time + "ms"}</p>
 											</div>
 										) : (
 											false
@@ -286,7 +285,7 @@ export default function Extension(keyApp) {
 				</div>
 				<div>
 					{this.state.open ? (
-						<div diff className="flex space-x-2 text-white text-sm p-2">
+						<div diff className="flex space-x-2 text-white text-sm p-2" style="border-top: 1px solid #7c7c7c;">
 							<a className="bg-gray-800 p-2" onClickPrevent={this.handleConsole} href="/">
 								Console
 							</a>

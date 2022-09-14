@@ -4,6 +4,7 @@ import { makeChildren, makeAttribute } from "./maker";
 import { Component } from "../blaze.d";
 import { diffChildren } from "./diff";
 import { App, HMR } from "./global";
+import Lifecycle from "./lifecycle";
 
 /**
  * @createElement
@@ -31,7 +32,7 @@ export default function e(
 			let equal = equalProps(checkComponent.props, data);
 			if (equal === false) {
 				// disable trigger on update props
-				let newProps = data ? { ...data } : {};
+				let newProps = { ...data };
 				checkComponent.$deep.disableTrigger = true;
 				Object.assign(checkComponent.props, newProps);
 				checkComponent.$deep.disableTrigger = false;
@@ -64,10 +65,11 @@ export default function e(
 						let check = $deep.registry.value[result.default.name + key];
 						if (!check) {
 							newComponent = new result.default(component, App.get(component.$config?.key || 0, 'app'));
-							if (component.$config) {
-								newComponent.$config = component.$config;
-							}
-							state("props", data ? { ...data } : {}, newComponent);
+							let now = new Lifecycle(newComponent);
+							now.beforeCreate();
+							injectConfigAndRoot(component, newComponent);
+							state("props", { ...data }, newComponent);
+							now.created();
 							const resulted = rendering(
 								newComponent,
 								$deep,
@@ -79,20 +81,22 @@ export default function e(
 								component
 							);
 							if (resulted) el.append(resulted);
+							now.mount({}, false, true);
+							now.watch();
+							now.effect(true);
 							return el;
 						}
-
-						diffProps(check.component);
+						diffProps(check);
 						const resulted = rendering(
-							check.component,
+							check,
 							$deep,
 							false,
 							data,
 							key,
-							check.component.constructor,
+							check.constructor,
 							children
 						);
-						diffChildren(check.component.$node, resulted, check.component);
+						diffChildren(check.$node, resulted, check);
 						if (resulted) el.append(resulted);
 					}
 				}
@@ -116,24 +120,9 @@ export default function e(
 			if (!check) {
 				let newComponent = new nodeName(component, App.get(component.$config?.key || 0, 'app'));
 				// inject config app
-				if (component.$config) {
-					Object.defineProperty(newComponent, "$config", {
-						get: () => {
-							return component.$config;
-						}
-					});
-				}
-				Object.defineProperty(newComponent, "$root", {
-					get: () => {
-						return component;
-					},
-					set: (value) => {
-						if(value) component = value;
-						return true;
-					}
-				});
+				injectConfigAndRoot(component, newComponent);
 				// props registery
-				state("props", data ? { ...data } : {}, newComponent);
+				state("props", { ...data }, newComponent);
 				const result = rendering(newComponent, $deep, true, data, key, nodeName, children, component);
 				return result;
 			}
@@ -191,3 +180,23 @@ export default function e(
 
 	return el;
 };
+
+
+function injectConfigAndRoot(component, newComponent){
+	if (component.$config) {
+		Object.defineProperty(newComponent, "$config", {
+			get: () => {
+				return component.$config;
+			}
+		});
+	}
+	Object.defineProperty(newComponent, "$root", {
+		get: () => {
+			return component;
+		},
+		set: (value) => {
+			if(value) component = value;
+			return true;
+		}
+	});
+}
