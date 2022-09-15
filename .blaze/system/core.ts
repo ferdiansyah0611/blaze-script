@@ -111,7 +111,7 @@ export const init = (component: Component, _auto?: string) => {
 					},
 					each: (callback) => {
 						for(let [key, value] of Object.entries(registry)){
-						    return callback(value, key)
+						    callback(value, key)
 						}
 					},
 					map: (callback) => {

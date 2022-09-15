@@ -32,7 +32,7 @@ export default function e(
 			let equal = equalProps(checkComponent.props, data);
 			if (equal === false) {
 				// disable trigger on update props
-				let newProps = { ...data };
+				let newProps = data;
 				checkComponent.$deep.disableTrigger = true;
 				Object.assign(checkComponent.props, newProps);
 				checkComponent.$deep.disableTrigger = false;
@@ -68,7 +68,7 @@ export default function e(
 							let now = new Lifecycle(newComponent);
 							now.beforeCreate();
 							injectConfigAndRoot(component, newComponent);
-							state("props", { ...data }, newComponent);
+							state("props", data, newComponent);
 							now.created();
 							const resulted = rendering(
 								newComponent,
@@ -122,7 +122,7 @@ export default function e(
 				// inject config app
 				injectConfigAndRoot(component, newComponent);
 				// props registery
-				state("props", { ...data }, newComponent);
+				state("props", data, newComponent);
 				const result = rendering(newComponent, $deep, true, data, key, nodeName, children, component);
 				return result;
 			}
