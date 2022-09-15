@@ -1,6 +1,6 @@
-// @ts-ignore
 export default function ListExtension() {
 	this.disableExtension = true;
+	// @ts-ignore
 	const { render, defineProp, mount } = init(this);
 	defineProp({
 		item: {
