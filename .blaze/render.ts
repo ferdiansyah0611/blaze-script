@@ -22,10 +22,8 @@ export class createApp implements InterfaceApp {
 		this.el = el;
 		this.component = component;
 		this.config = config;
+		this.config.key = App.set(this) - 1;
 		this.blaze = new Blaze();
-		if (config.hasOwnProperty("key") === false || !(typeof config.key === "number")) {
-			this.config.key = 0;
-		}
 		this.use(withError());
 	}
 	componentProcess({ component, newComponent, key, previous }: any) {
@@ -202,7 +200,6 @@ export class createApp implements InterfaceApp {
 	}
 	mount() {
 		document.addEventListener("DOMContentLoaded", () => {
-			App.set(this);
 
 			const app = new EntityRender(this.component, {
 				inject: {

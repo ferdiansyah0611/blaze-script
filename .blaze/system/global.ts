@@ -26,7 +26,7 @@ export const App = {
 		return app;
 	},
 	set(value) {
-		app.push(Object.seal(value));
+		return app.push(Object.seal(value));
 	},
 };
 

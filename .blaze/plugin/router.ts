@@ -97,9 +97,22 @@ class EntityRouter {
  * @makeRouter
  * extension for router
  */
-export const makeRouter = (entry: string, config: any) => {
+
+type configFactoryRouter = {
+	key?: number;
+	auto?: any;
+	config?: any;
+	url?: any[];
+	resolve?: boolean;
+	split?: string;
+	customize?: {
+		render: (url: string, option: any) => any;
+	}
+}
+
+export const makeRouter = (entry: string, config: configFactoryRouter) => {
 	let tool;
-	let keyApplication = 0;
+	let keyApplication = config.hasOwnProperty('key') ? config.key : 0;
 	let glob = {};
 	let isCustomize;
 	const mappingConfig = (item) => {
@@ -112,18 +125,10 @@ export const makeRouter = (entry: string, config: any) => {
 	if (config.customize && config.customize.render) isCustomize = true;
 	// auto route
 	if (config.auto && !isCustomize) {
-		glob = import.meta.glob([
-			"@route/*.tsx",
-			"@route/**/*.tsx",
-			"@route/**/**/*.tsx",
-			"@route/**/**/**/*.tsx",
-			"@route/**/**/**/**/*.tsx",
-			"@route/**/**/**/**/**/*.tsx",
-			"@route/**/**/**/**/**/**/*.tsx",
-		]);
+		glob = config.auto;
 
 		for (let modules in glob) {
-			let path = modules.split("/src/route")[1].toLowerCase();
+			let path = modules.split(config.split)[1].toLowerCase();
 			if (path.match(".tsx") && !path.startsWith("/_")) {
 				let url = path.split(".tsx")[0];
 				url = url.replaceAll("[", ":").replaceAll("]", "");
@@ -414,14 +419,16 @@ export const makeRouter = (entry: string, config: any) => {
 		 * inject router to always component
 		 */
 		blaze.onMakeComponent.push((component) => {
-			Object.defineProperty(component, "$router", {
-				get: () => {
-					return tool;
-				},
-				set: () => {
-					return true;
-				},
-			});
+			if(!component.$router) {
+				Object.defineProperty(component, "$router", {
+					get: () => {
+						return tool;
+					},
+					set: () => {
+						return true;
+					},
+				});
+			}
 		});
 
 		/**
@@ -531,13 +538,9 @@ function check(config: any, url: string, nested?: any) {
  * @mount
  * mount on current component and add event popstate
  */
-export const startIn = (component: Component, keyApp?: number, loader?: Function) => {
-	if (!(typeof keyApp === "number")) {
-		keyApp = 0;
-	}
-
+export const startIn = (component: Component, loader?: Function) => {
 	mount(() => {
-		let router = Router.get(keyApp);
+		let router = Router.get(component.$config.key);
 		router.loader = loader;
 		router.ready(component);
 		window.addEventListener("popstate", () => {

@@ -308,7 +308,7 @@ export class EntityRender {
 		}
 		// inject config
 		let root = App.get(key || 0, "config");
-		if (root) this.component.$config = root;
+		if (root && (!inject || !inject.$config)) this.component.$config = root;
 		return this;
 	};
 	done = (callback: (current: any) => any) => {
