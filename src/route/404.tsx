@@ -3,7 +3,10 @@ export default function NotFound() {
 	init(this, "auto");
 	render(
 		() => (
-			<p>404</p>
+			<div>
+				<h1>404</h1>
+				<p>Page Is Not Found</p>
+			</div>
 		)
 	);
 };
