@@ -1,5 +1,5 @@
 import { batch } from "./utils";
-import { makeRefs } from "./dom";
+import Dom from "./dom";
 import { Component } from "../blaze.d";
 
 /**
@@ -137,7 +137,9 @@ export const makeAttribute = (data: any, el: HTMLElement, component: Component) 
 		}
 		// refs
 		if (item === "refs" && data[item]) {
-			makeRefs(component, data[item], el, !component.$deep.update);
+			Dom.makeRefs({
+				component, name: data[item], el, isInitial: !component.$deep.update
+			})
 			return;
 		}
 		if (item === "key") {

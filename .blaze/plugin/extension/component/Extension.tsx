@@ -75,7 +75,7 @@ export default function Extension(keyApp) {
 								<div style={"max-height: 50vh;overflow: auto;"}>
 									<div class="text-sm mb-2 p-2">
 										{this.state.console.map((item) => (
-											<div diff class="border-b flex">
+											<div class="border-b flex">
 												<p className="text-gray-100 flex-1">
 													{typeof item.data === "string" ? item.data : JSON.stringify(item.data)}
 												</p>
@@ -147,25 +147,21 @@ export default function Extension(keyApp) {
 										))}
 									</div>
 								</div>
-								<div diff class="text-white flex-1" style={"max-height: 50vh;overflow: auto;max-width: 450px;"}>
-									<div>
-										{this.state.selectComponent.constructor.name !== "Object" ? (
-											<div diff class="flex space-x-2 items-center p-2">
+								<div class="text-white flex-1" style={"max-height: 50vh;overflow: auto;max-width: 450px;"}>
+									{this.state.selectComponent.constructor.name !== "Object" ? (
+										<div>
+											<div class="flex space-x-2 items-center p-2">
 												<span
 													class={
 														this.state.selectComponent.$node.isConnected
-															? "w-4 h-4 rounded-full bg-green-500"
-															: "w-4 h-4 rounded-full bg-red-500"
+															? "w-4 h-4 rounded-full bg-green-500 ml-2"
+															: "w-4 h-4 rounded-full bg-red-500 ml-2"
 													}
 												></span>
-												<h5 class="font-bold p-2 ml-2">{this.state.selectComponent.constructor.name}</h5>
-												<p class="text-gray-300 p-2 ml-2">{this.state.selectComponent.$deep.time + "ms"}</p>
+												<h5 class="font-bold p-2">{this.state.selectComponent.constructor.name}</h5>
+												<p class="text-gray-300 p-2">{(this.state.selectComponent.$deep.time || -1) + "ms"}</p>
 											</div>
-										) : (
-											false
-										)}
-										{this.props.length ? (
-											<div>
+											<div on:show={Boolean(this.props.length)}>
 												<h6 class="ml-2 font-medium p-2">Props</h6>
 												<div class="flex flex-col border-b border-gray-500 pb-2">
 													{this.props.map((item, i) => (
@@ -179,11 +175,7 @@ export default function Extension(keyApp) {
 													))}
 												</div>
 											</div>
-										) : (
-											false
-										)}
-										{this.selectComponentState.length ? (
-											<div>
+											<div on:show={Boolean(this.selectComponentState.length)}>
 												<h6 class="ml-2 font-medium p-2">State</h6>
 												<div class="flex flex-col border-b border-gray-500 pb-2">
 													{this.selectComponentState.map((item) => (
@@ -204,11 +196,7 @@ export default function Extension(keyApp) {
 													))}
 												</div>
 											</div>
-										) : (
-											false
-										)}
-										{this.selectComponentContext.length ? (
-											<div>
+											<div on:show={Boolean(this.selectComponentContext.length)}>
 												<div class="flex flex-col border-b border-gray-500 pb-2">
 													{this.selectComponentContext.map((item) => (
 														<div>
@@ -230,54 +218,45 @@ export default function Extension(keyApp) {
 													))}
 												</div>
 											</div>
-										) : (
-											false
-										)}
-
-										{
-											(window.$test && this.state.runTest && this.state.resultTest.result.length) ?
-											<Testing
-												describe={this.state.resultTest.result}
-											/>
-											: false
-										}
-										<div diff className="mt-2">
-											{this.state.selectComponent.$node ? (
-												<div>
-													<div diff class="ml-2">
-														<h5 diff class="p-2 flex-1 font-bold">
-															More
-														</h5>
-													</div>
-													<div diff class="p-2 flex space-x-1 ml-2">
-														{
-															window.$test ?
-															<button onClick={this.runTest} class="bg-green-800 p-2 text-sm" d>
-																Run Test
-															</button>
-															: false
-														}
-														<button
-															onClick={() => this.state.selectComponent.$deep.trigger()}
-															class="bg-gray-800 p-2 text-sm"
-															d
-														>
-															Trigger
+											{
+												(window.$test && this.state.runTest && this.state.resultTest.result.length) ?
+												<Testing
+													describe={this.state.resultTest.result}
+												/>
+												: false
+											}
+											<div on:show={Boolean(this.state.selectComponent.$node)} className="mt-2 ml-2">
+												<h5 class="p-2 flex-1 font-bold">
+													More
+												</h5>
+												<div class="p-2 flex space-x-1">
+													{
+														window.$test ?
+														<button onClick={this.runTest} class="bg-green-800 p-2 text-sm" d>
+															Run Test
 														</button>
-														<button
-															onClick={() => this.state.selectComponent.$deep.remove()}
-															class="bg-gray-800 p-2 text-sm"
-															d
-														>
-															Remove
-														</button>
-													</div>
+														: false
+													}
+													<button
+														onClick={() => this.state.selectComponent.$deep.trigger()}
+														class="bg-gray-800 p-2 text-sm"
+													
+													>
+														Trigger
+													</button>
+													<button
+														onClick={() => this.state.selectComponent.$deep.remove()}
+														class="bg-gray-800 p-2 text-sm"
+													
+													>
+														Remove
+													</button>
 												</div>
-											) : (
-												false
-											)}
+											</div>
 										</div>
-									</div>
+									) : (
+										false
+									)}
 								</div>
 							</div>
 						</div>
@@ -285,7 +264,7 @@ export default function Extension(keyApp) {
 				</div>
 				<div>
 					{this.state.open ? (
-						<div diff className="flex space-x-2 text-white text-sm p-2" style="border-top: 1px solid #7c7c7c;">
+						<div className="flex space-x-2 text-white text-sm p-2" style="border-top: 1px solid #7c7c7c;">
 							<a className="bg-gray-800 p-2" onClickPrevent={this.handleConsole} href="/">
 								Console
 							</a>

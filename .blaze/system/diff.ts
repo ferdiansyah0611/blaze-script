@@ -1,33 +1,26 @@
-import {
-	unmountAndRemoveRegistry,
-	mountComponentFromEl,
-	findComponentNode,
-	mountSomeComponentFromEl,
-	removeRegistry,
-} from "./dom";
+import Dom from "./dom";
 import { Component, VirtualEvent } from "../blaze.d";
 import Lifecycle from "./lifecycle";
-import { makeRefs } from "./dom";
+import { isTextNode } from "./constant";
+import { getBlaze } from "./core";
 
 /**
  * @diff
- * diff attribute, skip, textNode, input element
- * update refs
+ * diff attribute, skip, textNode, input element, update refs
  */
 const diff = function (prev: Element, el: Element, component: Component, hmr: Component) {
 	let zip = [];
-	// null
-	if (!prev || !el) {
+	let isText = isTextNode(prev, el);
+	// null/svg/fragment
+	if (!prev || !el || el instanceof SVGElement || prev.nodeName === "#document-fragment") {
 		return zip;
 	}
+	// manual skip diff
 	if (prev.diff || el.diff) {
 		prev.diff = el.diff;
 		if (prev.diff) {
 			return zip;
 		}
-	}
-	if (el instanceof SVGElement || prev.nodeName === "#document-fragment") {
-		return zip;
 	}
 	// different nodename
 	if (prev.nodeName !== el.nodeName) {
@@ -35,13 +28,13 @@ const diff = function (prev: Element, el: Element, component: Component, hmr: Co
 		return zip;
 	}
 	// different key
-	if (prev["dataset"]["i"] && el["dataset"]["i"] && prev["dataset"]["i"] !== el["dataset"]["i"]) {
+	if (!isText && prev["dataset"]["i"] && el["dataset"]["i"] && prev["dataset"]["i"] !== el["dataset"]["i"]) {
 		// if component
 		if (prev["dataset"]["n"] && el["dataset"]["n"] && prev["$root"]) {
-			removeRegistry(prev.$children.$root, prev.$children, true);
+			Dom.destroyRegistry({ parent: prev.$children.$root, active: prev.$children, isDisableRemove: true });
 			prev.replaceWith(el.$children.$node);
 			if (!el.$children.$deep.hasMount) {
-				mountComponentFromEl(el);
+				Dom.mountComponent({ el })
 			}
 		} else {
 			prev["dataset"].i = el.key;
@@ -49,7 +42,7 @@ const diff = function (prev: Element, el: Element, component: Component, hmr: Co
 
 			let difference = diff(prev, el, prev.$children || component, hmr);
 			difference.forEach((rechange: Function) => rechange());
-			nextDiffChildren(Array.from(prev.children), el, prev.$children || component);
+			nextDiffChildren(Array.from(prev.childNodes), el, prev.$children || component);
 		}
 	}
 	// different component in same node
@@ -73,61 +66,16 @@ const diff = function (prev: Element, el: Element, component: Component, hmr: Co
 			prev.$name = el.$name;
 			prev.$children = el.$children;
 			prev.key = el.key || 0;
-			prev.replaceChildren(...Array.from(el.children));
+			prev["replaceChildren"](...Array.from(el.childNodes));
 			prev.$children.$node = prev;
-			mountComponentFromEl(prev);
+			Dom.mountComponent({ el: prev });
 		});
 	}
-	// text/button/link/code
-	if (
-		["SPAN", "P", "H1", "H2", "H3", "H4", "H5", "H6", "A", "BUTTON", "CODE"].includes(prev.nodeName) ||
-		prev["content"] ||
-		el["content"]
-	) {
-		if (prev["content"] || el["content"]) {
-			prev["content"] = el["content"];
-		}
-
-		const rechange = (node, i) => {
-			if (node && el.childNodes[i] !== undefined && node.data !== el.childNodes[i].data) {
-				zip.push(() => {
-					node.replaceData(0, -1, el.childNodes[i].data);
-				});
-			}
-		};
-		if (!prev.childNodes.length && el.childNodes.length) {
+	// text node
+	if (isText) {
+		if (prev["data"] !== el["data"]) {
 			zip.push(() => {
-				el.childNodes.forEach((node: Element) => {
-					prev.appendChild(node);
-				});
-			});
-		} else if (prev.childNodes.length && !el.childNodes.length) {
-			zip.push(() => {
-				prev.childNodes.forEach((node: Element) => {
-					node.remove();
-				});
-			});
-		} else if (prev.childNodes.length === el.childNodes.length) {
-			prev.childNodes.forEach(rechange);
-		} else if (el.childNodes.length > prev.childNodes.length) {
-			prev.childNodes.forEach((node: any, i: number) => {
-				rechange(node, i);
-				if (i === prev.childNodes.length - 1) {
-					zip.push(() => {
-						el.childNodes.forEach((nodes: Element, key: number) => {
-							if (key > i) {
-								prev.appendChild(nodes);
-							}
-						});
-					});
-				}
-			});
-		} else if (el.childNodes.length < prev.childNodes.length) {
-			prev.childNodes.forEach((node: any, i: number) => {
-				if (!el.childNodes[i]) {
-					return node.remove();
-				}
-				rechange(node, i);
+				prev["replaceData"](0, -1, el["data"]);
 			});
 		}
 	}
@@ -136,7 +84,7 @@ const diff = function (prev: Element, el: Element, component: Component, hmr: Co
 		let lifecycle = new Lifecycle(component);
 		if (!prev.refs && el.refs) {
 			zip.push(() => {
-				makeRefs(component, el.refs, prev);
+				Dom.makeRefs({ component, name: el.refs, el: prev });
 				lifecycle.effect(el.refs);
 			});
 		} else if (prev.refs && !el.refs) {
@@ -147,13 +95,13 @@ const diff = function (prev: Element, el: Element, component: Component, hmr: Co
 		} else if (prev.refs !== el.refs) {
 			zip.push(() => {
 				prev.removeAttribute("refs");
-				makeRefs(component, el.refs, prev);
+				Dom.makeRefs({ component, name: el.refs, el: prev });
 				lifecycle.effect(el.refs);
 			});
 		}
 	}
 	// attribute
-	if (prev.attributes.length || el.attributes.length) {
+	if (!isText && (prev.attributes.length || el.attributes.length)) {
 		let oldAttr = prev.getAttributeNames();
 		let newAttr = el.getAttributeNames();
 		// !old new
@@ -174,10 +122,15 @@ const diff = function (prev: Element, el: Element, component: Component, hmr: Co
 		}
 		// same
 		else if (oldAttr.length === newAttr.length) {
-			oldAttr.forEach((name) => {
+			oldAttr.forEach((name, i) => {
 				let oldValue = prev.getAttribute(name);
 				let newValue = el.getAttribute(name);
-				if (oldValue !== newValue) {
+				if (name !== newAttr[i]) {
+					zip.push(() => {
+						prev.removeAttribute(name);
+						prev.setAttribute(newAttr[i], el.getAttribute(newAttr[i]));
+					});
+				} else if (oldValue !== newValue) {
 					zip.push(() => {
 						prev.setAttribute(name, newValue);
 					});
@@ -332,6 +285,17 @@ const diff = function (prev: Element, el: Element, component: Component, hmr: Co
 		}
 	}
 
+	/**
+	 * @onDirective
+	 * run directive customization
+	 */
+	let blaze = getBlaze(component.$config?.key || 0);
+	if (blaze && blaze.run) {
+		blaze.run.onDirective(prev, el, {
+			push: (value) => zip.push(value),
+		});
+	}
+
 	return zip;
 };
 
@@ -362,37 +326,84 @@ export const diffChildren = (
 	if ((oldest.$name || newest.$name) !== component.constructor.name) {
 		return;
 	}
-	if (oldest.children.length !== newest.children.length) {
-		let oldestChildren: Element[] = Array.from(oldest.children),
-			newestChildren: Element[] = Array.from(newest.children);
+	if (oldest.childNodes.length !== newest.childNodes.length) {
+		let oldestChildren: ChildNode[] = Array.from(oldest.childNodes),
+			newestChildren: ChildNode[] = Array.from(newest.childNodes);
 
-		if (!oldest.children.length && newest.children.length) {
-			oldest.replaceChildren(...newestChildren);
-			Array.from(oldest.children).forEach((node: Element) => {
-				mountComponentFromEl(node, component.constructor.name, true);
+		if (!oldest.childNodes.length && newest.childNodes.length) {
+			let replaceNonText = oldest["replaceChildren"];
+			if (replaceNonText) {
+				oldest["replaceChildren"](...newestChildren);
+			} else {
+				oldest["replaceWith"](newest)
+			}
+			Array.from(oldest.childNodes).forEach((node: Element) => {
+				Dom.mountComponent({ el: node, name: component.constructor.name, isKey: true});
 			});
 			return;
-		} else if (oldest.children.length && !newest.children.length) {
+		} else if (oldest.childNodes.length && !newest.childNodes.length) {
 			oldestChildren.forEach((node: Element) => {
-				unmountAndRemoveRegistry(newest, node, true);
+				Dom.destroyComponent({
+					parentFake: newest, active: node, isCheckSub: true
+				})
 				node.remove();
 			});
-			oldest.replaceChildren(...newestChildren);
+			oldest["replaceChildren"](...newestChildren);
 			return;
-		} else if (newest.children.length < oldest.children.length) {
+		} else if (newest.childNodes.length < oldest.childNodes.length) {
 			let action = [];
 			oldestChildren.forEach((node: Element, i: number) => {
 				let check = newestChildren[i];
 				let isComponent = false;
 				let withoutKey = false;
 				let unmounted = (real: Element) => {
-					real.$children && removeRegistry(real.$children.$root, real.$children, true);
+					real.$children && Dom.destroyRegistry({ parent: real.$children.$root, active: real.$children, isDisableRemove: true });
 				};
-				let recursive = (real: Element, fake: Element) => {
-					if (real.$children || real["dataset"]["i"]) {
+				let recursive = (real: Element, fake: ChildNode) => {
+					if (isTextNode(real, fake)) {
+						Dom.destroyComponent({
+							parentFake: newest, active: real, isCheckSub: true
+						})
+						diffText(real, fake, node.previousSibling)
+						// if node string === undefined
+						if (real && real["data"] && real["data"] === 'undefined') {
+							if (fake) {
+								real.replaceWith(fake)
+							}
+							else{
+								real.remove()
+							}
+						}
+						return;
+					};
+					// different nodename
+					if ((real && fake) && real.nodeName !== fake.nodeName) {
+						// if component
+						if (real["dataset"]["n"] && fake["dataset"]["n"]) {
+							// different component
+							if (real["dataset"]["n"] !== fake["dataset"]["n"]) {
+								const realCheckOnFake = Dom.find({ parent: newest, item: real })
+								if (!realCheckOnFake) {
+									Dom.destroyComponent({
+										parentFake: newest, active: real, isCheckSub: true, isDisableRemove: true
+									})
+									Dom.mountComponentElement({
+										parentReal: oldest, el: fake as Element, current: real, name: component.constructor.name
+									})
+								}
+							}
+						}
+						real.replaceWith(fake)
+
+						if (fake["$children"]) {
+							fake["$children"].$node = fake
+						}
+						return;
+					}
+					if (real["$children"] || real["dataset"]["i"]) {
 						let defineNode = oldest["for"] ? node : real;
-						let find = real.$children
-							? findComponentNode(newest, real)
+						let find = real["$children"]
+							? Dom.find({ parent: newest, item: real })
 							: newest.querySelector(`[data-i="${real["dataset"]["i"]}"]`);
 						isComponent = true;
 						withoutKey = false;
@@ -407,18 +418,24 @@ export const diffChildren = (
 							} else if (fake && real["dataset"]["i"] !== fake["dataset"]["i"]) {
 								if (!find) {
 									unmounted(real);
-									if ((real.$children && fake.$children) || (!real.$children && fake.$children)) {
-										action.push(() => real.replaceWith(fake.$children?.$node ?? fake));
-										if (fake.$children && !fake.$children.$deep.hasMount) {
-											mountComponentFromEl(fake);
+									if (
+										(real["$children"] && fake["$children"]) ||
+										(!real["$children"] && fake["$children"])
+									) {
+										let replace = fake;
+										if (fake["$children"] && fake["$children"].$node)
+											replace = fake["$children"].$node;
+										action.push(() => real.replaceWith(replace));
+										if (fake["$children"] && !fake["$children"].$deep.hasMount) {
+											Dom.mountComponent({ el: fake })
 										}
 									} else {
 										action.push(() => defineNode.remove());
 									}
 								}
-							} else if (!real.$children && fake) {
-								nextDiffChildren(Array.from(node.children), real, component, hmr);
-							} else if (!real.$children) {
+							} else if (!real["$children"] && fake) {
+								nextDiffChildren(Array.from(node.childNodes), real, component, hmr);
+							} else if (!real["$children"]) {
 								if (!find) {
 									action.push(() => defineNode.remove());
 								}
@@ -430,43 +447,83 @@ export const diffChildren = (
 					}
 
 					if (real.$name === component.constructor.name) {
-						Array.from(real.children).forEach((reals, i) => {
-							recursive(reals, fake?.children[i]);
+						Array.from(real.childNodes).forEach((reals: Element, i) => {
+							let fakes;
+							if (fake && fake.childNodes[i]) fakes = fake.childNodes[i];
+							recursive(reals, fakes);
 						});
 					}
 				};
 				recursive(node, check);
+
 				if (!isComponent && !check && node) {
 					node.remove();
 					return;
 				}
 				if (!isComponent && withoutKey && node) {
-					nextDiffChildren(Array.from(node.children), check, component, hmr);
+					nextDiffChildren(Array.from(node.childNodes), check, component, hmr);
 				}
 			});
 			action.forEach((fn) => fn());
 			return;
-		} else if (newest.children.length > oldest.children.length) {
-			Array.from(newest.children).forEach((node: Element, i: number) => {
+		} else if (newest.childNodes.length > oldest.childNodes.length) {
+			newestChildren.forEach((node: Element, i: number) => {
+				let current = oldest.childNodes[i];
 				let isComponent = false;
-				mountSomeComponentFromEl(
-					oldest,
-					node,
-					oldest.children[i],
-					component.constructor.name,
-					() => {
-						oldest.children[i].insertAdjacentElement("beforebegin", node);
-					},
-					() => {
-						isComponent = true;
+				if (isTextNode(current, node)) {
+					diffText(current, node, oldest.childNodes[i - 1]);
+					if (current && current["data"] && current["data"] === 'undefined') {
+						Dom.mountComponentElement({
+							parentReal: oldest, el: node, current, name: component.constructor.name
+						})
+						current.replaceWith(node);
 					}
-				);
-				if (!isComponent && oldest.children[i]) {
-					nextDiffChildren(Array.from(oldest.children[i].children), node, component, hmr);
 					return;
 				}
-				if (!oldest.children[i]) {
-					oldest.children[i - 1].insertAdjacentElement("afterend", node);
+				// different nodename
+				if ((current && node) && current.nodeName !== node.nodeName) {
+					// component
+					if (current["dataset"]["n"] || node["dataset"]["n"]) {
+						let findNewNode = Dom.find({ parent: newest, item: current as Element });
+						if (!findNewNode) {
+							Dom.destroyComponent({
+								parentFake: newest, active: current as Element, isCheckSub: true, isDisableRemove: true
+							})
+						}
+					}
+					Dom.mountComponentElement({
+						parentReal: oldest, el: node, current, name: component.constructor.name
+					})
+					current.replaceWith(node)
+					return;
+				}
+				// mount if component
+				Dom.mountComponentElement({
+					parentReal: oldest,
+					el: node,
+					current,
+					name: component.constructor.name,
+					callback(){
+						oldest.childNodes[i]["insertAdjacentElement"]("beforebegin", node);
+					},
+					callbackComponent(){
+						isComponent = true;
+					}
+				})
+				// diffing a element and not component
+				if (!isComponent && oldest.childNodes[i]) {
+					nextDiffChildren(Array.from(oldest.childNodes[i].childNodes), node, component, hmr);
+					return;
+				}
+				// insert element
+				if (!oldest.childNodes[i]) {
+					let insertNonText = oldest.childNodes[i - 1]["insertAdjacentElement"];
+					if (insertNonText) {
+						oldest.childNodes[i - 1]["insertAdjacentElement"]("afterend", node);
+					}
+					else {
+						oldest.childNodes[i - 1]["after"](node);
+					}
 				}
 			});
 			return;
@@ -476,7 +533,7 @@ export const diffChildren = (
 			let difference = diff(oldest, newest, component, hmr);
 			difference.forEach((rechange: Function) => rechange());
 		}
-		nextDiffChildren(Array.from(oldest.children), newest, component, hmr);
+		nextDiffChildren(Array.from(oldest.childNodes), newest, component, hmr);
 	}
 };
 
@@ -484,11 +541,11 @@ export const diffChildren = (
  * @nextDiffChildren
  * action to next diff a children
  */
-function nextDiffChildren(children: Element[], newest: any, component: Component, hmr?: Component) {
-	children.forEach((item: Element, i: number) => {
-		let difference = diff(item, newest.children[i], component, hmr);
+function nextDiffChildren(childNodes: ChildNode[], newest: any, component: Component, hmr?: Component) {
+	childNodes.forEach((item: Element, i: number) => {
+		let difference = diff(item, newest.childNodes[i], component, hmr);
 		difference.forEach((rechange: Function) => rechange());
-		diffChildren(item, newest.children[i], component, false);
+		diffChildren(item, newest.childNodes[i], component, false);
 	});
 }
 
@@ -553,6 +610,21 @@ function eventDiff(prev: Element, el: Element, hmr: Component) {
 				return event;
 			});
 		}
+	}
+}
+
+/**
+ * @diffText
+ * diff a text node
+ */
+function diffText(oldNode, newNode, prev) {
+	if (!oldNode && !newNode) return;
+	if (!oldNode && newNode) return prev.after(newNode);
+	if (oldNode && !newNode) return oldNode.remove();
+	if (oldNode.data === newNode.data) return;
+	if (oldNode.data !== newNode.data) {
+		if (oldNode.nodeType === Node.ELEMENT_NODE) return oldNode.replaceWith(newNode);
+		return oldNode.replaceData(0, -1, newNode.data);
 	}
 }
 

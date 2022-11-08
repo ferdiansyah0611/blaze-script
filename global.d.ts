@@ -11,14 +11,13 @@ declare global {
         $test: any;
     }
     interface Element {
-        // root component
+        // system
         $root: any;
-        // current component
         $children: any;
         $name: string;
         // logical optional
         if: boolean;
-        else: any;
+        else: boolean;
         // events virtual
         events: any[];
         // input
@@ -26,20 +25,13 @@ declare global {
         // auto batch
         batch: boolean;
         // skip different attribute
-        diff: any;
+        diff: boolean;
         // refs of element
         refs: string;
         // auto trigger
-        trigger: any;
-        // key
-        i: any;
-        key: any;
-    }
-    interface ChildNode {
-        data: any;
-    }
-    interface URLSearchParams {
-        entries();
+        trigger: boolean;
+        // key component
+        key: string | number;
     }
 }
 

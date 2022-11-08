@@ -1,10 +1,10 @@
 import { Component, Mount } from "../blaze.d";
 
 export default class Lifecycle {
-	component: Component;
+	#component: Component;
 	error: any;
 	constructor(component) {
-		this.component = component;
+		this.#component = component;
 		this.error = window.$error;
 	}
 	/**
@@ -13,7 +13,7 @@ export default class Lifecycle {
 	 */
 	mount(props: any, update?: boolean, enabled?: boolean) {
 		const { error } = this;
-		const { $deep } = this.component;
+		const { $deep } = this.#component;
 		try {
 			if (!$deep.hasMount) {
 				$deep.mount.forEach((item: Mount) => item.handle(props, update, enabled));
@@ -31,7 +31,7 @@ export default class Lifecycle {
 	 */
 	unmount() {
 		const { error } = this;
-		const { $deep } = this.component;
+		const { $deep } = this.#component;
 		try {
 			$deep.unmount.forEach((item: Function) => typeof item === "function" && item());
 		} catch (err) {
@@ -46,7 +46,7 @@ export default class Lifecycle {
 	 */
 	layout() {
 		const { error } = this;
-		const { $deep } = this.component;
+		const { $deep } = this.#component;
 		try {
 			if ($deep.layout) $deep.layout.forEach((item: Function) => item());
 		} catch (err) {
@@ -61,7 +61,7 @@ export default class Lifecycle {
 	 */
 	beforeCreate() {
 		const { error } = this;
-		const { $deep } = this.component;
+		const { $deep } = this.#component;
 		try {
 			if ($deep.beforeCreate) $deep.beforeCreate.forEach((item: Function) => item());
 		} catch (err) {
@@ -76,7 +76,7 @@ export default class Lifecycle {
 	 */
 	created() {
 		const { error } = this;
-		const { $deep } = this.component;
+		const { $deep } = this.#component;
 		try {
 			if ($deep.created) $deep.created.forEach((item: Function) => item());
 		} catch (err) {
@@ -91,7 +91,7 @@ export default class Lifecycle {
 	 */
 	beforeUpdate() {
 		const { error } = this;
-		const { $deep } = this.component;
+		const { $deep } = this.#component;
 		try {
 			if ($deep.beforeUpdate) $deep.beforeUpdate.forEach((item: Function) => item());
 		} catch (err) {
@@ -106,7 +106,7 @@ export default class Lifecycle {
 	 */
 	updated() {
 		const { error } = this;
-		const { $deep } = this.component;
+		const { $deep } = this.#component;
 		try {
 			if ($deep.updated) $deep.updated.forEach((item: Function) => item());
 		} catch (err) {
@@ -120,7 +120,7 @@ export default class Lifecycle {
 	 * watch state/props/context
 	 */
 	watch(logic?: any, valueUpdate?: any, voidCall?: boolean) {
-		this.component.$deep.watch.forEach((item) => {
+		this.#component.$deep.watch.forEach((item) => {
 			item.dependencies.forEach((dependencies) => {
 				if (logic) {
 					if (logic(dependencies)) {
@@ -130,7 +130,7 @@ export default class Lifecycle {
 				}
 
 				let current = "arguments[0]." + dependencies;
-				let value = Function(`return ${current}`)(this.component);
+				let value = Function(`return ${current}`)(this.#component);
 				if (value || voidCall) {
 					item.handle(dependencies, value);
 				}
@@ -143,14 +143,14 @@ export default class Lifecycle {
 	 */
 	effect(depend: string | boolean, value?: any, potential?: any) {
 		let list = [];
-		if (typeof depend !== "boolean" && this.component.$deep.effect) {
+		if (typeof depend !== "boolean" && this.#component.$deep.effect) {
 			list.push(new RegExp(`(this.${depend}=|this.${depend} =|this.${depend}\t=)`, "g"));
 			list.push(new RegExp(`(${depend}=|${depend} =|${depend}\t=)`, "g"));
 			list.push(new RegExp(`Object.assign.this.${depend}`, "g"));
 			list.push(new RegExp(`Object.assign.${depend}`, "g"));
 		}
 
-		(this.component.$deep.effect || []).forEach((item) => {
+		(this.#component.$deep.effect || []).forEach((item) => {
 			if (typeof depend === "boolean") return item();
 
 			let fn = item.toString();

@@ -2,6 +2,7 @@ import { EntityRender } from "@root/system/core";
 import { mount } from "@blaze";
 import { Component } from "@root/blaze.d";
 import { App, Router, HMR } from "@root/system/global";
+import { isComponent, isSameName } from "@root/system/constant";
 
 var firstPage = true;
 var popstate = false;
@@ -68,7 +69,7 @@ class EntityRouter {
 	setSearch(search: string, config: any) {
 		if (config.search) {
 			let searchparam = {};
-			for (const [key, value] of new URLSearchParams(search).entries()) {
+			for (const [key, value] of new URLSearchParams(search)["entries"]()) {
 				searchparam[key] = value;
 			}
 			Object.assign(this.app, {
@@ -441,12 +442,12 @@ export const makeRouter = (entry: string, config: configFactoryRouter) => {
 			let createApp = App.get(keyApp);
 			let newComponent = updateComponent.find(
 				(newComponents) =>
-					createApp.isSameName(component, newComponents) && createApp.isComponent(newComponents)
+					isSameName(component, newComponents) && isComponent(newComponents)
 			);
 			if(loader) {
 				let findLoader = updateComponent.find(
 					(newComponents) =>
-						createApp.isSameName(loader, newComponents) && createApp.isComponent(newComponents)
+						isSameName(loader, newComponents) && isComponent(newComponents)
 				);
 				if (findLoader) {
 					Object.assign(tool, {
@@ -540,7 +541,7 @@ function check(config: any, url: string, nested?: any) {
  */
 export const startIn = (component: Component, loader?: Function) => {
 	mount(() => {
-		let router = Router.get(component.$config.key);
+		let router = Router.get(component.$config?.key);
 		router.loader = loader;
 		router.ready(component);
 		window.addEventListener("popstate", () => {

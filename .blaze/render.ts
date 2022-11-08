@@ -1,32 +1,33 @@
 import { rendering, EntityRender } from "./system/core";
-import { Component, InterfaceApp, InterfaceBlaze } from "./blaze.d";
+import { Component, AppType, BlazeType, ComponentProcessArgType } from "./blaze.d";
 import Lifecycle from "./system/lifecycle";
 import { diffChildren } from "./system/diff";
 import isEqualWith from "lodash.isequalwith";
 import { Store, HMR, App } from "./system/global";
+import { isComponent, isSameName } from "./system/constant";
 import withError from "@root/plugin/error";
 
 /**
  * @App
  * class for new application
  */
-export class createApp implements InterfaceApp {
+export class createApp implements AppType {
+	app: Component;
 	el: string;
 	component: any;
 	plugin: any[];
-	blaze: any;
-	config?: any;
-	app: Component;
+	blaze: BlazeType;
+	config: any;
 	constructor(el: string, component: any, config?: any) {
-		this.plugin = [];
 		this.el = el;
 		this.component = component;
 		this.config = config;
 		this.config.key = App.set(this) - 1;
 		this.blaze = new Blaze();
+		this.plugin = [];
 		this.use(withError());
 	}
-	componentProcess({ component, newComponent, key, previous }: any) {
+	componentProcess({ component, newComponent, key, previous }: ComponentProcessArgType) {
 		let error = window.$error;
 		error.close();
 		try {
@@ -39,7 +40,7 @@ export class createApp implements InterfaceApp {
 
 			let old = new Lifecycle(component);
 			old.unmount();
-			newComponent.$root = component.$root
+			newComponent['$root'] = component['$root']
 
 			newComponent = this.componentUpdate(component, newComponent);
 			const result = rendering(
@@ -147,21 +148,19 @@ export class createApp implements InterfaceApp {
 
 		return newComponent;
 	}
-	isComponent = (component) => component.toString().indexOf("init(this)") !== -1;
-	isSameName = (component, newComponent) => newComponent && component && newComponent.name === component.constructor.name;
 	reloadRegistry = (component: Component, previous?: Component) => {
 		let hmrArray = HMR.get();
 		let newComponent = hmrArray.find(
-			(newComponents) => this.isSameName(component, newComponents) && this.isComponent(newComponents)
+			(newComponents) => isSameName(component, newComponents) && isComponent(newComponents)
 		);
 		if (newComponent) {
 			Object.assign(component, this.componentProcess({ component, newComponent, key: component.props.key, previous }));
-			component.__proto__.constructor = newComponent;
+			component["__proto__"].constructor = newComponent;
 		}
 		component.$deep.registry.map((data) => this.reloadRegistry(data, component));
 		return component;
 	};
-	reload(newHmr, isStore: any) {
+	reload(newHmr: any, isStore: any) {
 		HMR.set(newHmr);
 		if (isStore) {
 			let store = Store.get();
@@ -189,7 +188,7 @@ export class createApp implements InterfaceApp {
 		}
 
 		let newComponent = newHmr.find(
-			(newComponents) => this.isSameName(this.app, newComponents) && this.isComponent(newComponents)
+			(newComponents) => isSameName(this.app, newComponents) && isComponent(newComponents)
 		);
 		if (newComponent) {
 			Object.assign(this.app, this.componentProcess({ component: this.app, newComponent, key: 0 }));
@@ -231,39 +230,31 @@ export class createApp implements InterfaceApp {
  * @Blaze
  * class for event on blaze, like on make element and more
  */
-export class Blaze implements InterfaceBlaze {
-	onMakeElement: any[];
-	onMakeComponent: any[];
-	onAfterAppReady: any[];
-	onReload: any[];
-	onStartComponent: any[];
-	onEndComponent: any[];
-	constructor() {
-		this.onMakeElement = [];
-		this.onMakeComponent = [];
-		this.onAfterAppReady = [];
-		this.onReload = [];
-		this.onStartComponent = [];
-		this.onEndComponent = [];
-	}
-	get run() {
-		return {
-			onMakeElement: (el: HTMLElement) => this.onMakeElement.forEach((item) => item(el)),
-			onMakeComponent: (component: Component) => this.onMakeComponent.forEach((item) => item(component)),
-			onAfterAppReady: (component: Component) => this.onAfterAppReady.forEach((item) => item(component)),
-			onReload: (component: Component) => this.onReload.forEach((item) => item(component)),
-			onStartComponent: (component: Component) => {
+export class Blaze implements BlazeType {
+	onMakeElement = [];
+	onMakeComponent = [];
+	onAfterAppReady = [];
+	onReload = [];
+	onStartComponent = [];
+	onEndComponent = [];
+	onDirective = [];
+	get run(){
+		return{
+			onMakeElement: (el) => this.onMakeElement.forEach((item) => item(el)),
+			onMakeComponent: (component) => this.onMakeComponent.forEach((item) => item(component)),
+			onAfterAppReady: (component) => this.onAfterAppReady.forEach((item) => item(component)),
+			onReload: (component) => this.onReload.forEach((item) => item(component)),
+			onStartComponent: (component) => {
 				let endPerform = [];
 				this.onStartComponent.forEach((item) => endPerform.push(item(component)));
-
+		
 				return () => {
 					endPerform.forEach((item) => item && item());
 				};
 			},
-			onEndComponent: (component: Component) => {
-				this.onEndComponent.forEach((item) => item(component));
-			},
-		};
+			onEndComponent: (component) => this.onEndComponent.forEach((item) => item(component)),
+			onDirective: (prev, el, opt) => this.onDirective.forEach((item) => item(prev, el, opt))
+		}
 	}
 }
 

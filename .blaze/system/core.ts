@@ -1,5 +1,4 @@
-import { Component } from "../blaze.d";
-import type { ConfigEntityRender, EntityCompile } from "../blaze.d";
+import { Component, EntityRenderType, ConfigEntityRender, EntityCompile } from "../blaze.d";
 import isEqualWith from "lodash.isequalwith";
 import {
 	mount,
@@ -279,26 +278,26 @@ export const equalProps = (oldProps, newProps) => {
  * @EntityRender
  * utilites for render
  */
-export class EntityRender {
+export class EntityRender implements EntityRenderType {
 	config: ConfigEntityRender;
-	component: any;
-	$before?: () => any;
-	$beforeCompile?: (current: any) => any;
+	component: Component | any;
+	#before: () => any;
+	#beforeCompile: (current: any) => any;
 	constructor(component, config) {
 		this.component = component;
 		this.config = config;
 	}
 	before = (callback: (current: any) => any) => {
-		this.$before = callback.bind(this);
+		this.#before = callback.bind(this);
 		return this;
 	};
 	beforeCompile = (callback: (current: any) => any) => {
-		this.$beforeCompile = callback.bind(this);
+		this.#beforeCompile = callback.bind(this);
 		return this;
 	};
 	start = () => {
 		const { arg, key, inject } = this.config;
-		if (this.$before) this.$before();
+		if (this.#before) this.#before();
 
 		if (arg) this.component = new this.component(...arg);
 		else this.component = new this.component();
@@ -315,7 +314,7 @@ export class EntityRender {
 		callback.bind(this)(this);
 	};
 	compile(option: EntityCompile) {
-		if (this.$beforeCompile) this.$beforeCompile(this);
+		if (this.#beforeCompile) this.#beforeCompile(this);
 		rendering(
 			this.component,
 			option.deep,
@@ -341,7 +340,7 @@ export class EntityRender {
 	}
 	replaceChildren(entry: string) {
 		const query = document.querySelector(entry);
-		if (query) query.replaceChildren(this.component.$node);
+		if (query) query["replaceChildren"](this.component.$node);
 		else console.error("[replaceChildren]", entry, "not detected");
 		return this;
 	}
