@@ -2,7 +2,8 @@
 	position: fixed;
 	bottom: 0px;
 	z-index: 10;
-	background: black;
+	/*background: black;*/
+	background: #323232;
 	left: 0px;
 	width: 100%;
 	font-family: system-ui;
@@ -57,7 +58,7 @@
 #extension textarea {
 	padding: 20px;
 	outline: none;
-	background: #1a1a1a !important;
+	background: #3f3f3f !important;
 }
 #extension textarea {
 	width: 100%;
@@ -69,6 +70,13 @@
 
 #extension input {
 	border: 0px;
+}
+#extension input:focus{
+	outline: 1px solid aqua;
+	background: #5f5f5f !important;
+}
+#extension input::placeholder{
+	color: #c4c4c4;
 }
 
 #extension h5 {
@@ -145,6 +153,10 @@
 	gap: 4px;
 }
 
+#extension .btn-primary {
+	background: #7c7c7c;
+}
+
 #extension p,
 h5,
 h6 {
@@ -204,4 +216,28 @@ h6 {
 	height: 12px;
 	border-radius: 50%;
 	background: white;
+}
+
+#extension .title{
+	border: 1px solid #7c7c7c;
+	border-left: 0px;
+	border-right: 0px;
+}
+
+#extension .list-extension{
+    border: 1px solid #9c9c9c;
+    padding: 5px;
+    gap: 3px;
+    display: flex;
+    flex-direction: column;
+}
+#extension #list-component{
+    padding: 5px;
+    gap: 3px;
+    display: flex;
+    flex-direction: column;
+}
+
+#extension div[refs="bodyComponent"] > .sticky {
+	background: #323232 !important;
 }

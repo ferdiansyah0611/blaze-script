@@ -62,7 +62,7 @@ export default function Extension(keyApp) {
 					{/*console*/}
 					{this.state.openConsole && (
 						<div>
-							<div class="flex text-white" style="border-bottom: 1px solid #7c7c7c;">
+							<div class="flex text-white title">
 								<h5 class="p-2 flex-1 font-bold">Console</h5>
 								<button onClick={() => (this.state.console = [])} class="bg-gray-800 p-2">
 									Clear
@@ -98,7 +98,7 @@ export default function Extension(keyApp) {
 					{/*log*/}
 					{this.state.openLog && (
 						<div>
-							<div class="flex text-white" style="border-bottom: 1px solid #7c7c7c;">
+							<div class="flex text-white title">
 								<h5 class="p-2 flex-1 font-bold">Logger</h5>
 								<button onClick={this.clearLog} class="bg-gray-800 p-2">
 									Clear
@@ -123,12 +123,12 @@ export default function Extension(keyApp) {
 					{/*component*/}
 					{this.state.openComponent && (
 						<div>
-							<div class="flex text-white" style="border-bottom: 1px solid #7c7c7c;">
+							<div class="flex text-white title">
 								<h5 class="p-2 flex-1 font-bold">Component</h5>
 							</div>
 							<div class="flex">
 								<div refs="bodyComponent" style={"max-height: 50vh;overflow: auto;flex: 1;border-right: 1px solid #7c7c7c;"}>
-									<div class="sticky top-0 z-10 bg-black">
+									<div class="sticky top-0 z-10 p-2">
 										<input
 											onChangeValue={this.handleSearchComponent}
 											placeholder="Search component..."
@@ -147,7 +147,7 @@ export default function Extension(keyApp) {
 										))}
 									</div>
 								</div>
-								<div class="text-white flex-1" style={"max-height: 50vh;overflow: auto;max-width: 450px;"}>
+								<div class="text-white flex-1" style={"max-height: 50vh;overflow: auto;max-width: 450px;overflow-x: hidden;"}>
 									{this.state.selectComponent.constructor.name !== "Object" ? (
 										<div>
 											<div class="flex space-x-2 items-center p-2">
@@ -229,7 +229,7 @@ export default function Extension(keyApp) {
 												<h5 class="p-2 flex-1 font-bold">
 													More
 												</h5>
-												<div class="p-2 flex space-x-1">
+												<div class="p-2 flex space-x-2">
 													{
 														window.$test ?
 														<button onClick={this.runTest} class="bg-green-800 p-2 text-sm" d>
@@ -239,14 +239,14 @@ export default function Extension(keyApp) {
 													}
 													<button
 														onClick={() => this.state.selectComponent.$deep.trigger()}
-														class="bg-gray-800 p-2 text-sm"
+														class="btn-primary p-2 text-sm"
 													
 													>
 														Trigger
 													</button>
 													<button
 														onClick={() => this.state.selectComponent.$deep.remove()}
-														class="bg-gray-800 p-2 text-sm"
+														class="btn-primary p-2 text-sm"
 													
 													>
 														Remove
@@ -265,17 +265,17 @@ export default function Extension(keyApp) {
 				<div>
 					{this.state.open ? (
 						<div className="flex space-x-2 text-white text-sm p-2" style="border-top: 1px solid #7c7c7c;">
-							<a className="bg-gray-800 p-2" onClickPrevent={this.handleConsole} href="/">
+							<a className="btn-primary p-2" onClickPrevent={this.handleConsole} href="/">
 								Console
 							</a>
-							<a className="bg-gray-800 p-2" onClickPrevent={this.handleComponent} href="/">
+							<a className="btn-primary p-2" onClickPrevent={this.handleComponent} href="/">
 								Component
 							</a>
-							<a className="bg-gray-800 p-2" onClickPrevent={this.handleLog} href="/">
+							<a className="btn-primary p-2" onClickPrevent={this.handleLog} href="/">
 								Log
 							</a>
 							<div class="flex-1 flex justify-end items-center">
-								<a href="/" onClickPrevent={this.toggleOpen}>
+								<a className="flex items-center" href="/" onClickPrevent={this.toggleOpen}>
 									<span class="material-symbols-outlined">close</span>
 								</a>
 							</div>
@@ -401,9 +401,9 @@ const computedExtension = (computed, keyApp) => {
 							value &&
 							(current.dataset.search.match(value) || current.dataset.i.match(value))
 						) {
-							current.classList.add("bg-green-800");
+							current.style.color = 'aqua'
 						} else if (current) {
-							current.classList.remove("bg-green-800");
+							current.style.color = 'white'
 						}
 					});
 				},

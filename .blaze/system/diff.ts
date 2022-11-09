@@ -40,8 +40,6 @@ const diff = function (prev: Element, el: Element, component: Component, hmr: Co
 			prev["dataset"].i = el.key;
 			prev.key = el.key;
 
-			let difference = diff(prev, el, prev.$children || component, hmr);
-			difference.forEach((rechange: Function) => rechange());
 			nextDiffChildren(Array.from(prev.childNodes), el, prev.$children || component);
 		}
 	}
