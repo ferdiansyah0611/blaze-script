@@ -1,6 +1,7 @@
 import { batch } from "@blaze";
 import InputExtension from "./InputExtension";
 import ListExtension from "./ListExtension";
+import Dialog from "./Dialog";
 import Testing from "./Testing";
 import { App, Router } from "@root/system/global";
 
@@ -30,6 +31,11 @@ export default function Extension(keyApp) {
 			result: []
 		}
 	});
+	state("dialog", {
+		open: false,
+		data: {},
+		handle: null
+	})
 	created(() => {
 		let value = localStorage.getItem('extension')
 		if(value && value === "1") {
@@ -58,6 +64,12 @@ export default function Extension(keyApp) {
 	render(() => {
 		return (
 			<div id="extension" class={this.state.open ? "open" : "close"}>
+				<Dialog
+					open={this.dialog.open}
+					data={this.dialog.data}
+					handle={this.dialog.handle}
+					closeDialog={this.closeDialog}
+				/>
 				<div class={this.state.open ? "block" : "hidden"}>
 					{/*console*/}
 					{this.state.openConsole && (
@@ -170,6 +182,7 @@ export default function Extension(keyApp) {
 															value={this.state.selectComponent.props[item]}
 															disableMargin={true}
 															onChange={(val) => (this.state.selectComponent.props[item] = val)}
+															openDialog={this.openDialog}
 															key={i + 2000}
 														/>
 													))}
@@ -189,6 +202,7 @@ export default function Extension(keyApp) {
 																			value={this.state.selectComponent[item][state]}
 																			disableMargin={true}
 																			onChange={(val) => (this.state.selectComponent[item][state] = val)}
+																			openDialog={this.openDialog}
 																			key={i + 1}
 																		/>
 																	))}
@@ -211,6 +225,7 @@ export default function Extension(keyApp) {
 																		value={this.state.selectComponent["ctx"][item][state]}
 																		disableMargin={true}
 																		onChange={(val) => (this.state.selectComponent["ctx"][item][state] = val)}
+																		openDialog={this.openDialog}
 																		key={i + 1000}
 																	/>
 																))}
@@ -366,7 +381,7 @@ const computedExtension = (computed, keyApp) => {
 				runConsole: () => {
 					try {
 						this.state.console.push({
-							data: Function(`return arguments[0].$node.querySelector("#console").value`)(this),
+							data: Function(`return eval(arguments[0].$node.querySelector("#console").value)`)(this),
 							at: new Date(),
 						});
 						this.$deep.trigger();
@@ -407,6 +422,15 @@ const computedExtension = (computed, keyApp) => {
 						}
 					});
 				},
+				openDialog: (data, handle) => {
+					this.dialog.open = true
+					this.dialog.data = JSON.stringify(data)
+					this.dialog.handle = handle
+				},
+				closeDialog: () => {
+					this.dialog.open = false
+					this.dialog.data = ""
+				}
 			},
 			get: {
 				selectComponentState: () => {

@@ -48,22 +48,14 @@ export const withExtension = (entry: string, enabled: boolean) => {
 		blaze.onStartComponent.push((component) => {
 			let old = performance.now(),
 				now,
-				duration,
-				msg;
+				duration;
 			return () => {
 				now = performance.now();
 				duration = (now - old).toFixed(1);
-				msg = `[${component.constructor.name}] ${duration}ms`;
 				component.$deep.time = duration;
 				// extension
 				if (window.$extension && !component.disableExtension) {
 					batch(() => {
-						addLog(
-							{
-								msg,
-							},
-							false
-						);
 						if (!component.props.key) {
 							let warn = `[${component.constructor.name}] key is 0. it's work, but add key property if have more on this component.`;
 							addLog(

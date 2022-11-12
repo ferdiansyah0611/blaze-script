@@ -1,14 +1,16 @@
+:root{
+	--bz-border-primary: #7c7c7c;
+	--bz-bg-primary: #323232;
+}
+
 #extension {
 	position: fixed;
 	bottom: 0px;
 	z-index: 10;
-	/*background: black;*/
-	background: #323232;
+	background: var(--bz-bg-primary);
 	left: 0px;
 	width: 100%;
 	font-family: system-ui;
-}
-#extension .open {
 }
 
 #extension .close {
@@ -59,6 +61,7 @@
 	padding: 20px;
 	outline: none;
 	background: #3f3f3f !important;
+	border-style: 0px !important;
 }
 #extension textarea {
 	width: 100%;
@@ -122,7 +125,7 @@
 }
 
 #extension .border-b {
-	border-bottom: 1px solid #7c7c7c;
+	border-bottom: 1px solid var(--bz-border-primary);
 }
 
 #extension .text-gray-100 {
@@ -154,7 +157,10 @@
 }
 
 #extension .btn-primary {
-	background: #7c7c7c;
+	background: var(--bz-border-primary);
+}
+#extension .btn-secondary {
+	background: #ff5c5c;
 }
 
 #extension p,
@@ -219,7 +225,7 @@ h6 {
 }
 
 #extension .title{
-	border: 1px solid #7c7c7c;
+	border: 1px solid var(--bz-border-primary);
 	border-left: 0px;
 	border-right: 0px;
 }
@@ -239,5 +245,52 @@ h6 {
 }
 
 #extension div[refs="bodyComponent"] > .sticky {
-	background: #323232 !important;
+	background: var(--bz-bg-primary) !important;
+}
+
+#extension .dialog_root{
+	position: fixed;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100vh;
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: black;
+    visibility: hidden;
+}
+#extension .dialog_root.active{
+	visibility: visible !important;
+	z-index: 100;
+}
+#extension .dialog_root textarea{
+	height: 100%;
+	max-height: 100%;
+}
+#extension .dialog_root .dialog_body{
+	min-height: 300px;
+	max-width: 500px;
+	width: 100%;
+	background: #343434;
+}
+#extension .dialog_root .dialog_body .dialog_title{
+	padding: 10px !important;
+	border-bottom: 1px solid var(--bz-border-primary) !important;
+}
+#extension .dialog_root .dialog_body .dialog_title h1{
+	font-size: 18px !important;
+	font-weight: bold !important;
+}
+#extension .dialog_root .dialog_body .body{
+	max-height: 60vh !important;
+	overflow: auto !important;
+	outline: none !important;
+}
+#extension .dialog_root .dialog_body .action{
+	border-top: 1px solid var(--bz-border-primary);
+	padding: 10px;
+	display: flex;
+	gap: 5px;
 }
