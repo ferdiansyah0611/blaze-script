@@ -18,7 +18,7 @@ def tailwind():
     postcss.close()
     click.echo('~ write ' + "./postcss.config.js")
     # import
-    import_style = "import \"./style/app.sass\";\n"
+    import_style = "import \"./style/tailwind.sass\";\n"
     path_main = "./src/main.ts"
     main = open(path_main, "r")
     value = main.read()
@@ -31,7 +31,7 @@ def tailwind():
 
     # install
     click.echo("~ installing...")
-    os.system("npm install -D tailwindcss postcss autoprefixer && npx tailwindcss init")
+    os.system("npm install -D tailwindcss postcss autoprefixer sass && npx tailwindcss init")
     click.echo("~ done")
 
 @click.command('app:create', short_help='create new app')

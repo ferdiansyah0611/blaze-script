@@ -4,8 +4,12 @@ import { Component } from "@root/blaze.d";
 import { App, Router, HMR } from "@root/system/global";
 import { isComponent, isSameName } from "@root/system/constant";
 
-var firstPage = true;
-var popstate = false;
+/**
+ * declare global variable on router file
+ */
+var isFirstPage = true;
+var isPopstate = false;
+var isDisableHashChange = false;
 
 class EntityRouter {
 	app: any;
@@ -23,30 +27,55 @@ class EntityRouter {
 		let msg = `[Router] GET 200 ${url}`;
 		tool.run.found(msg);
 	}
-	static gotoNotFound(app, config, url, goto, tool) {
+	static gotoNotFound(app, config, url, goto, tool, isHash) {
 		let current = config.url.find(
 			(path) => path.path.length === 0 || (config.auto && path.path.indexOf("/404") !== -1)
 		);
 		let msg = `[Router] Not Found 404 ${url}`;
 		tool.run.error(msg);
 		if (current) {
+			let path = current.config.url || "/404";
+			if (isHash) {
+				path = '#' + path;
+				location.hash = path;
+			}
+			else if (!isPopstate) {
+				history.pushState(null, "", path);
+			}
 			goto(app, url, current.component, {});
 		} else {
 			console.warn("[notice] component for 404 pages is empty.");
 		}
 		return;
 	}
-	handling(url: string) {
-		if (firstPage) {
-			firstPage = false;
+	handling(url: string, isHash?: boolean) {
+		let urls = url;
+		let relocateHash = (hash) => {
+			isDisableHashChange = true;
+			location.hash = hash;
+			setTimeout(() => {
+				isDisableHashChange = false;
+			}, 0);
+		};
+		if (isHash && (!urls.length || urls === "/")) {
+			relocateHash("#/");
 			return;
 		}
-		if (popstate) {
-			history.replaceState(null, "", url);
-			popstate = false;
+		if (isHash) {
+			urls = "#" + (url ? url : "/");
+			relocateHash(urls);
+			return;
+		}
+		if (isFirstPage) {
+			isFirstPage = false;
+			return;
+		}
+		if (isPopstate) {
+			history.replaceState(null, "", urls);
+			isPopstate = false;
 			return;
 		} else {
-			history.pushState(null, "", url);
+			history.pushState(null, "", urls);
 		}
 	}
 	beforeEach(config: any): boolean {
@@ -108,14 +137,16 @@ type configFactoryRouter = {
 	split?: string;
 	customize?: {
 		render: (url: string, option: any) => any;
-	}
-}
+	};
+	hash?: boolean;
+};
 
 export const makeRouter = (entry: string, config: configFactoryRouter) => {
 	let tool;
-	let keyApplication = config.hasOwnProperty('key') ? config.key : 0;
+	let keyApplication = config.hasOwnProperty("key") ? config.key : 0;
 	let glob = {};
 	let isCustomize;
+	const isHash = config.hash === true;
 	const mappingConfig = (item) => {
 		if (config.config && config.config[item.path]) {
 			item.config = config.config[item.path];
@@ -175,7 +206,7 @@ export const makeRouter = (entry: string, config: configFactoryRouter) => {
 		}
 		let current;
 		if (entity) {
-			entity.handling(url);
+			entity.handling(url, isHash);
 			entity.setSearch(search, configure);
 		}
 
@@ -301,28 +332,35 @@ export const makeRouter = (entry: string, config: configFactoryRouter) => {
 				config,
 			});
 		}
+		if (isHash) {
+			url = uri.hash.slice(1);
+		}
+		if (!url.length) {
+			url = "/";
+		}
 
+		const handleOfNotfound = (urls) => EntityRouter.gotoNotFound(app, config, urls, goto, tool, isHash);
 		const { result, isValid, params, nested } = check(config, url);
 
 		if (isValid) {
 			// search
 			if (uri.search) url += uri.search;
 			if (result.config.search && uri.search) {
-				let searchNotEqual;
+				let isNotEqualSearch;
 
 				result.config.search.forEach((search) => {
 					if (uri.search.indexOf(search) === -1) {
-						searchNotEqual = true;
+						isNotEqualSearch = true;
 					}
 				});
 
-				if (searchNotEqual) {
-					EntityRouter.gotoNotFound(app, config, url, goto, tool);
+				if (isNotEqualSearch) {
+					handleOfNotfound(url);
 					return false;
 				}
 			}
 			if ((!result.config.search && uri.search) || (result.config.search && !uri.search)) {
-				return EntityRouter.gotoNotFound(app, config, url, goto, tool);
+				return handleOfNotfound(url);
 			}
 
 			const entity = new EntityRouter(app, config, tool);
@@ -331,10 +369,9 @@ export const makeRouter = (entry: string, config: configFactoryRouter) => {
 
 			EntityRouter.change(url, tool);
 			EntityRouter.found(url, tool);
-
 			return goto(app, url, result.component, result.config, params, uri.search, entity, nested);
 		} else {
-			return EntityRouter.gotoNotFound(app, config, url, goto, tool);
+			return handleOfNotfound(url);
 		}
 	};
 	return (app: Component, blaze, hmr, keyApp) => {
@@ -350,6 +387,7 @@ export const makeRouter = (entry: string, config: configFactoryRouter) => {
 			},
 			ready,
 			hmr,
+			config,
 			go(goNumber: number) {
 				history.go(goNumber);
 			},
@@ -367,7 +405,7 @@ export const makeRouter = (entry: string, config: configFactoryRouter) => {
 				if (!url.origin) {
 					url = new URL(url);
 				}
-				if ((url.search && url.search !== location.search) || !(url.pathname === location.pathname)) {
+				if ((url.search && url.search !== location.search) || !(url.pathname === location.pathname) || isHash) {
 					ready(app, url);
 				}
 			},
@@ -392,6 +430,17 @@ export const makeRouter = (entry: string, config: configFactoryRouter) => {
 		keyApplication = keyApp;
 
 		/**
+		 * @makeHashLink
+		 * make hash link element
+		 */
+		function makeHashLink(href) {
+			let split = href.split("/");
+			let root = split.slice(0, 3).join("/");
+			let path = split.slice(3).join("/");
+			return root + "/#/" + path;
+		}
+
+		/**
 		 * @onMakeElement
 		 * on a element and dataset link is router link
 		 */
@@ -404,13 +453,18 @@ export const makeRouter = (entry: string, config: configFactoryRouter) => {
 					if (url.search) {
 						el.dataset.href += url.search;
 					}
+					if (isHash) {
+						el.dataset.href = makeHashLink(el.dataset.href);
+					}
 					el.href = el.dataset.href;
+				} else if (isHash) {
+					el.href = makeHashLink(el.href);
 				}
 				el.$router = true;
 				el.addEventListener("click", (e: any) => {
 					e.preventDefault();
 					tool.push(new URL(config.resolve ? e.currentTarget.dataset.href : el.href));
-					popstate = false;
+					isPopstate = false;
 				});
 			}
 		});
@@ -420,7 +474,7 @@ export const makeRouter = (entry: string, config: configFactoryRouter) => {
 		 * inject router to always component
 		 */
 		blaze.onMakeComponent.push((component) => {
-			if(!component.$router) {
+			if (!component.$router) {
 				Object.defineProperty(component, "$router", {
 					get: () => {
 						return tool;
@@ -441,13 +495,11 @@ export const makeRouter = (entry: string, config: configFactoryRouter) => {
 			let loader = tool.loader;
 			let createApp = App.get(keyApp);
 			let newComponent = updateComponent.find(
-				(newComponents) =>
-					isSameName(component, newComponents) && isComponent(newComponents)
+				(newComponents) => isSameName(component, newComponents) && isComponent(newComponents)
 			);
-			if(loader) {
+			if (loader) {
 				let findLoader = updateComponent.find(
-					(newComponents) =>
-						isSameName(loader, newComponents) && isComponent(newComponents)
+					(newComponents) => isSameName(loader, newComponents) && isComponent(newComponents)
 				);
 				if (findLoader) {
 					Object.assign(tool, {
@@ -465,9 +517,7 @@ export const makeRouter = (entry: string, config: configFactoryRouter) => {
 					);
 					HMR.set(newComponent);
 				}
-				component.$deep.registry.map((data) =>
-					createApp.reloadRegistry(data, component)
-				);
+				component.$deep.registry.map((data) => createApp.reloadRegistry(data, component));
 			}
 		});
 	};
@@ -546,10 +596,18 @@ export const startIn = (component: Component, loader?: Function) => {
 		router.ready(component);
 		window.addEventListener("popstate", () => {
 			if (!location.hash) {
-				popstate = true;
+				isPopstate = true;
 				router.ready(component, location);
 			}
 		});
+		if (router.config.hash) {
+			window.addEventListener("hashchange", () => {
+				if (!isDisableHashChange) {
+					isPopstate = true;
+					router.ready(component, location);
+				}
+			});
+		}
 	}, component);
 };
 
