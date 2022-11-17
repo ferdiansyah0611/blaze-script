@@ -470,10 +470,10 @@ export const makeRouter = (entry: string, config: configFactoryRouter) => {
 		});
 
 		/**
-		 * @onMakeComponent
+		 * @onStartComponent
 		 * inject router to always component
 		 */
-		blaze.onMakeComponent.push((component) => {
+		blaze.onStartComponent.push((component) => {
 			if (!component.$router) {
 				Object.defineProperty(component, "$router", {
 					get: () => {
