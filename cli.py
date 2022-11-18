@@ -9,18 +9,19 @@ def make_plus(text):
 def cli():
     pass
 
-@click.command('version', short_help='check the latest version and auto update')
+@click.command('app:version', short_help='check the latest version and auto update')
 def version():
     try:
         import requests, json, shutil, zipfile
         click.echo(make_plus('check the latest version'))
+        is_npmi = False
         # read package
-        package = open("./package.json", "r")
-        version_local = json.loads(package.read())['version']
+        package_local = open("./package.json", "r")
+        package_local_json = json.loads(package_local.read())
         response = requests.get("https://api.github.com/repos/ferdiansyah0611/blaze-script/releases/latest")
         data = response.json()
-        if version_local == data['tag_name']:
-            click.echo(make_plus('version local is uptodate'))
+        if package_local_json['version'] == data['tag_name']:
+            click.echo(make_plus('version local is up-to-date'))
             return
         click.echo(make_plus('update to v' + data['tag_name']))
         # download
@@ -36,13 +37,32 @@ def version():
         click.echo(make_plus('copy system & package'))
         root = os.listdir("temporary")
         roots = 'temporary/' + root[0]
+        package_temp = open(roots + "/package.json", "r")
+        package_temp_json = json.loads(package_temp.read())
         shutil.copytree(roots + '/.blaze', '.blaze', dirs_exist_ok=True)
-        shutil.copyfile(roots + '/package.json', 'package.json')
+        package_local_json['version'] = package_temp_json['version']
+        for x in package_local_json['devDependencies']:
+            if package_local_json['devDependencies'][x] != package_temp_json['devDependencies'][x]:
+                package_local_json['devDependencies'][x] = package_temp_json['devDependencies'][x]
+                is_npmi = True
+        for x in package_local_json['dependencies']:
+            if package_local_json['dependencies'][x] != package_temp_json['dependencies'][x]:
+                package_local_json['dependencies'][x] = package_temp_json['dependencies'][x]
+                is_npmi = True
+        package_local_save = open("package.json", "w")
+        with open("package.json", "w") as save:
+            save.write(json.dumps(package_local_json))
+            save.close()
         # clear temporary
+        package_temp.close()
+        package_local.close()
         click.echo(make_plus('clear temporary file'))
         shutil.rmtree('temporary', ignore_errors=True)
         os.remove('temporaries.zip')
+        # success
         click.echo(make_plus('sucessfuly update blaze-script'))
+        if is_npmi:
+            click.echo(make_plus('NOTE: YOU MUST RUN `npm i` TO UPDATE PACKAGE'))
     except Exception as e:
         raise e
 
