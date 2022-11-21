@@ -10,14 +10,14 @@
 -   Lifecycle
 -   JSX Syntax
 -   Batch
--   Navigation, Cache Request, Error Handling And More
+-   Navigation, Cache Request, Form Validation And More
 -   Uses few third-party packages
 -   Reactive Effect
 
 ## Installation
 
 ```bash
-git clone git@github.com:ferdiansyah0611/blaze-script.git myapp && cd myapp && npm i
+git clone git@github.com:ferdiansyah0611/blaze-script.git myapp --depth 1 && cd myapp && npm i
 ```
 
 By default, typescript is not installed in node_modules and we use tsc globally. if you haven't installed typescript on your device, you can install it using `npm i typescript`
@@ -26,9 +26,7 @@ By default, typescript is not installed in node_modules and we use tsc globally.
 
 ```tsx
 // Apps.tsx
-import App, { init } from "@blaze";
-import { createApp } from "@root/render";
-import withError from "@root/plugin/error";
+import { init } from "@blaze";
 
 export default function Apps() {
     const { render } = init(this);
@@ -40,12 +38,10 @@ export default function Apps() {
 // main.ts
 import MyApp from "@/Apps";
 import { createApp } from "@root/render";
-import withError from "@root/plugin/error";
 
-const app = new createApp("#app", MyApp, {
+const app = new createApp(MyApp, {
     dev: false,
 });
-app.use(withError());
 app.mount();
 ```
 

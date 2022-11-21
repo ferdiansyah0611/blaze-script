@@ -18,14 +18,18 @@ export class createApp implements AppType {
 	plugin: any[];
 	blaze: BlazeType;
 	config: any;
-	constructor(el: string, component: any, config?: any) {
-		this.el = el;
+	constructor(component: any, config?: any) {
 		this.component = component;
 		this.config = config;
 		this.config.key = App.set(this) - 1;
 		this.blaze = new Blaze();
 		this.plugin = [];
 		this.use(withError());
+		// create root element
+		this.el = "#app-" + this.config.key;
+		let root = document.createElement("div");
+		root.id = this.el.slice(1);
+		document.body.appendChild(root);
 	}
 	componentProcess({ component, newComponent, key, previous }: ComponentProcessArgType) {
 		let error = window.$error;
@@ -40,7 +44,7 @@ export class createApp implements AppType {
 
 			let old = new Lifecycle(component);
 			old.unmount();
-			newComponent['$root'] = component['$root']
+			newComponent["$root"] = component["$root"];
 
 			newComponent = this.componentUpdate(component, newComponent);
 			const result = rendering(
@@ -154,7 +158,10 @@ export class createApp implements AppType {
 			(newComponents) => isSameName(component, newComponents) && isComponent(newComponents)
 		);
 		if (newComponent) {
-			Object.assign(component, this.componentProcess({ component, newComponent, key: component.props.key, previous }));
+			Object.assign(
+				component,
+				this.componentProcess({ component, newComponent, key: component.props.key, previous })
+			);
 			component["__proto__"].constructor = newComponent;
 		}
 		component.$deep.registry.map((data) => this.reloadRegistry(data, component));
@@ -199,7 +206,6 @@ export class createApp implements AppType {
 	}
 	mount() {
 		document.addEventListener("DOMContentLoaded", () => {
-
 			const app = new EntityRender(this.component, {
 				inject: {
 					$config: this.config,
@@ -238,8 +244,8 @@ export class Blaze implements BlazeType {
 	onStartComponent = [];
 	onEndComponent = [];
 	onDirective = [];
-	get run(){
-		return{
+	get run() {
+		return {
 			onMakeElement: (el) => this.onMakeElement.forEach((item) => item(el)),
 			onMakeComponent: (component) => this.onMakeComponent.forEach((item) => item(component)),
 			onAfterAppReady: (component) => this.onAfterAppReady.forEach((item) => item(component)),
@@ -247,14 +253,14 @@ export class Blaze implements BlazeType {
 			onStartComponent: (component) => {
 				let endPerform = [];
 				this.onStartComponent.forEach((item) => endPerform.push(item(component)));
-		
+
 				return () => {
 					endPerform.forEach((item) => item && item());
 				};
 			},
 			onEndComponent: (component) => this.onEndComponent.forEach((item) => item(component)),
-			onDirective: (prev, el, opt) => this.onDirective.forEach((item) => item(prev, el, opt))
-		}
+			onDirective: (prev, el, opt) => this.onDirective.forEach((item) => item(prev, el, opt)),
+		};
 	}
 }
 

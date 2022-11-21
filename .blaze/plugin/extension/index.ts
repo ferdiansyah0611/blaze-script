@@ -28,11 +28,17 @@ export const addComponent = (data, trigger = true) => {
 	}
 };
 
-export const withExtension = (entry: string, enabled: boolean) => {
+export const withExtension = (enabled: boolean) => {
 	return (_a, blaze, _c, keyApp) => {
+		let entry = 'app-extensions'
 		let query = document.querySelector(entry);
 		// remove !window.$extension if develop extension
-		if (query && enabled && !window.$extension) {
+		if (enabled && !window.$extension) {
+			if (!query) {
+				query = document.createElement('div')
+				query.setAttribute('id', entry)
+				document.body.appendChild(query)
+			}
 			let component = new Extension(keyApp);
 			let link = document.createElement("link");
 			link.rel = "stylesheet";

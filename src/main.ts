@@ -8,7 +8,7 @@ import Index from "./route/Index";
 import PageExample from "./route/Page";
 import NotFound from "./route/404";
 
-const app = new createApp("#app", Apps, {
+const app = new createApp(Apps, {
     dev: import.meta.env.DEV,
 });
 app.use(
